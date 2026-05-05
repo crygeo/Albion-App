@@ -10,4 +10,3 @@ namespace Albion_App;
 public partial class App : Application
 {
 }
-
