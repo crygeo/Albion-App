@@ -1,12 +1,23 @@
-﻿<Window x:Class="Albion_App.MainWindow"
+<Window x:Class="Albion_App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Albion_App"
+        xmlns:def="clr-namespace:Albion_App.Features.DataStatic"
+        xmlns:vm="clr-namespace:Albion_App"
+        xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="Albion App" Height="700" Width="1100"
+        d:DataContext="{d:DesignInstance Type=vm:MainVm}"
+        Style="{StaticResource MaterialDesignWindow}">
 
-    </Grid>
+    <!--
+        DialogHost anidados: Progress (exterior) y Main (interior).
+        MainV hereda el DataContext=MainVM de la ventana.
+    -->
+    <md:DialogHost Identifier="{x:Static def:DialogDefaults.Progress}">
+        <md:DialogHost Identifier="{x:Static def:DialogDefaults.Main}">
+            <vm:MainV/>
+        </md:DialogHost>
+    </md:DialogHost>
 </Window>

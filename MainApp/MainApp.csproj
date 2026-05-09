@@ -9,4 +9,31 @@
         <UseWPF>true</UseWPF>
     </PropertyGroup>
 
+    <ItemGroup>
+      <!-- Capas de arquitectura limpia de AlbionApp -->
+      <ProjectReference Include="..\..\..\source\repos\InventarioSINC\Utilidades\Utilidades.csproj" />
+      <ProjectReference Include="..\..\LibSolutions\LibNavegation\LibNavegation.csproj" />
+      <ProjectReference Include="..\AlbionApp.Application\AlbionApp.Application.csproj" />
+      <ProjectReference Include="..\AlbionApp.Infrastructure\AlbionApp.Infrastructure.csproj" />
+      <!-- Librerías de infraestructura compartida (protocolo de red, routing) -->
+      <ProjectReference Include="..\..\LibSolutions\LibAlbionProtocol\LibAlbionProtocol.csproj" />
+      <ProjectReference Include="..\..\LibSolutions\LibAlbionRouting\LibAlbionRouting.csproj" />
+      <ProjectReference Include="..\..\LibSolutions\LibNetWork\LibNetWork.csproj" />
+      <!-- LibAlbionData queda como transitiva via AlbionApp.Infrastructure -->
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+      <PackageReference Include="MaterialDesignColors" Version="5.3.2" />
+      <PackageReference Include="MaterialDesignThemes" Version="5.3.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Page Update="src\Helpers\Template.xaml">
+        <Generator>MSBuild:Compile</Generator>
+        <XamlRuntime>Wpf</XamlRuntime>
+        <SubType>Designer</SubType>
+      </Page>
+    </ItemGroup>
+
 </Project>

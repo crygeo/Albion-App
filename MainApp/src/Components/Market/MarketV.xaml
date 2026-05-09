@@ -1,0 +1,345 @@
+<UserControl x:Class="Albion_App.Components.Market.MarketV"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:vm="clr-namespace:Albion_App.Components.Market"
+             xmlns:helpers="clr-namespace:Albion_App.Helpers"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:MarketVm}">
+
+    <UserControl.Resources>
+
+        <!-- Proxy: permite bindear al ViewModel desde dentro del HierarchicalDataTemplate -->
+        <helpers:BindingProxy x:Key="VmProxy" Data="{Binding}" />
+
+        <!-- Converters -->
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />  <!-- Barra de filtros -->
+            <RowDefinition Height="*" />     <!-- WrapPanel de ítems -->
+            <RowDefinition Height="Auto" />  <!-- Footer contador -->
+        </Grid.RowDefinitions>
+
+        <!-- ══ BARRA DE FILTROS ══════════════════════════════════════════════ -->
+        <Border Grid.Row="0"
+                BorderBrush="{DynamicResource MaterialDesign.Brush.Divider}"
+                BorderThickness="0 0 0 1"
+                Padding="8 6">
+            <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+                <!-- ── Tipo: Menú en cascada ──────────────────────────────── -->
+                <!--
+                    El estilo implícito en Menu.Resources se propaga automáticamente
+                    a TODOS los MenuItem generados en cualquier nivel del árbol.
+                    El MenuItem raíz ("Tipo") anula Header y suprime Command localmente.
+                -->
+                <Menu VerticalAlignment="Center" Margin="0 0 2 0">
+                    <Menu.Resources>
+                        <!--
+                            Estilo implícito: aplica a todos los MenuItem hijos generados
+                            dinámicamente, sin importar la profundidad del árbol.
+                        -->
+                        <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                            <Setter Property="Header" Value="{Binding DisplayName}" />
+                            <Setter Property="ItemsSource" Value="{Binding MenuItems}" />
+                            <Setter Property="Command" Value="{Binding Source={StaticResource VmProxy}, Path=Data.SelectCategoryCommand}" />
+                            <Setter Property="CommandParameter" Value="{Binding}" />
+                        </Style>
+                    </Menu.Resources>
+
+                    <!--
+                        MenuItem raíz: Header y Command se anulan con valores locales
+                        (mayor prioridad que el estilo implícito en WPF).
+                    -->
+                    <MenuItem Header="{Binding CategoryLabel, FallbackValue='Tipo'}"
+                              ItemsSource="{Binding CategoryTree}"
+                              Command="{x:Null}" />
+                </Menu>
+
+                <!-- ── Limpiar filtro de tipo ─────────────────────────────── -->
+                <Button Style="{StaticResource MaterialDesignIconButton}"
+                        Command="{Binding ClearCategoryCommand}"
+                        ToolTip="Limpiar tipo"
+                        VerticalAlignment="Center"
+                        Margin="0 0 8 0">
+                    <md:PackIcon Kind="FilterRemove" Width="16" Height="16" />
+                </Button>
+
+                <!-- ── Nivel ─────────────────────────────────────────────── -->
+                <ComboBox Width="145"
+                          Margin="0 0 8 0"
+                          VerticalAlignment="Center"
+                          ItemsSource="{Binding LevelOptions}"
+                          SelectedItem="{Binding SelectedLevel}"
+                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                          md:HintAssist.Hint="Nivel"
+                          md:HintAssist.IsFloating="False">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Label}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <!-- ── Encantamiento ──────────────────────────────────────── -->
+                <ComboBox Width="175"
+                          Margin="0 0 8 0"
+                          VerticalAlignment="Center"
+                          ItemsSource="{Binding EnchantmentOptions}"
+                          SelectedItem="{Binding SelectedEnchantment}"
+                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                          md:HintAssist.Hint="Encantamiento"
+                          md:HintAssist.IsFloating="False">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Label}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <!-- ── Búsqueda por texto ────────────────────────────────── -->
+                <TextBox Width="200"
+                         Margin="0 0 8 0"
+                         VerticalAlignment="Center"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         md:HintAssist.Hint="Buscar (t4, .3, nombre…)"
+                         md:HintAssist.IsFloating="False"
+                         md:TextFieldAssist.HasClearButton="True"
+                         FontSize="12" />
+
+                <!-- ── Spinner de carga ───────────────────────────────────── -->
+                <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}"
+                             Value="0"
+                             IsIndeterminate="True"
+                             Width="20" Height="20"
+                             VerticalAlignment="Center"
+                             Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
+
+            </WrapPanel>
+        </Border>
+
+        <!-- ══ ÁREA DE ÍTEMS ═════════════════════════════════════════════════ -->
+        <Grid Grid.Row="1">
+
+            <!-- Mensaje vacío -->
+            <TextBlock Text="Selecciona un filtro para ver ítems"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                       FontSize="14"
+                       Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}" />
+
+            <!-- ListBox de tiles — SelectionMode=Single para que SelectedItem funcione.
+                 ScrollViewer externo eliminado: ListBox ya tiene uno interno.
+                 CanContentScroll=False requerido porque WrapPanel no implementa
+                 IScrollInfo por ítem — sin esto el scroll no funciona con WrapPanel.
+                 Virtualización desactivada: WrapPanel no la soporta. -->
+            <ListBox ItemsSource="{Binding Items}"
+                     SelectedItem="{Binding SelectedItem}"
+                     SelectionMode="Single"
+                     Margin="8"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     ScrollViewer.CanContentScroll="False"
+                     VirtualizingPanel.IsVirtualizing="False">
+
+                <!-- Panel envolvente -->
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+
+                <!-- Eliminar el chrome del ListBoxItem (fondo azul, padding, etc.)
+                         La selección se visualiza dentro del DataTemplate via RelativeSource -->
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="Margin" Value="0" />
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <ContentPresenter />
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <!-- Tile 64×64: imagen + badge tier, tooltip con nombre.
+                                 Border.Style gestiona colores de selección y hover via
+                                 DataTrigger sobre el ListBoxItem ancestro. -->
+                        <Border Width="64" Height="64"
+                                Margin="4"
+                                CornerRadius="4"
+                                Cursor="Hand">
+
+                            <!-- Estilo con triggers de selección/hover via ancestro ListBoxItem -->
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background"
+                                            Value="{DynamicResource MaterialDesign.Brush.CardBackground}" />
+                                    <Setter Property="BorderBrush"
+                                            Value="{DynamicResource MaterialDesign.Brush.Divider}" />
+                                    <Setter Property="BorderThickness" Value="1" />
+                                    <Style.Triggers>
+                                        <DataTrigger
+                                            Binding="{Binding IsSelected,
+                                                                   RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                            Value="True">
+                                            <Setter Property="BorderBrush"
+                                                    Value="{DynamicResource MaterialDesign.Brush.Primary}" />
+                                            <Setter Property="BorderThickness" Value="2" />
+                                        </DataTrigger>
+                                        <DataTrigger
+                                            Binding="{Binding IsMouseOver,
+                                                                   RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                            Value="True">
+                                            <Setter Property="Background"
+                                                    Value="{DynamicResource MaterialDesign.Brush.Divider}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+
+                            <Border.ToolTip>
+                                <ToolTip>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   FontWeight="Medium"
+                                                   FontSize="13" />
+                                        <TextBlock Text="{Binding TierLabel}"
+                                                   Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                                                   FontSize="11"
+                                                   Margin="0 2 0 0" />
+                                    </StackPanel>
+                                </ToolTip>
+                            </Border.ToolTip>
+
+                            <Grid>
+                                <!-- Imagen cargada asincrónamente por SearchableItemVM.
+                                         Null mientras descarga (tile vacío) → se rellena
+                                         reactivamente cuando LoadImageAsync termina. -->
+                                    
+                                <Grid Background="Transparent">
+
+                                    <!-- Loading -->
+                                    <ProgressBar 
+                                                 IsIndeterminate="True"
+                                                 Width="20"
+                                                 Height="20"
+                                                 VerticalAlignment="Center"
+                                                 HorizontalAlignment="Center">
+
+                                        <ProgressBar.Style>
+                                            <Style TargetType="ProgressBar" BasedOn="{StaticResource MaterialDesignCircularProgressBar}">
+
+                                                <Setter Property="Visibility"
+                                                        Value="Collapsed"/>
+
+                                                <Style.Triggers>
+
+                                                    <!-- Mostrar cuando no hay imagen -->
+                                                    <DataTrigger Binding="{Binding Image}"
+                                                                 Value="{x:Null}">
+                        
+                                                        <Setter Property="Visibility"
+                                                                Value="Visible"/>
+
+                                                    </DataTrigger>
+
+                                                </Style.Triggers>
+
+                                            </Style>
+                                        </ProgressBar.Style>
+
+                                    </ProgressBar>
+
+
+                                    <!-- Imagen -->
+                                    <Image Source="{Binding Image}"
+                                           Stretch="Uniform"
+                                           RenderOptions.BitmapScalingMode="HighQuality">
+
+                                        <Image.Style>
+                                            <Style TargetType="Image">
+
+                                                <Setter Property="Visibility"
+                                                        Value="Visible"/>
+
+                                                <Style.Triggers>
+
+                                                    <DataTrigger Binding="{Binding Image}"
+                                                                 Value="{x:Null}">
+                        
+                                                        <Setter Property="Visibility"
+                                                                Value="Collapsed"/>
+
+                                                    </DataTrigger>
+
+                                                </Style.Triggers>
+
+                                            </Style>
+                                        </Image.Style>
+
+                                    </Image>
+
+                                </Grid>
+                                
+                                
+
+                                <!-- Badge de tier (visible sólo si TierLabel no está vacío) -->
+                                <Border CornerRadius="3"
+                                        Padding="3 1"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Bottom"
+                                        Margin="0 0 2 2"
+                                        Background="{DynamicResource MaterialDesign.Brush.Primary.Dark}">
+                                    <TextBlock Text="{Binding TierLabel}"
+                                               Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+                                               FontSize="9"
+                                               FontWeight="Bold" />
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding TierLabel}"
+                                                             Value="">
+                                                    <Setter Property="Visibility"
+                                                            Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+
+        <!-- ══ FOOTER ════════════════════════════════════════════════════════ -->
+        <Border Grid.Row="2"
+                BorderBrush="{DynamicResource MaterialDesign.Brush.Divider}"
+                BorderThickness="0 1 0 0"
+                Padding="12 4">
+            <TextBlock Foreground="{DynamicResource MaterialDesign.Brush.Primary.Dark.Foreground}"
+                       FontSize="11">
+                <Run Text="{Binding ItemCount, Mode=OneWay}" />
+                <Run Text="ítem(s) encontrado(s)" />
+            </TextBlock>
+        </Border>
+
+    </Grid>
+</UserControl>
