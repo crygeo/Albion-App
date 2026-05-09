@@ -6,6 +6,7 @@
              xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:vm="clr-namespace:Albion_App.Components.Market"
              xmlns:helpers="clr-namespace:Albion_App.Helpers"
+             xmlns:vwp="clr-namespace:WpfToolkit.Controls;assembly=VirtualizingWrapPanel"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:MarketVm}">
 
@@ -136,24 +137,43 @@
                        FontSize="14"
                        Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}" />
 
-            <!-- ListBox de tiles — SelectionMode=Single para que SelectedItem funcione.
-                 ScrollViewer externo eliminado: ListBox ya tiene uno interno.
-                 CanContentScroll=False requerido porque WrapPanel no implementa
-                 IScrollInfo por ítem — sin esto el scroll no funciona con WrapPanel.
-                 Virtualización desactivada: WrapPanel no la soporta. -->
+            <!-- ListBox de tiles con virtualización por filas vía VirtualizingWrapPanel
+                 (paquete NuGet WpfToolkit.Controls/VirtualizingWrapPanel).
+
+                 Por qué este panel y no <WrapPanel>:
+                  - WrapPanel del framework NO implementa IScrollInfo por ítem y NO
+                    soporta virtualización: instancia los 300 DataTemplates a la vez,
+                    lo que congela la UI durante ~300-1000ms al volcar resultados.
+                  - VirtualizingWrapPanel sí implementa IScrollInfo y reusa contenedores
+                    (VirtualizationMode=Recycling), por lo que sólo materializa los
+                    ~30 tiles visibles en pantalla.
+
+                 Configuración relevante:
+                  - CanContentScroll=True → scroll por ítem/fila (no por píxel) para
+                    permitir virtualización.
+                  - VirtualizationMode=Recycling → reusa ListBoxItem en vez de crear
+                    uno nuevo por cada scroll.
+                  - SpacingMode=Uniform → reparte el espacio sobrante uniformemente
+                    entre los tiles, en lugar de dejar todo el hueco a la derecha. -->
             <ListBox ItemsSource="{Binding Items}"
                      SelectedItem="{Binding SelectedItem}"
                      SelectionMode="Single"
                      Margin="8"
                      ScrollViewer.VerticalScrollBarVisibility="Auto"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                     ScrollViewer.CanContentScroll="False"
-                     VirtualizingPanel.IsVirtualizing="False">
+                     ScrollViewer.CanContentScroll="True"
+                     VirtualizingPanel.IsVirtualizing="True"
+                     VirtualizingPanel.VirtualizationMode="Recycling"
+                     VirtualizingPanel.ScrollUnit="Pixel"
+                     VirtualizingPanel.CacheLengthUnit="Item"
+                     VirtualizingPanel.CacheLength="50,50">
 
-                <!-- Panel envolvente -->
+                <!-- Panel envolvente con virtualización -->
                 <ListBox.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <WrapPanel Orientation="Horizontal" />
+                        <vwp:VirtualizingWrapPanel Orientation="Horizontal"
+                                                   SpacingMode="Uniform"
+                                                   StretchItems="False" />
                     </ItemsPanelTemplate>
                 </ListBox.ItemsPanel>
 

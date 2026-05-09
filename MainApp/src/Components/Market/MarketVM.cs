@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+using Albion_App.Helpers;
 using AlbionApp.Application.UseCases.SearchItems;
 using AlbionApp.Domain.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -68,7 +68,12 @@ public sealed partial class MarketVm : ObservableObject
 
     // ── Resultados ────────────────────────────────────────────────────────────
 
-    public ObservableCollection<ItemBaseVm> Items { get; } = [];
+    /// <summary>
+    /// Resultados de la última búsqueda. Se usa <see cref="RangeObservableCollection{T}"/>
+    /// para volcar los hits con UNA sola notificación Reset (vs ~600 notifications
+    /// por Clear + 300 Add con la ObservableCollection estándar).
+    /// </summary>
+    public RangeObservableCollection<ItemBaseVm> Items { get; } = [];
 
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsEmpty))]
     private int _itemCount;
@@ -183,9 +188,10 @@ public sealed partial class MarketVm : ObservableObject
 
             App.Current.Dispatcher.Invoke(() =>
             {
-                Items.Clear();
-                foreach (var vm in vms)
-                    Items.Add(vm);
+                // ReplaceAll: una sola notificación Reset en lugar de Clear + N×Add.
+                // Combinado con la virtualización del WrapPanel del ListBox, esto
+                // elimina el freeze al volcar 300 ítems.
+                Items.ReplaceAll(vms);
                 ItemCount = Items.Count;
             });
         }
