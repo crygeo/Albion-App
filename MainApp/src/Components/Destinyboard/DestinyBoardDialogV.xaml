@@ -1,0 +1,19 @@
+<UserControl x:Class="Albion_App.Components.Destinyboard.DestinyBoardDialogV"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Albion_App.Components.Destinyboard"
+             xmlns:db="clr-namespace:Albion_App.Components.Destinyboard"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d"
+             d:DesignHeight="300" d:DesignWidth="300"
+             d:DataContext="{d:DesignInstance db:DestinyBoardVm}">
+    
+    <md:Card>
+        <StackPanel>
+            <db:DestinyBoardV DataContext="{Binding }"/>
+            <Button Content="Cerrar" Command="{Binding AceptarCommand, RelativeSource={RelativeSource AncestorType=db:DestinyBoardDialogV}}" />
+        </StackPanel>
+    </md:Card>
+</UserControl>

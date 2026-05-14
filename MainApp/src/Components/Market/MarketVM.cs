@@ -1,4 +1,10 @@
+using System.Diagnostics;
+using System.IO;
+using System.Windows;
+using System.Windows.Media.Imaging;
+using Albion_App.Components.Item;
 using Albion_App.Helpers;
+using AlbionApp.Application.Interfaces;
 using AlbionApp.Application.UseCases.SearchItems;
 using AlbionApp.Domain.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -40,6 +46,7 @@ public sealed partial class MarketVm : ObservableObject
     private readonly ISearchItemsUseCase _searchItems;
     private readonly ILocalizationService _localization;
     private readonly ItemBaseVmFactory _vmFactory;
+    private readonly IClipboardService _clipboardService;
 
     private CancellationTokenSource? _filterCts;
 
@@ -94,21 +101,23 @@ public sealed partial class MarketVm : ObservableObject
     /// <param name="localization">Sólo para el idioma activo y construir el árbol de categorías.</param>
     /// <param name="categoryDataService">Provee el árbol de categorías raw del juego.</param>
     /// <param name="vmFactory">Fábrica de VMs de ítem (encapsula los servicios necesarios).</param>
+    /// <param name="clipboardService">Servicio para copiar la imagen del item al portapapeles.</param>
     public MarketVm(
         ISearchItemsUseCase searchItems,
         ILocalizationService localization,
         ICategoryDataService categoryDataService,
-        ItemBaseVmFactory vmFactory)
+        ItemBaseVmFactory vmFactory,
+        IClipboardService clipboardService)
     {
         _searchItems = searchItems ?? throw new ArgumentNullException(nameof(searchItems));
         _localization = localization ?? throw new ArgumentNullException(nameof(localization));
         _vmFactory = vmFactory ?? throw new ArgumentNullException(nameof(vmFactory));
+        _clipboardService = clipboardService ?? throw new ArgumentNullException(nameof(clipboardService));
 
         _selectedLevel = FilterOptionM.LevelOptions[0];
         _selectedEnchantment = FilterOptionM.EnchantmentOptions[0];
 
         _categoryTree = BuildCategoryTree(categoryDataService, localization);
-
     }
 
     // ── Comandos ──────────────────────────────────────────────────────────────
@@ -129,6 +138,23 @@ public sealed partial class MarketVm : ObservableObject
         TriggerSearch();
     }
 
+    [RelayCommand]
+    private void CopyItemImage(ItemBaseVm item)
+    {
+        if (item.ImageBytes is not { Length: > 0 })
+            return;
+
+        _clipboardService.SetImage(item.ImageBytes);
+    }
+    
+    [RelayCommand]
+    private void CopyItemName(ItemBaseVm item)
+    {
+        if (string.IsNullOrWhiteSpace(item.DisplayName))
+            return;
+
+        _clipboardService.SetText(item.DisplayName);
+    }
     // ── Reacciones a cambios de filtro ────────────────────────────────────────
 
     partial void OnSearchTextChanged(string value) => TriggerSearch();
@@ -151,7 +177,6 @@ public sealed partial class MarketVm : ObservableObject
 
     private async Task SearchAsync(CancellationToken ct)
     {
-        // Debounce: 250 ms para evitar búsquedas redundantes durante escritura rápida.
         try
         {
             await Task.Delay(DebounceMs, ct).ConfigureAwait(false);
@@ -174,26 +199,48 @@ public sealed partial class MarketVm : ObservableObject
                 EnchantmentFilter: SelectedEnchantment.Value,
                 MinCategoryValue: SelectedCategory?.MinValue,
                 MaxCategoryValue: SelectedCategory?.MaxValue,
-                LanguageCode: _localization.CurrentSupportedLanguage.Code,
                 MaxResults: MaxDisplayedItems);
 
-            var result = await _searchItems.ExecuteAsync(query, ct).ConfigureAwait(false);
+            // Stream: el use case prepara y ordena en background, luego emite cada
+            // hit a medida que se proyecta. Acumulamos en lotes pequeños y volcamos
+            // al UI para que el primer batch sea visible casi inmediatamente y el
+            // resto fluya sin bloquear el Dispatcher.
+            var batch = new List<ItemBaseVm>(BatchFlushSize);
+            var firstFlush = true;
+            var totalAdded = 0;
+
+            await foreach (var hit in _searchItems.StreamAsync(query, ct).ConfigureAwait(false))
+            {
+                // VM creation puede correr en background — no toca dependencias UI.
+                // La carga de imagen es fire-and-forget bajo el mismo CT.
+                batch.Add(_vmFactory.Create(hit, ct));
+
+                if (batch.Count >= BatchFlushSize)
+                {
+                    totalAdded += batch.Count;
+                    await FlushBatchAsync(batch, firstFlush, totalAdded, ct).ConfigureAwait(false);
+                    firstFlush = false;
+                    batch = new List<ItemBaseVm>(BatchFlushSize);
+                }
+            }
 
             if (ct.IsCancellationRequested) return;
 
-            // Materializar los VMs antes de tocar el hilo UI — fuera del Dispatcher.
-            var vms = new List<ItemBaseVm>(result.Hits.Count);
-            foreach (var hit in result.Hits)
-                vms.Add(_vmFactory.Create(hit, ct));
-
-            App.Current.Dispatcher.Invoke(() =>
+            // Flush del último lote (puede estar vacío si MaxResults % BatchFlushSize == 0).
+            if (batch.Count > 0)
             {
-                // ReplaceAll: una sola notificación Reset en lugar de Clear + N×Add.
-                // Combinado con la virtualización del WrapPanel del ListBox, esto
-                // elimina el freeze al volcar 300 ítems.
-                Items.ReplaceAll(vms);
-                ItemCount = Items.Count;
-            });
+                totalAdded += batch.Count;
+                await FlushBatchAsync(batch, firstFlush, totalAdded, ct).ConfigureAwait(false);
+            }
+            else if (firstFlush)
+            {
+                // Stream sin resultados: limpiar resultados anteriores en la UI.
+                await App.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    Items.ReplaceAll([]);
+                    ItemCount = 0;
+                }).Task.ConfigureAwait(false);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -203,6 +250,42 @@ public sealed partial class MarketVm : ObservableObject
             if (!ct.IsCancellationRequested)
                 IsLoading = false;
         }
+    }
+
+    /// <summary>
+    /// Vuelca un lote de VMs al UI thread.
+    /// <list type="bullet">
+    ///   <item>Primer flush → <see cref="RangeObservableCollection{T}.ReplaceAll"/>:
+    ///         una sola notificación Reset que reemplaza los resultados anteriores.</item>
+    ///   <item>Flushes posteriores → <c>Add</c> por ítem: el panel virtualizado los
+    ///         materializa incrementalmente sin reconstruir contenedores existentes
+    ///         (un Reset aquí forzaría un rebuild de los visibles cada batch).</item>
+    /// </list>
+    /// </summary>
+    private async Task FlushBatchAsync(
+        List<ItemBaseVm> batch,
+        bool isFirstFlush,
+        int total,
+        CancellationToken ct)
+    {
+        if (ct.IsCancellationRequested) return;
+
+        await App.Current.Dispatcher.InvokeAsync(() =>
+        {
+            if (ct.IsCancellationRequested) return;
+
+            if (isFirstFlush)
+            {
+                Items.ReplaceAll(batch);
+            }
+            else
+            {
+                foreach (var vm in batch)
+                    Items.Add(vm);
+            }
+
+            ItemCount = total;
+        }).Task.ConfigureAwait(false);
     }
 
     // ── Façade para callers externos (compatibilidad) ─────────────────────────
@@ -228,5 +311,18 @@ public sealed partial class MarketVm : ObservableObject
     // ── Constantes ────────────────────────────────────────────────────────────
 
     private const int MaxDisplayedItems = 300;
-    private const int DebounceMs = 250;
+    private const int DebounceMs = 150;
+
+    /// <summary>
+    /// Tamaño de lote para el streaming. Trade-off:
+    /// <list type="bullet">
+    ///   <item>Muy chico (5-10): primer paint instantáneo pero más round-trips
+    ///         al Dispatcher → overhead acumulado.</item>
+    ///   <item>Muy grande (100+): menos round-trips pero el primer paint tarda
+    ///         más y se nota un mini-freeze por batch.</item>
+    ///   <item>30 es el sweet-spot empírico: cabe en una pantalla típica de
+    ///         tiles 64×64, así que el primer batch ya cubre lo visible.</item>
+    /// </list>
+    /// </summary>
+    private const int BatchFlushSize = 5;
 }

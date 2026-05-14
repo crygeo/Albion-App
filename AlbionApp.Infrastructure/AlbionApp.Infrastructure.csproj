@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\LibSolutions\LibServices\LibServices.csproj" />
-    <ProjectReference Include="..\AlbionApp.Domain\AlbionApp.Domain.csproj" />
+    <ProjectReference Include="..\AlbionApp.Application\AlbionApp.Application.csproj" />
+    <ProjectReference Include="..\..\LibSolutions\LibServiceLifecycle\LibServiceLifecycle.csproj" />
     <ProjectReference Include="..\..\LibSolutions\LibAlbionData\LibAlbionData.csproj" />
   </ItemGroup>
 

@@ -1,0 +1,152 @@
+<UserControl x:Class="Albion_App.Components.Item.ItemBaseV"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Albion_App.Components.Item"
+             mc:Ignorable="d"
+             d:DesignHeight="300" d:DesignWidth="300" d:DataContext="{d:DesignInstance local:ItemBaseVm}">
+    <Border Width="64" Height="64"
+            Margin="4"
+            CornerRadius="4"
+            Cursor="Hand">
+
+        <!-- Estilo con triggers de selección/hover via ancestro ListBoxItem -->
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="Background"
+                        Value="{DynamicResource MaterialDesign.Brush.CardBackground}" />
+                <Setter Property="BorderBrush"
+                        Value="{DynamicResource MaterialDesign.Brush.Divider}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Style.Triggers>
+                    <DataTrigger
+                        Binding="{Binding IsSelected,
+                                                                   RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                        Value="True">
+                        <Setter Property="BorderBrush"
+                                Value="{DynamicResource MaterialDesign.Brush.Primary}" />
+                        <Setter Property="BorderThickness" Value="2" />
+                    </DataTrigger>
+                    <DataTrigger
+                        Binding="{Binding IsMouseOver,
+                                                                   RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                        Value="True">
+                        <Setter Property="Background"
+                                Value="{DynamicResource MaterialDesign.Brush.Divider}" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+
+        <Border.ToolTip>
+            <ToolTip>
+                <StackPanel>
+                    <TextBlock Text="{Binding DisplayName}"
+                               FontWeight="Medium"
+                               FontSize="13" />
+                    <TextBlock Text="{Binding TierLabel}"
+                               Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                               FontSize="11"
+                               Margin="0 2 0 0" />
+                </StackPanel>
+            </ToolTip>
+        </Border.ToolTip>
+
+        <Grid>
+            <!-- Imagen cargada asincrónamente por SearchableItemVM.
+                                         Null mientras descarga (tile vacío) → se rellena
+                                         reactivamente cuando LoadImageAsync termina. -->
+
+            <Grid Background="Transparent">
+
+                <!-- Loading -->
+                <ProgressBar
+                    IsIndeterminate="True"
+                    Width="20"
+                    Height="20"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center">
+
+                    <ProgressBar.Style>
+                        <Style TargetType="ProgressBar" BasedOn="{StaticResource MaterialDesignCircularProgressBar}">
+
+                            <Setter Property="Visibility"
+                                    Value="Collapsed" />
+
+                            <Style.Triggers>
+
+                                <!-- Mostrar cuando no hay imagen -->
+                                <DataTrigger Binding="{Binding Image}"
+                                             Value="{x:Null}">
+
+                                    <Setter Property="Visibility"
+                                            Value="Visible" />
+
+                                </DataTrigger>
+
+                            </Style.Triggers>
+
+                        </Style>
+                    </ProgressBar.Style>
+
+                </ProgressBar>
+
+
+                <!-- Imagen -->
+                <Image Source="{Binding Image}"
+                       Stretch="Uniform"
+                       RenderOptions.BitmapScalingMode="HighQuality">
+
+                    <Image.Style>
+                        <Style TargetType="Image">
+
+                            <Setter Property="Visibility"
+                                    Value="Visible" />
+
+                            <Style.Triggers>
+
+                                <DataTrigger Binding="{Binding Image}"
+                                             Value="{x:Null}">
+
+                                    <Setter Property="Visibility"
+                                            Value="Collapsed" />
+
+                                </DataTrigger>
+
+                            </Style.Triggers>
+
+                        </Style>
+                    </Image.Style>
+
+                </Image>
+
+            </Grid>
+
+
+            <!-- Badge de tier (visible sólo si TierLabel no está vacío) -->
+            <Border CornerRadius="3"
+                    Padding="3 1"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    Margin="0 0 2 2"
+                    Background="{DynamicResource MaterialDesign.Brush.Primary.Dark}">
+                <TextBlock Text="{Binding TierLabel}"
+                           Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+                           FontSize="9"
+                           FontWeight="Bold" />
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding TierLabel}"
+                                         Value="">
+                                <Setter Property="Visibility"
+                                        Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

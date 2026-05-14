@@ -1,10 +1,11 @@
 using System.Collections.ObjectModel;
+using Albion_App._1Calculadora;
 using Albion_App.Models;
-using Albion_App.ViewModel.Seccion;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LibNavegation;
 using LibNavegation.Interfaces;
+using ConfiguracionSvm = Albion_App._0Config.ConfiguracionSvm;
 
 namespace Albion_App;
 

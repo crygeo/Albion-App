@@ -1,0 +1,84 @@
+<UserControl x:Class="Albion_App.Dialog.ItemSearchDialogV"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:market="clr-namespace:Albion_App.Components.Market"
+             xmlns:dialog="clr-namespace:Albion_App.Dialog"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=dialog:ItemSearchVM}"
+             Width="860" Height="620">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+
+    <md:Card Padding="0" UniformCornerRadius="8">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="56"/>  <!-- Header -->
+                <RowDefinition Height="*"/>   <!-- MarketV -->
+                <RowDefinition Height="56"/>  <!-- Footer -->
+            </Grid.RowDefinitions>
+
+            <!-- ══ HEADER ═══════════════════════════════════════════════════════ -->
+            <Border Grid.Row="0"
+                    Background="{DynamicResource MaterialDesign.Brush.Primary.Dark}"
+                    CornerRadius="8 8 0 0">
+                <DockPanel Margin="16 0">
+                    <md:PackIcon Kind="Magnify"
+                                 Foreground="White"
+                                 Width="22" Height="22"
+                                 VerticalAlignment="Center"
+                                 Margin="0 0 10 0"/>
+                    <TextBlock Text="Buscar Ítem"
+                               Foreground="White"
+                               FontSize="17"
+                               FontWeight="Medium"
+                               VerticalAlignment="Center"/>
+                    <ProgressBar DockPanel.Dock="Right"
+                                 Style="{StaticResource MaterialDesignCircularProgressBar}"
+                                 Value="0"
+                                 IsIndeterminate="True"
+                                 Width="22" Height="22"
+                                 VerticalAlignment="Center"
+                                 Foreground="White"
+                                 Visibility="{Binding Market.IsLoading, Converter={StaticResource BoolToVis}}"/>
+                </DockPanel>
+            </Border>
+
+            <!-- ══ MERCADO (filtros + tiles) ════════════════════════════════════ -->
+            <!--
+                MarketV recibe su propio DataContext = Market (instancia de MarketVM).
+                Así MarketV es completamente reutilizable: no sabe que está dentro de un diálogo.
+            -->
+            <market:MarketV Grid.Row="1"
+                            DataContext="{Binding Market}"/>
+
+            <!-- ══ FOOTER ════════════════════════════════════════════════════════ -->
+            <Border Grid.Row="2"
+                    BorderBrush="{DynamicResource MaterialDesign.Brush.Divider}"
+                    BorderThickness="0 1 0 0">
+                <DockPanel Margin="16 0" LastChildFill="False">
+                    <Button DockPanel.Dock="Right"
+                            Content="Seleccionar"
+                            Command="{Binding ConfirmCommand}"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            Margin="8 0 0 0"/>
+                    <Button DockPanel.Dock="Right"
+                            Content="Cancelar"
+                            Command="{Binding CancelCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"/>
+                    <!-- Ítem seleccionado como hint en el footer -->
+                    <TextBlock VerticalAlignment="Center"
+                               FontSize="12"
+                               Foreground="{DynamicResource MaterialDesign.Brush.Primary.Dark.Foreground}"
+                               Text="{Binding Market.SelectedItem.ShortLabel, FallbackValue='Ningún ítem seleccionado'}"
+                               TextTrimming="CharacterEllipsis"
+                               MaxWidth="300"/>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </md:Card>
+</UserControl>

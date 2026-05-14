@@ -7,4 +7,5 @@ public static class DialogDefaults
     public const string Main       = "dialogMain";
     public const string Progress   = "dialogProgress";
     public const string ItemSearch = "dialogItemSearch";
+    public const string DestinyBoard = "dialogDestinyBoard";
 }

@@ -1,18 +1,25 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:vms="clr-namespace:Albion_App.ViewModel.Seccion"
-                    xmlns:vs="clr-namespace:Albion_App.Seccion"
+                    xmlns:con="clr-namespace:Albion_App._0Config"
+                    xmlns:cal="clr-namespace:Albion_App._1Calculadora"
+                    xmlns:pla="clr-namespace:Albion_App._2Player"
+                    
                     >
 
     <!-- Converters globales disponibles en toda la aplicación -->
     <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     
-    <DataTemplate DataType="{x:Type vms:CalculadoraSvm}">
-        <vs:CalculadoraS/>
-    </DataTemplate>
-    <DataTemplate DataType="{x:Type vms:ConfiguracionSvm}">
-        <vs:ConfiguracionS/>
+    
+    <DataTemplate DataType="{x:Type cal:CalculadoraSvm}">
+        <cal:CalculadoraS/>
     </DataTemplate>
     
+    <DataTemplate DataType="{x:Type con:ConfiguracionSvm}">
+        <con:ConfiguracionS/>
+    </DataTemplate>
+    
+    <DataTemplate DataType="{x:Type pla:PlayerVm}">
+        <pla:PlayerV/>
+    </DataTemplate>
     
 </ResourceDictionary>

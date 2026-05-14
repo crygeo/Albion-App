@@ -1,4 +1,5 @@
 using Albion_App.Components.Market;
+using ItemBaseVm = Albion_App.Components.Item.ItemBaseVm;
 
 namespace Albion_App.Models;
 

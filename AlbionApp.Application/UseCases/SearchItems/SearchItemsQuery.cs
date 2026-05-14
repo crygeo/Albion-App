@@ -30,8 +30,5 @@ public readonly record struct SearchItemsQuery(
     /// <summary>Límite superior del rango de categoría (incluyente). Null = sin filtro.</summary>
     int? MaxCategoryValue,
 
-    /// <summary>Código de idioma activo (ej. "ES-ES", "EN-US"). Determina el índice consultado.</summary>
-    string LanguageCode,
-
     /// <summary>Cantidad máxima de resultados a retornar. 0 o negativo = sin límite.</summary>
     int MaxResults);

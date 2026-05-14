@@ -7,7 +7,7 @@ using AlbionApp.Domain.Text;
 using AlbionApp.Infrastructure.Search;
 using LibAlbionData;
 using LibAlbionData.Core;
-using LibServices;
+using LibServiceLifecycle;
 
 namespace AlbionApp.Infrastructure.Services;
 
@@ -44,14 +44,15 @@ namespace AlbionApp.Infrastructure.Services;
 /// (c) el idioma activo y el índice a consultar son inseparables.
 /// </summary>
 public sealed class LocalizationService(
-    AlbionData         albionData,
+    AlbionData albionData,
     SupportedLanguage? initialLanguage = null)
     : ServiceBase, ILocalizationService
 {
     // ── Constantes de dominio (prefijos TMX del juego) ────────────────────────
 
-    private const string ItemsKeyPrefix  = "@ITEMS_";
+    private const string ItemsKeyPrefix = "@ITEMS_";
     private const string MarketKeyPrefix = "@MARKETPLACEGUI_ROLLOUT_";
+    private const string DestinyboardKeyPrefix = "@DESTINYBOARD_TITLE_";
 
     // ── Fallback ──────────────────────────────────────────────────────────────
 
@@ -60,26 +61,24 @@ public sealed class LocalizationService(
 
     // ── Storage principal: tuid → (lang → text) ───────────────────────────────
 
-    private FrozenDictionary<string, IReadOnlyDictionary<string, string>> _localization =
-        FrozenDictionary<string, IReadOnlyDictionary<string, string>>.Empty;
+    private FrozenDictionary<string, IReadOnlyDictionary<string, string>> _localization = FrozenDictionary<string, IReadOnlyDictionary<string, string>>.Empty;
 
     // ── Índices de búsqueda: lang → SearchEntry[] ─────────────────────────────
 
     /// <summary>Índice del dominio @ITEMS_</summary>
-    private FrozenDictionary<string, SearchEntry[]> _itemSearchIndex =
-        FrozenDictionary<string, SearchEntry[]>.Empty;
+    private FrozenDictionary<string, SearchEntry[]> _itemSearchIndex = FrozenDictionary<string, SearchEntry[]>.Empty;
 
     /// <summary>Índice del dominio @MARKETPLACEGUI_ROLLOUT_</summary>
-    private FrozenDictionary<string, SearchEntry[]> _marketSearchIndex =
-        FrozenDictionary<string, SearchEntry[]>.Empty;
+    private FrozenDictionary<string, SearchEntry[]> _marketSearchIndex = FrozenDictionary<string, SearchEntry[]>.Empty;
+
+    /// <summary> Indice del cominio @DESTINYBOARD_TITLE_ </summary>
+    private FrozenDictionary<string, SearchEntry[]> _destinyboardSearchIndex = FrozenDictionary<string, SearchEntry[]>.Empty;
 
     // ── Estado de idioma ──────────────────────────────────────────────────────
 
-    private IReadOnlyList<SupportedLanguage> _availableLanguages =
-        Array.Empty<SupportedLanguage>();
+    private IReadOnlyList<SupportedLanguage> _availableLanguages = Array.Empty<SupportedLanguage>();
 
-    private SupportedLanguage _currentSupportedLanguage =
-        initialLanguage ?? FallbackLanguage;
+    private SupportedLanguage _currentSupportedLanguage = initialLanguage ?? FallbackLanguage;
 
     // ── IAlbionService ────────────────────────────────────────────────────────
 
@@ -133,7 +132,6 @@ public sealed class LocalizationService(
         return key;
     }
 
-    
 
     /// <inheritdoc/>
     public void SetLanguage(SupportedLanguage supportedLanguage)
@@ -165,14 +163,15 @@ public sealed class LocalizationService(
 
         // Fase 2: construir índices de búsqueda en background
         // Los índices se construyen sobre el storage ya en memoria — sin IO adicional.
-        var (itemIndex, marketIndex) = await Task
+        var lists = await Task
             .Run(() => BuildSearchIndices(localization, ct), ct)
             .ConfigureAwait(false);
 
         // Asignar los tres almacenamientos atómicamente (desde el hilo llamante)
-        _localization       = localization;
-        _itemSearchIndex    = itemIndex;
-        _marketSearchIndex  = marketIndex;
+        _localization = localization;
+        _itemSearchIndex = lists[ItemsKeyPrefix];
+        _marketSearchIndex = lists[MarketKeyPrefix];
+        _destinyboardSearchIndex = lists[DestinyboardKeyPrefix];
 
         _availableLanguages = languages
             .Select(code => SupportedLanguage.All.GetValueOrDefault(code))
@@ -185,8 +184,8 @@ public sealed class LocalizationService(
 
     protected override Task OnStopAsync(CancellationToken ct)
     {
-        _localization      = FrozenDictionary<string, IReadOnlyDictionary<string, string>>.Empty;
-        _itemSearchIndex   = FrozenDictionary<string, SearchEntry[]>.Empty;
+        _localization = FrozenDictionary<string, IReadOnlyDictionary<string, string>>.Empty;
+        _itemSearchIndex = FrozenDictionary<string, SearchEntry[]>.Empty;
         _marketSearchIndex = FrozenDictionary<string, SearchEntry[]>.Empty;
         _availableLanguages = Array.Empty<SupportedLanguage>();
         return Task.CompletedTask;
@@ -196,8 +195,8 @@ public sealed class LocalizationService(
 
     private static (
         FrozenDictionary<string, IReadOnlyDictionary<string, string>> Localization,
-        IReadOnlyList<string>                                          Languages)
-    ParseTmx(XDocument doc, CancellationToken ct)
+        IReadOnlyList<string> Languages)
+        ParseTmx(XDocument doc, CancellationToken ct)
     {
         var localization = new Dictionary<string, IReadOnlyDictionary<string, string>>(
             capacity: 200_000,
@@ -256,60 +255,57 @@ public sealed class LocalizationService(
     /// Complejidad: O(n × m) con n = entradas TMX, m = idiomas por entrada.
     /// Memoria: ≈ 2 × 30k × 8 idiomas ≈ 480k SearchEntry (referencias ligeras).
     /// </summary>
-    private static (
-        FrozenDictionary<string, SearchEntry[]> ItemIndex,
-        FrozenDictionary<string, SearchEntry[]> MarketIndex)
-    BuildSearchIndices(
-        FrozenDictionary<string, IReadOnlyDictionary<string, string>> localization,
-        CancellationToken ct)
+    private static FrozenDictionary<string, FrozenDictionary<string, SearchEntry[]>>
+        BuildSearchIndices(
+            FrozenDictionary<string, IReadOnlyDictionary<string, string>> localization,
+            CancellationToken ct)
     {
-        // byLang[dominio][lang] = lista de entradas acumuladas
-        var itemsByLang   = new Dictionary<string, List<SearchEntry>>(StringComparer.OrdinalIgnoreCase);
-        var marketsByLang = new Dictionary<string, List<SearchEntry>>(StringComparer.OrdinalIgnoreCase);
+        // Registro central de categorías
+        var categories = new[]
+        {
+            new SearchCategory(ItemsKeyPrefix, new(StringComparer.OrdinalIgnoreCase)),
+            new SearchCategory(MarketKeyPrefix, new(StringComparer.OrdinalIgnoreCase)),
+            new SearchCategory(DestinyboardKeyPrefix, new(StringComparer.OrdinalIgnoreCase))
+        };
 
         foreach (var (key, langMap) in localization)
         {
             ct.ThrowIfCancellationRequested();
 
-            bool isItem   = key.StartsWith(ItemsKeyPrefix,  StringComparison.OrdinalIgnoreCase);
-            bool isMarket = !isItem &&
-                            key.StartsWith(MarketKeyPrefix, StringComparison.OrdinalIgnoreCase);
+            var category = categories.FirstOrDefault(x =>
+                key.StartsWith(x.Prefix, StringComparison.OrdinalIgnoreCase));
 
-            if (!isItem && !isMarket) continue;
+            if (category is null)
+                continue;
 
-            var targetMap = isItem ? itemsByLang : marketsByLang;
-            var prefix    = isItem ? ItemsKeyPrefix : MarketKeyPrefix;
+            var itemId = key.Length > category.Prefix.Length
+                ? key[category.Prefix.Length..]
+                : key;
 
-            // ItemId = clave sin el prefijo de dominio
-            // Ejemplo: "@ITEMS_T8_PLANKS_LEVEL2" → "T8_PLANKS_LEVEL2"
-            var itemId = key.Length > prefix.Length ? key[prefix.Length..] : key;
-
-            // Metadata extraída de la clave UNA SOLA VEZ para todos los idiomas
             var metadata = KeyMetadataParser.ParseFromKey(key.AsSpan());
 
-            // Crear una SearchEntry por idioma (texto normalizado es distinto por idioma)
             foreach (var (lang, rawText) in langMap)
             {
-                if (string.IsNullOrWhiteSpace(rawText)) continue;
+                if (string.IsNullOrWhiteSpace(rawText))
+                    continue;
 
-                if (!targetMap.TryGetValue(lang, out var list))
+                if (!category.Storage.TryGetValue(lang, out var list))
                 {
-                    // Capacidad inicial estimada: 25k ítems por idioma
                     list = new List<SearchEntry>(25_000);
-                    targetMap[lang] = list;
+                    category.Storage[lang] = list;
                 }
 
                 list.Add(new SearchEntry(
-                    ItemId:         itemId,
+                    ItemId: itemId,
                     NormalizedText: TextNormalizer.Normalize(rawText),
-                    Metadata:       metadata));
+                    Metadata: metadata));
             }
         }
 
-        return (
-            FreezeIndex(itemsByLang),
-            FreezeIndex(marketsByLang)
-        );
+        return categories.ToFrozenDictionary(
+            x => x.Prefix,
+            x => FreezeIndex(x.Storage),
+            StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -333,4 +329,9 @@ public sealed class LocalizationService(
 
     private FrozenDictionary<string, SearchEntry[]> SelectIndex(SearchDomain domain)
         => domain == SearchDomain.Items ? _itemSearchIndex : _marketSearchIndex;
+    
+    // Configuración de dominios
+    private sealed record SearchCategory(
+        string Prefix,
+        Dictionary<string, List<SearchEntry>> Storage);
 }

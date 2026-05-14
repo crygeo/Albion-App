@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using AlbionApp.Application.Search;
 using AlbionApp.Domain.Interfaces;
 using AlbionApp.Domain.ItemSearch;
@@ -45,26 +46,59 @@ public sealed class SearchItemsUseCase : ISearchItemsUseCase
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
     }
 
-    public Task<SearchItemsResult> ExecuteAsync(SearchItemsQuery query, CancellationToken ct = default)
-        => Task.Run(() => Execute(query, ct), ct);
+    public async Task<SearchItemsResult> ExecuteAsync(SearchItemsQuery query, CancellationToken ct = default)
+    {
+        // Implementado como collector del stream para evitar duplicar la lógica
+        // del pipeline. El costo extra del IAsyncEnumerable es despreciable
+        // (~unos pocos microsegundos por la state machine).
+        var hits = new List<ItemSearchHit>(query.MaxResults > 0 ? query.MaxResults : 64);
+        await foreach (var hit in StreamAsync(query, ct).ConfigureAwait(false))
+            hits.Add(hit);
+        return new SearchItemsResult(hits);
+    }
 
-    // ── Pipeline síncrono ─────────────────────────────────────────────────────
+    public async IAsyncEnumerable<ItemSearchHit> StreamAsync(
+        SearchItemsQuery                            query,
+        [EnumeratorCancellation] CancellationToken  ct = default)
+    {
+        // 1-4. Parse + resolve + filter + order + take. Todo el trabajo CPU-bound
+        //      se ejecuta en el thread pool ANTES del primer yield. Esto garantiza
+        //      orden global (no emitimos hits en orden parcial) y evita que la
+        //      preparación bloquee el hilo del consumidor (UI).
+        var ordered = await Task.Run(() => PrepareOrderedItems(query, ct), ct)
+                                .ConfigureAwait(false);
 
-    private SearchItemsResult Execute(SearchItemsQuery query, CancellationToken ct)
+        // 5. Proyección streaming. La proyección por hit es O(1) y barata —
+        //    cada yield cede el control al consumidor para que pueda materializar
+        //    e intercalar trabajo de UI entre lotes.
+        foreach (var item in ordered)
+        {
+            ct.ThrowIfCancellationRequested();
+            yield return Project(item);
+        }
+    }
+
+    // ── Pipeline síncrono (CPU-bound) ─────────────────────────────────────────
+
+    /// <summary>
+    /// Ejecuta el pipeline completo de parse + resolve + filter + sort + take y
+    /// devuelve la lista materializada de <see cref="ItemBase"/> en el orden final.
+    /// La proyección a <see cref="ItemSearchHit"/> queda fuera porque el consumidor
+    /// la hace per-item durante el yield.
+    /// </summary>
+    private List<ItemBase> PrepareOrderedItems(SearchItemsQuery query, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
 
         // 1. Parsear el texto. Tier/enchantment del texto se usan sólo si los
         //    dropdowns no tienen valor — los dropdowns ganan en precedencia.
-        var parsed     = query.RawText.Parse();
-        var tier       = query.TierFilter       ?? parsed.Tier;
-        var enchant    = query.EnchantmentFilter ?? parsed.Enchantment;
-
-        var effective  = new SearchQuery(parsed.TextTokens, tier, enchant);
+        var parsed    = query.RawText.Parse();
+        var tier      = query.TierFilter        ?? parsed.Tier;
+        var enchant   = query.EnchantmentFilter ?? parsed.Enchantment;
+        var effective = new SearchQuery(parsed.TextTokens, tier, enchant);
 
         // 2. Resolver candidatos (índice de texto vs catálogo completo).
         var candidates = ResolveCandidates(effective, query, ct);
-
         ct.ThrowIfCancellationRequested();
 
         // 3. Aplicar post-filtros estructurales.
@@ -74,7 +108,7 @@ public sealed class SearchItemsUseCase : ISearchItemsUseCase
             tier:        effective.Tier,
             enchantment: effective.Enchantment);
 
-        // 4. Ordenar, limitar y proyectar a DTO.
+        // 4. Ordenar y limitar.
         IEnumerable<ItemBase> ordered = filtered
             .OrderBy(i => i.CategoryValue)
             .ThenBy(i => i.Tier ?? int.MaxValue)
@@ -84,14 +118,10 @@ public sealed class SearchItemsUseCase : ISearchItemsUseCase
         if (query.MaxResults > 0)
             ordered = ordered.Take(query.MaxResults);
 
-        var hits = new List<ItemSearchHit>(query.MaxResults > 0 ? query.MaxResults : 64);
-        foreach (var item in ordered)
-        {
-            ct.ThrowIfCancellationRequested();
-            hits.Add(Project(item));
-        }
-
-        return new SearchItemsResult(hits);
+        // Materializar antes de yield-ear: necesario para que el orden completo
+        // esté determinado y para liberar la cadena LINQ (que cierra sobre los
+        // objetos de query) antes de devolver el control al consumidor.
+        return ordered.ToList();
     }
 
     // ── Resolución de candidatos ──────────────────────────────────────────────
@@ -112,7 +142,7 @@ public sealed class SearchItemsUseCase : ISearchItemsUseCase
         if (query.HasTextTokens)
         {
             var itemIds = _localizationService.ItemSearchIndex
-                .Filter(query.TextTokens, request.LanguageCode);
+                .Filter(query.TextTokens, _localizationService.CurrentSupportedLanguage.Code);
             return _itemDataService.GetItemsByIds(itemIds);
         }
 

@@ -15,10 +15,11 @@
       <ProjectReference Include="..\..\LibSolutions\LibNavegation\LibNavegation.csproj" />
       <ProjectReference Include="..\AlbionApp.Application\AlbionApp.Application.csproj" />
       <ProjectReference Include="..\AlbionApp.Infrastructure\AlbionApp.Infrastructure.csproj" />
-      <!-- Librerías de infraestructura compartida (protocolo de red, routing) -->
+      <!-- Librerías de infraestructura compartida (protocolo de red, routing, debug) -->
       <ProjectReference Include="..\..\LibSolutions\LibAlbionProtocol\LibAlbionProtocol.csproj" />
       <ProjectReference Include="..\..\LibSolutions\LibAlbionRouting\LibAlbionRouting.csproj" />
       <ProjectReference Include="..\..\LibSolutions\LibNetWork\LibNetWork.csproj" />
+      <ProjectReference Include="..\..\LibSolutions\LibAlbionDebug\LibAlbionDebug.csproj" />
       <!-- LibAlbionData queda como transitiva via AlbionApp.Infrastructure -->
     </ItemGroup>
 
@@ -40,6 +41,31 @@
         <XamlRuntime>Wpf</XamlRuntime>
         <SubType>Designer</SubType>
       </Page>
+      <Page Update="src\Dialog\ItemSearchDialogV.xaml">
+        <Generator>MSBuild:Compile</Generator>
+        <XamlRuntime>Wpf</XamlRuntime>
+        <SubType>Designer</SubType>
+      </Page>
+      <Page Update="src\1Calculadora\CalculadoraS.xaml">
+        <Generator>MSBuild:Compile</Generator>
+        <XamlRuntime>Wpf</XamlRuntime>
+        <SubType>Designer</SubType>
+      </Page>
+      <Page Update="src\0Config\ConfiguracionS.xaml">
+        <Generator>MSBuild:Compile</Generator>
+        <XamlRuntime>Wpf</XamlRuntime>
+        <SubType>Designer</SubType>
+      </Page>
+      <Page Update="src\MainV.xaml">
+        <Generator>MSBuild:Compile</Generator>
+        <XamlRuntime>Wpf</XamlRuntime>
+        <SubType>Designer</SubType>
+      </Page>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="src\ViewModel\Seccion\" />
+      <Folder Include="src\View\Seccion\" />
     </ItemGroup>
 
 </Project>

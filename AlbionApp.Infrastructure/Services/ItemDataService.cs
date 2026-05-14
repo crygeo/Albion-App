@@ -6,7 +6,7 @@ using AlbionApp.Domain.Interfaces;
 using AlbionApp.Domain.ItemSearch;
 using LibAlbionData;
 using LibAlbionData.Core;
-using LibServices;
+using LibServiceLifecycle;
 
 namespace AlbionApp.Infrastructure.Services;
 

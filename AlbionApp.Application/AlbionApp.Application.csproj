@@ -12,7 +12,6 @@
 
   <ItemGroup>
     <Folder Include="Crafting\" />
-    <Folder Include="ItemSearch\" />
     <Folder Include="UseCases\SearchItems\" />
   </ItemGroup>
 
