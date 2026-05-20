@@ -5,6 +5,7 @@ using Albion_App.Features.DataStatic;
 using Albion_App.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LibServices.PlayerState;
 using MaterialDesignThemes.Wpf;
 using Utilidades.Dialogs;
 
@@ -12,15 +13,18 @@ namespace Albion_App._2Player;
 
 public partial class PlayerVm : ObservableObject, ISectionIcons
 {
+    private readonly PlayerStateService _playerStateService;
+    
     [ObservableProperty] private string _header = "Player";
     [ObservableProperty] private PackIconKind _icon = PackIconKind.AccountCircle;
 
     [ObservableProperty] private DestinyBoardVm _destinyBoardVm;
 
 
-    public PlayerVm(DestinyBoardVm destinyBoardVm)
+    public PlayerVm(DestinyBoardVm destinyBoardVm, PlayerStateService  playerStateService)
     {
         _destinyBoardVm = destinyBoardVm;
+        _playerStateService = playerStateService;
     }
 
 

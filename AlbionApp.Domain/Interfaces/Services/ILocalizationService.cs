@@ -53,5 +53,5 @@ public interface ILocalizationService
     /// Cambia el idioma activo y dispara <see cref="LanguageChanged"/>.
     /// Es idempotente: si el idioma ya es el activo, no dispara el evento.
     /// </summary>
-    void SetLanguage(SupportedLanguage supportedLanguageCode);
+    void SetLanguage(SupportedLanguage? supportedLanguageCode);
 }

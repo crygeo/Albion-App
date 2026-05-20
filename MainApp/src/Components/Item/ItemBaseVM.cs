@@ -94,6 +94,9 @@ public sealed partial class ItemBaseVm : ObservableObject, IDisposable
     /// </summary>
     public async Task LoadImageAsync(IAlbionImageService imageService, CancellationToken ct)
     {
+        if (Image is not null)
+            return;
+        
         try
         {
             var bytes = await imageService.GetImageBytesAsync(ItemId, AlbionRenderType.Item, ct).ConfigureAwait(false);

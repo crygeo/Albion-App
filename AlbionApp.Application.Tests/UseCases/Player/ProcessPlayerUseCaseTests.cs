@@ -8,29 +8,35 @@ namespace AlbionApp.Application.Tests.UseCases.Player;
 public sealed class ProcessPlayerUseCaseTests
 {
     [Fact]
-    public void Execute_replaces_player_levels_by_achievement_id()
+    public void Execute_sets_level_from_raw_value_when_not_at_max()
     {
         var achievementDataService = new FakeAchievementDataService(
-            new AlbionAchievement { OrdinalId = 10, Id = "CRAFT_REFINE_FIBER_T4" },
-            new AlbionAchievement { OrdinalId = 20, Id = "COMBAT_SWORD_T5" });
+            new AlbionAchievement { OrdinalId = 10, Id = "CRAFT_REFINE_FIBER_T4", NameLocalization = "Fiber T4" },
+            new AlbionAchievement { OrdinalId = 20, Id = "COMBAT_SWORD_T5",       NameLocalization = "Sword T5" });
         var useCase = new ProcessPlayerUseCase(achievementDataService);
 
-        useCase.Execute(new Dictionary<int, int>
-        {
-            [10] = 12,
-            [999] = 80
-        });
-        useCase.Execute(new Dictionary<int, int>
-        {
-            [20] = 35
-        });
+        useCase.Execute([(10, 12, false), (999, 80, false)]);
+        useCase.Execute([(20, 35, false)]);
 
-        Assert.Equal(
-            new Dictionary<string, int>
-            {
-                ["COMBAT_SWORD_T5"] = 35
-            },
-            useCase.AchievementLevelsById);
+        Assert.Equal(12, useCase.AchievementLevelsByIndex[10].Level);
+        Assert.Equal(35, useCase.AchievementLevelsByIndex[20].Level);
+        Assert.False(useCase.AchievementLevelsByIndex[20].IsAtMaxLevel);
+    }
+
+    [Fact]
+    public void Execute_uses_max_level_when_is_at_max()
+    {
+        var achievementDataService = new FakeAchievementDataService(
+            new AlbionAchievement { OrdinalId = 5, Id = "COMBAT_SWORD_T8", NameLocalization = "Sword T8", UseTemplate = "COMBAT_SPEC" });
+        var useCase = new ProcessPlayerUseCase(achievementDataService);
+
+        // Level crudo del servidor es 0, pero IsAtMaxLevel = true → debe usar MaxLevel del dominio.
+        // MaxLevel = 100 (Levels vacío + EliteLevels vacío en el fake).
+        useCase.Execute([(5, 0, true)]);
+
+        var entry = useCase.AchievementLevelsByIndex[5];
+        Assert.True(entry.IsAtMaxLevel);
+        Assert.Equal(entry.MaxLevel, entry.Level);
     }
 
     private sealed class FakeAchievementDataService : IAchievementDataService

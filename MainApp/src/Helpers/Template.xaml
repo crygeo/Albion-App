@@ -10,6 +10,12 @@
     <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     
     
+    <!-- Workspace (sección registrada en el sidebar) -->
+    <DataTemplate DataType="{x:Type cal:WorkspaceVm}">
+        <cal:WorkspaceV/>
+    </DataTemplate>
+
+    <!-- Calculadora individual (usada por el ContentControl del workspace) -->
     <DataTemplate DataType="{x:Type cal:CalculadoraSvm}">
         <cal:CalculadoraS/>
     </DataTemplate>

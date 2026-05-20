@@ -1,4 +1,5 @@
 using AlbionApp.Domain.Achievement;
+using AlbionApp.Domain.ItemSearch;
 
 namespace AlbionApp.Domain.Interfaces.Services;
 
@@ -32,6 +33,20 @@ public interface IAchievementDataService
     /// Clave directa del evento 151 — <c>ByOrdinal[entry.Id]</c> da el achievement.
     /// </summary>
     IReadOnlyDictionary<int, AlbionAchievement> ByOrdinal { get; }
+
+    /// <summary>
+    /// Índice compuesto (spriteReward, tier) para localizar achievements de crafteo/refinación.
+    /// Clave: <c>"{spriteReward.ToLower()}_{tier}"</c> — ej: <c>"planks_7"</c>.
+    /// </summary>
+    IReadOnlyDictionary<string, AlbionAchievement> BySpriteAndTier { get; }
+
+    /// <summary>
+    /// Lista plana de todos los (achievementId, bonus) que tienen ItemPatterns.
+    /// Usada para el scan global en ProcessPlayerUseCase.GetBonusesForItem.
+    /// </summary>
+    IReadOnlyList<(string AchievementId, AchievementBonus Bonus)> BonusLookup { get; }
+
+    AlbionAchievement? FindByItem(ItemBase item);
 
     // Los niveles del jugador se resuelven en ProcessPlayerUseCase para no mutar
     // el catálogo estático de achievements.

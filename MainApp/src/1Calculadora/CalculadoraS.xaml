@@ -15,44 +15,44 @@
              Usa md:Card para aprovechar la elevación nativa de MD3 (sombra
              tonal + ripple consistente con el resto del theme). -->
         <Style x:Key="CalcCard" TargetType="md:Card">
-            <Setter Property="Background"           Value="{DynamicResource MaterialDesign.Brush.CardBackground}"/>
-            <Setter Property="UniformCornerRadius"  Value="12"/>
-            <Setter Property="Padding"              Value="16"/>
-            <Setter Property="Margin"               Value="0 0 0 14"/>
-            <Setter Property="md:ElevationAssist.Elevation" Value="Dp4"/>
+            <Setter Property="Background" Value="{DynamicResource MaterialDesign.Brush.CardBackground}" />
+            <Setter Property="UniformCornerRadius" Value="12" />
+            <Setter Property="Padding" Value="16" />
+            <Setter Property="Margin" Value="0 0 0 14" />
+            <Setter Property="md:ElevationAssist.Elevation" Value="Dp4" />
         </Style>
 
         <!-- Estilo de separador horizontal ligero dentro de cada card -->
         <Style x:Key="CardDivider" TargetType="Separator">
-            <Setter Property="Margin"      Value="0 10 0 10"/>
-            <Setter Property="Background"  Value="{DynamicResource MaterialDesign.Brush.Divider}"/>
-            <Setter Property="Height"      Value="1"/>
+            <Setter Property="Margin" Value="0 10 0 10" />
+            <Setter Property="Background" Value="{DynamicResource MaterialDesign.Brush.Divider}" />
+            <Setter Property="Height" Value="1" />
         </Style>
 
         <!-- Encabezado de sección dentro de una card -->
         <Style x:Key="CardSectionLabel" TargetType="TextBlock">
-            <Setter Property="FontSize"     Value="11"/>
-            <Setter Property="FontWeight"   Value="SemiBold"/>
-            <Setter Property="Foreground"   Value="{DynamicResource MaterialDesign.Brush.BodyLight}"/>
-            <Setter Property="Margin"       Value="0 0 0 6"/>
-            
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.BodyLight}" />
+            <Setter Property="Margin" Value="0 0 0 6" />
+
         </Style>
 
         <!-- Título principal de cada card -->
         <Style x:Key="CardTitle" TargetType="TextBlock">
-            <Setter Property="FontSize"   Value="13"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Margin"     Value="0 0 0 12"/>
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0 0 0 12" />
         </Style>
 
         <!-- Card del carrusel de receta -->
         <Style x:Key="CarouselCenter" TargetType="Border">
-            <Setter Property="Background"      Value="{DynamicResource MaterialDesign.Brush.Paper}"/>
-            <Setter Property="CornerRadius"    Value="8"/>
-            <Setter Property="Padding"         Value="12 10"/>
-            <Setter Property="BorderBrush"     Value="{DynamicResource MaterialDesign.Brush.Primary}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="MinHeight"       Value="72"/>
+            <Setter Property="Background" Value="{DynamicResource MaterialDesign.Brush.Paper}" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12 10" />
+            <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesign.Brush.Primary}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="MinHeight" Value="72" />
         </Style>
     </UserControl.Resources>
 
@@ -70,8 +70,9 @@
             <md:Card Style="{StaticResource CalcCard}">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>   <!-- Header de card -->
-                        <RowDefinition Height="Auto"/>   <!-- Contenido ítem -->
+                        <RowDefinition Height="Auto" />   <!-- Header de card -->
+                        <RowDefinition Height="Auto" />   <!-- Contenido ítem -->
+                        <RowDefinition Height="Auto" />   <!-- Bonos de crafteo -->
                     </Grid.RowDefinitions>
 
                     <!-- Header: título + botón borrar -->
@@ -79,7 +80,7 @@
                         <TextBlock DockPanel.Dock="Left"
                                    Style="{StaticResource CardTitle}"
                                    Text="Ítem Objetivo"
-                                   Margin="0"/>
+                                   Margin="0" />
                         <!-- Botón borrar (visible solo cuando hay ítem) -->
                         <Button DockPanel.Dock="Right"
                                 Style="{StaticResource MaterialDesignIconButton}"
@@ -89,16 +90,16 @@
                                 HorizontalAlignment="Right"
                                 Visibility="{Binding HasSelectedItem, Converter={StaticResource BoolToVis}}">
                             <md:PackIcon Kind="Close" Width="16" Height="16"
-                                         Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"/>
+                                         Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}" />
                         </Button>
                     </DockPanel>
 
                     <!-- Contenido -->
                     <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>   <!-- Imagen -->
-                            <ColumnDefinition Width="*"/>      <!-- Info ítem -->
-                            <ColumnDefinition Width="Auto"/>   <!-- Buscar -->
+                            <ColumnDefinition Width="Auto" />   <!-- Imagen -->
+                            <ColumnDefinition Width="*" />      <!-- Info ítem -->
+                            <ColumnDefinition Width="Auto" />   <!-- Buscar -->
                         </Grid.ColumnDefinitions>
 
                         <!--
@@ -117,7 +118,7 @@
                                 <Image Source="{Binding SelectedItem.Image}"
                                        Stretch="Uniform"
                                        RenderOptions.BitmapScalingMode="HighQuality"
-                                       Visibility="{Binding HasSelectedItem, Converter={StaticResource BoolToVis}}"/>
+                                       Visibility="{Binding HasSelectedItem, Converter={StaticResource BoolToVis}}" />
                                 <!-- Ícono placeholder (sin selección) -->
                                 <md:PackIcon Kind="CubeOutline"
                                              Width="32" Height="32"
@@ -127,10 +128,10 @@
                                              Opacity="0.4">
                                     <md:PackIcon.Style>
                                         <Style TargetType="md:PackIcon">
-                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Setter Property="Visibility" Value="Visible" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding HasSelectedItem}" Value="True">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Setter Property="Visibility" Value="Collapsed" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -145,10 +146,10 @@
                             <StackPanel>
                                 <StackPanel.Style>
                                     <Style TargetType="StackPanel">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Setter Property="Visibility" Value="Collapsed" />
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding HasSelectedItem}" Value="True">
-                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Visibility" Value="Visible" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -156,24 +157,24 @@
                                 <TextBlock Text="{Binding SelectedItem.DisplayName}"
                                            FontSize="15"
                                            FontWeight="SemiBold"
-                                           TextTrimming="CharacterEllipsis"/>
+                                           TextTrimming="CharacterEllipsis" />
                                 <TextBlock Text="{Binding SelectedItem.TierLabel}"
                                            FontSize="11"
                                            Opacity="0.6"
-                                           Margin="0 2 0 6"/>
+                                           Margin="0 2 0 6" />
                                 <!-- Precio aproximado -->
                                 <StackPanel Orientation="Horizontal">
                                     <md:PackIcon Kind="CurrencyUsd"
                                                  Width="14" Height="14"
                                                  VerticalAlignment="Center"
                                                  Foreground="{DynamicResource MaterialDesign.Brush.Secondary}"
-                                                 Margin="0 0 4 0"/>
+                                                 Margin="0 0 4 0" />
                                     <TextBlock FontSize="13"
                                                FontWeight="Medium"
                                                Foreground="{DynamicResource MaterialDesign.Brush.Secondary}">
                                         <TextBlock.Text>
                                             <MultiBinding StringFormat="{}{0:N0} plata (aprox.)">
-                                                <Binding Path="ApproxPrice"/>
+                                                <Binding Path="ApproxPrice" />
                                             </MultiBinding>
                                         </TextBlock.Text>
                                     </TextBlock>
@@ -187,10 +188,10 @@
                                        VerticalAlignment="Center">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
-                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Setter Property="Visibility" Value="Visible" />
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding HasSelectedItem}" Value="True">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Setter Property="Visibility" Value="Collapsed" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -209,11 +210,55 @@
                                 <md:PackIcon Kind="Magnify"
                                              Width="16" Height="16"
                                              VerticalAlignment="Center"
-                                             Margin="0 0 6 0"/>
-                                <TextBlock Text="Buscar Ítem" VerticalAlignment="Center"/>
+                                             Margin="0 0 6 0" />
+                                <TextBlock Text="Buscar Ítem" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
                     </Grid>
+                    <!-- ══ Bonos del Destiny Board ══════════════════════════ -->
+                    <StackPanel Grid.Row="2"
+                                Visibility="{Binding HasItemBonuses, Converter={StaticResource BoolToVis}}">
+
+                        <Separator Style="{StaticResource CardDivider}" Margin="0 12 0 8" />
+
+                        <TextBlock Style="{StaticResource CardSectionLabel}"
+                                   Text="BONOS DE CRAFTEO" />
+
+                        <ItemsControl ItemsSource="{Binding ItemBonuses}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0 3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding Label}"
+                                                   FontSize="12"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   VerticalAlignment="Center" />
+
+                                        <TextBlock Grid.Column="1"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource MaterialDesign.Brush.Primary}"
+                                                   VerticalAlignment="Center"
+                                                   Margin="12 0 0 0">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0:N0}">
+                                                    <Binding Path="Total" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                    </StackPanel>
+
                 </Grid>
             </md:Card>
 
@@ -225,11 +270,11 @@
 
                     <!-- Título card -->
                     <TextBlock Style="{StaticResource CardTitle}"
-                               Text="Configuración de Crafteo"/>
+                               Text="Configuración de Crafteo" />
 
                     <!-- ── Sección: Receta ─────────────────────────────── -->
                     <TextBlock Style="{StaticResource CardSectionLabel}"
-                               Text="RECETA"/>
+                               Text="RECETA" />
 
                     <!-- Carrusel de recetas — card única con nav integrada -->
                     <Border Style="{StaticResource CarouselCenter}" Margin="0 0 0 4">
@@ -252,13 +297,13 @@
                                             Command="{Binding PreviousRecipeCommand}"
                                             ToolTip="Receta anterior"
                                             Visibility="{Binding HasPreviousRecipe, Converter={StaticResource BoolToVis}}">
-                                        <md:PackIcon Kind="ChevronLeft" Width="22" Height="22"/>
+                                        <md:PackIcon Kind="ChevronLeft" Width="22" Height="22" />
                                     </Button>
                                     <TextBlock Text="{Binding RecipeCarouselLabel}"
                                                FontSize="11"
                                                Opacity="0.65"
                                                VerticalAlignment="Center"
-                                               Margin="10 0"/>
+                                               Margin="10 0" />
                                     <Button Style="{StaticResource MaterialDesignIconButton}"
                                             Width="32" Height="32"
                                             Padding="0"
@@ -266,7 +311,7 @@
                                             Command="{Binding NextRecipeCommand}"
                                             ToolTip="Receta siguiente"
                                             Visibility="{Binding HasNextRecipe, Converter={StaticResource BoolToVis}}">
-                                        <md:PackIcon Kind="ChevronRight" Width="22" Height="22"/>
+                                        <md:PackIcon Kind="ChevronRight" Width="22" Height="22" />
                                     </Button>
                                 </StackPanel>
 
@@ -275,7 +320,7 @@
                                               HorizontalAlignment="Center">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Horizontal"/>
+                                            <StackPanel Orientation="Horizontal" />
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
@@ -286,13 +331,13 @@
                                                         Background="{DynamicResource MaterialDesign.Brush.Divider}">
                                                     <Image Source="{Binding Item.Image}"
                                                            Stretch="Uniform"
-                                                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                           RenderOptions.BitmapScalingMode="HighQuality" />
                                                 </Border>
                                                 <TextBlock Text="{Binding Count}"
                                                            FontSize="10"
                                                            HorizontalAlignment="Center"
                                                            Opacity="0.7"
-                                                           Margin="0 2 0 0"/>
+                                                           Margin="0 2 0 0" />
                                             </StackPanel>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
@@ -303,7 +348,7 @@
                                            FontSize="10"
                                            Opacity="0.6"
                                            HorizontalAlignment="Center"
-                                           Margin="0 6 0 0"/>
+                                           Margin="0 6 0 0" />
                             </StackPanel>
 
                             <!-- ── ESTADO 2: ítem no crafteable ──────────────────── -->
@@ -313,12 +358,12 @@
                                 <md:PackIcon Kind="HammerWrench"
                                              Width="22" Height="22"
                                              HorizontalAlignment="Center"
-                                             Opacity="0.35"/>
+                                             Opacity="0.35" />
                                 <TextBlock Text="Ítem no crafteable"
                                            FontSize="11"
                                            Opacity="0.45"
                                            Margin="0 5 0 0"
-                                           HorizontalAlignment="Center"/>
+                                           HorizontalAlignment="Center" />
                             </StackPanel>
 
                             <!-- ── ESTADO 3: sin ítem seleccionado ───────────────── -->
@@ -331,10 +376,10 @@
                                        TextAlignment="Center">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Setter Property="Visibility" Value="Collapsed" />
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding HasSelectedItem}" Value="False">
-                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Visibility" Value="Visible" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -344,17 +389,17 @@
                         </Grid>
                     </Border>
 
-                    <Separator Style="{StaticResource CardDivider}"/>
+                    <Separator Style="{StaticResource CardDivider}" />
 
                     <!-- ── Sección: Parámetros ─────────────────────────── -->
                     <TextBlock Style="{StaticResource CardSectionLabel}"
-                               Text="PARÁMETROS"/>
+                               Text="PARÁMETROS" />
 
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="12"/>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
                         <!-- Ciudad de crafteo -->
@@ -362,12 +407,13 @@
                             <TextBlock Text="Ciudad de crafteo"
                                        FontSize="11"
                                        Opacity="0.65"
-                                       Margin="0 0 0 4"/>
+                                       Margin="0 0 0 4" />
                             <ComboBox ItemsSource="{Binding AvailableCities}"
-                                      SelectedItem="{Binding SelectedCity}"
+                                      SelectedItem="{Binding SelectedCityOption}"
+                                      DisplayMemberPath="DisplayText"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                       md:HintAssist.Hint="Ciudad"
-                                      FontSize="12"/>
+                                      FontSize="12" />
                         </StackPanel>
 
                         <!-- Bono de diario de rendimiento -->
@@ -375,24 +421,36 @@
                             <TextBlock Text="Bono de diario de rendimiento"
                                        FontSize="11"
                                        Opacity="0.65"
-                                       Margin="0 0 0 4"/>
+                                       Margin="0 0 0 4" />
                             <ComboBox ItemsSource="{Binding JournalBonusOptions}"
                                       SelectedItem="{Binding SelectedJournalBonus}"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                       md:HintAssist.Hint="Bono"
-                                      FontSize="12"/>
+                                      FontSize="12" />
                         </StackPanel>
                     </Grid>
 
                     <!-- Checkboxes Premium / Foco -->
-                    <StackPanel Orientation="Horizontal" Margin="0 12 0 0">
+                    <StackPanel Orientation="Horizontal"
+                                Margin="0 12 0 0"
+                                VerticalAlignment="Center">
                         <CheckBox Content="Premium"
                                   IsChecked="{Binding UsePremium}"
                                   Margin="0 0 24 0"
-                                  FontSize="12"/>
+                                  FontSize="12" />
                         <CheckBox Content="Usar Foco"
                                   IsChecked="{Binding UseFocus}"
-                                  FontSize="12"/>
+                                  FontSize="12" />
+
+                        <!-- Costo de foco por craft (visible cuando UseFocus y hay receta) -->
+                        <TextBlock Margin="12 0 0 0"
+                                   FontSize="11"
+                                   Opacity="0.65"
+                                   VerticalAlignment="Center"
+                                   Visibility="{Binding HasFocusCost, Converter={StaticResource BoolToVis}}">
+                            <Run Text="{Binding FocusPerCraftLabel, Mode=OneWay}" />
+                            <Run Text=" foco." />
+                        </TextBlock>
                     </StackPanel>
 
                 </StackPanel>
@@ -409,7 +467,7 @@
                         <TextBlock DockPanel.Dock="Left"
                                    Style="{StaticResource CardTitle}"
                                    Text="Cantidades e Inventario"
-                                   Margin="0"/>
+                                   Margin="0" />
                         <!-- Botón cargar recursos del juego -->
                         <Button DockPanel.Dock="Right"
                                 Command="{Binding CargarRecursosCommand}"
@@ -421,20 +479,20 @@
                                 <md:PackIcon Kind="Download"
                                              Width="14" Height="14"
                                              VerticalAlignment="Center"
-                                             Margin="0 0 5 0"/>
-                                <TextBlock Text="Cargar recursos" VerticalAlignment="Center"/>
+                                             Margin="0 0 5 0" />
+                                <TextBlock Text="Cargar recursos" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
                     </DockPanel>
 
                     <!-- ── Cantidad a craftear ─────────────────────────── -->
                     <TextBlock Style="{StaticResource CardSectionLabel}"
-                               Text="CANTIDAD OBJETIVO"/>
+                               Text="CANTIDAD OBJETIVO" />
 
                     <Grid Margin="0 0 0 14">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="120"/>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
                         <TextBox Grid.Column="0"
@@ -443,19 +501,19 @@
                                  md:HintAssist.Hint="Cantidad"
                                  md:HintAssist.IsFloating="True"
                                  FontSize="13"
-                                 VerticalAlignment="Center"/>
+                                 VerticalAlignment="Center" />
 
                         <TextBlock Grid.Column="1"
                                    Text="ítems a craftear"
                                    FontSize="12"
                                    Opacity="0.55"
                                    VerticalAlignment="Center"
-                                   Margin="10 0 0 0"/>
+                                   Margin="10 0 0 0" />
                     </Grid>
 
                     <!-- ── Lista de ingredientes ──────────────────────── -->
                     <TextBlock Style="{StaticResource CardSectionLabel}"
-                               Text="INVENTARIO DE INGREDIENTES"/>
+                               Text="INVENTARIO DE INGREDIENTES" />
 
                     <!-- Placeholder sin receta cargada -->
                     <TextBlock Text="Selecciona un ítem para ver sus ingredientes"
@@ -464,10 +522,10 @@
                                Margin="0 8 0 0">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
-                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Setter Property="Visibility" Value="Collapsed" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding HasIngredientInventory}" Value="False">
-                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Setter Property="Visibility" Value="Visible" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
@@ -481,9 +539,9 @@
                             <DataTemplate>
                                 <Grid Margin="0 4">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="36"/>     <!-- Ícono -->
-                                        <ColumnDefinition Width="*"/>      <!-- Nombre + necesario -->
-                                        <ColumnDefinition Width="110"/>    <!-- Input "Tengo:" -->
+                                        <ColumnDefinition Width="36" />     <!-- Ícono -->
+                                        <ColumnDefinition Width="*" />      <!-- Nombre + necesario -->
+                                        <ColumnDefinition Width="Auto" />    <!-- Input "Tengo:" -->
                                     </Grid.ColumnDefinitions>
 
                                     <!-- Ícono del ingrediente -->
@@ -492,7 +550,7 @@
                                             CornerRadius="4"
                                             Background="{DynamicResource MaterialDesign.Brush.Divider}">
                                         <Image Source="{Binding Item.Image}"
-                                               Stretch="Uniform"/>
+                                               Stretch="Uniform" />
                                     </Border>
 
                                     <!-- Nombre y cantidad requerida -->
@@ -501,29 +559,52 @@
                                                 Margin="10 0">
                                         <TextBlock Text="{Binding DisplayName}"
                                                    FontSize="12"
-                                                   TextTrimming="CharacterEllipsis"/>
+                                                   TextTrimming="CharacterEllipsis" />
                                         <TextBlock FontSize="11"
                                                    Opacity="0.6">
-                                            <Run Text="Necesito: "/>
-                                            <Run Text="{Binding RequiredCount, StringFormat=N0}"/>
+                                            <Run Text="Necesito: " />
+                                            <Run Text="{Binding RequiredCount, StringFormat=N0}" />
                                         </TextBlock>
                                     </StackPanel>
 
-                                    <!-- Input de inventario propio -->
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal"
-                                                VerticalAlignment="Center">
-                                        <TextBlock Text="Tengo:"
-                                                   FontSize="11"
-                                                   Opacity="0.65"
-                                                   VerticalAlignment="Center"
-                                                   Margin="0 0 6 0"/>
-                                        <TextBox Width="60"
-                                                 Text="{Binding OwnedCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                                                 FontSize="12"
-                                                 md:HintAssist.Hint="0"
-                                                 md:HintAssist.IsFloating="False"
-                                                 VerticalAlignment="Center"/>
+                                    <!-- Inventario propio + precio -->
+                                    <StackPanel Grid.Column="2"
+                                                VerticalAlignment="Center"
+                                                Orientation="Horizontal"
+                                                Margin="4 0 0 0">
+
+                                        <!-- Tengo: -->
+                                        <StackPanel Orientation="Vertical" Margin="5 0">
+                                            <TextBlock Text="Tengo:"
+                                                       FontSize="11"
+                                                       Opacity="0.65"
+                                                       VerticalAlignment="Center"
+                                                       Margin="0 0 6 0" />
+                                            <TextBox Width="60"
+                                                     Text="{Binding OwnedCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                                     FontSize="12"
+                                                     md:HintAssist.Hint="0"
+                                                     md:HintAssist.IsFloating="False"
+                                                     VerticalAlignment="Center" />
+                                        </StackPanel>
+
+                                        <!-- Precio individual -->
+                                        <StackPanel Orientation="Vertical" Margin="5 0">
+                                            <TextBlock Text="Precio:"
+                                                       FontSize="11"
+                                                       Opacity="0.65"
+                                                       VerticalAlignment="Center"
+                                                       Margin="0 0 6 0" />
+                                            <TextBox Width="60"
+                                                     Text="{Binding UnitPrice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                                     FontSize="12"
+                                                     md:HintAssist.Hint="0"
+                                                     md:HintAssist.IsFloating="False"
+                                                     VerticalAlignment="Center" />
+                                        </StackPanel>
+
                                     </StackPanel>
                                 </Grid>
                             </DataTemplate>
@@ -539,41 +620,88 @@
             <md:Card Style="{StaticResource CalcCard}" Margin="0">
                 <StackPanel>
 
-                    <!-- Título card + botón calcular -->
-                    <DockPanel Margin="0 0 0 12">
-                        <TextBlock DockPanel.Dock="Left"
-                                   Style="{StaticResource CardTitle}"
-                                   Margin="0">
-                            <Run Text="Materiales Necesarios"/>
-                            <!-- Contador de ítems cuando hay resultados -->
-                            <Run>
-                                <Run.Style>
-                                    <Style TargetType="Run">
-                                        <Setter Property="Text" Value=""/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding HasResults}" Value="True">
-                                                <!-- Podría mostrarse la cuenta pero los runs no soportan binding fácilmente -->
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Run.Style>
-                            </Run>
-                        </TextBlock>
-                        <Button DockPanel.Dock="Right"
-                                Command="{Binding CalcularCommand}"
-                                Style="{StaticResource MaterialDesignRaisedButton}"
-                                md:ButtonAssist.CornerRadius="6"
-                                FontSize="12"
-                                Padding="14 6">
+                    <!-- Título card -->
+                    <TextBlock Style="{StaticResource CardTitle}"
+                               Text="Materiales Necesarios"
+                               Margin="0 0 0 8" />
+
+                    <!-- Métricas — dos filas independientes -->
+                    <StackPanel Orientation="Horizontal">
+
+
+                        <!-- Badge retorno: solo cuando hay resultados de materiales -->
+
+                        <Border CornerRadius="4"
+                                Background="{DynamicResource MaterialDesign.Brush.Primary}"
+                                Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}"
+                                Padding="8 3" Margin="0,0,4,0">
                             <StackPanel Orientation="Horizontal">
-                                <md:PackIcon Kind="Calculator"
-                                             Width="15" Height="15"
+                                <md:PackIcon Kind="ArrowTopRight"
+                                             Width="13" Height="13"
                                              VerticalAlignment="Center"
-                                             Margin="0 0 6 0"/>
-                                <TextBlock Text="Calcular" VerticalAlignment="Center"/>
+                                             Margin="0 0 4 0"
+                                             Foreground="White" />
+                                <TextBlock Text="{Binding ReturnRateLabel, Mode=OneWay}"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="White" />
                             </StackPanel>
-                        </Button>
-                    </DockPanel>
+                        </Border>
+
+                        <!-- Badge foco: independiente de resultados, aparece al activar "Usar Foco" -->
+
+                        <Border CornerRadius="4"
+                                Background="{DynamicResource MaterialDesign.Brush.Primary}"
+                                Visibility="{Binding HasFocusCost, Converter={StaticResource BoolToVis}}"
+                                Padding="8 3">
+                            <StackPanel Orientation="Horizontal">
+                                <md:PackIcon Kind="FocusAuto"
+                                             Width="13" Height="13"
+                                             VerticalAlignment="Center"
+                                             Margin="0 0 4 0"
+                                             Foreground="White" />
+                                <TextBlock FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           Text="{Binding FocusPerCraftLabel}" />
+                                <TextBlock Text="/craft"
+                                           FontSize="11"
+                                           Foreground="White"
+                                           Margin="1 0 0 0" />
+                                <TextBlock Text=" · "
+                                           FontSize="11"
+                                           Foreground="White"
+                                           Opacity="0.6"
+                                           Margin="3 0" />
+                                <TextBlock FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           Text="{Binding TotalFocusCostLabel}" />
+                                <TextBlock Text=" total"
+                                           FontSize="11"
+                                           Foreground="White"
+                                           Margin="1 0 0 0" />
+
+                                <!-- Reducción del Destiny Board — visible solo cuando > 0% -->
+                                <TextBlock FontSize="10"
+                                           Foreground="White"
+                                           Opacity="0.75"
+                                           Margin="5 0 0 0"
+                                           Text="{Binding FocusReductionLabel}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding FocusReductionPercent}" Value="0">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
 
                     <!-- Placeholder sin resultados -->
                     <Border Padding="20"
@@ -581,18 +709,18 @@
                             Background="{DynamicResource MaterialDesign.Brush.Divider}">
                         <Border.Style>
                             <Style TargetType="Border">
-                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Setter Property="Visibility" Value="Collapsed" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding HasResults}" Value="False">
-                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Setter Property="Visibility" Value="Visible" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </Border.Style>
-                        <TextBlock Text="Configura el ítem, la receta y presiona Calcular"
+                        <TextBlock Text="Selecciona un ítem y configura la receta para ver los materiales"
                                    HorizontalAlignment="Center"
                                    FontSize="12"
-                                   Opacity="0.45"/>
+                                   Opacity="0.45" />
                     </Border>
 
                     <!-- Lista de materiales (resultados) -->
@@ -610,9 +738,9 @@
                                         Background="{DynamicResource MaterialDesign.Brush.Paper}">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="48"/>    <!-- Ícono -->
-                                            <ColumnDefinition Width="*"/>     <!-- Nombre + cantidad + loc -->
-                                            <ColumnDefinition Width="Auto"/>  <!-- Precio + total -->
+                                            <ColumnDefinition Width="48" />    <!-- Ícono -->
+                                            <ColumnDefinition Width="*" />     <!-- Nombre + cantidad + loc -->
+                                            <ColumnDefinition Width="Auto" />  <!-- Precio + total -->
                                         </Grid.ColumnDefinitions>
 
                                         <!-- Ícono del material -->
@@ -623,7 +751,7 @@
                                                 Margin="0 0 10 0">
                                             <Image Source="{Binding Item.Image}"
                                                    Stretch="Uniform"
-                                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                   RenderOptions.BitmapScalingMode="HighQuality" />
                                         </Border>
 
                                         <!-- Info central -->
@@ -631,26 +759,26 @@
                                             <TextBlock Text="{Binding DisplayName}"
                                                        FontSize="13"
                                                        FontWeight="Medium"
-                                                       TextTrimming="CharacterEllipsis"/>
+                                                       TextTrimming="CharacterEllipsis" />
                                             <StackPanel Orientation="Horizontal" Margin="0 3 0 0">
                                                 <TextBlock FontSize="11" Opacity="0.6">
-                                                    <Run Text="Cantidad: "/>
-                                                    <Run Text="{Binding NetQuantity, StringFormat=N0}"/>
+                                                    <Run Text="Cantidad: " />
+                                                    <Run Text="{Binding NetQuantity, StringFormat=N0}" />
                                                 </TextBlock>
                                                 <TextBlock Text=" · "
                                                            FontSize="11"
                                                            Opacity="0.4"
-                                                           Margin="4 0"/>
+                                                           Margin="4 0" />
                                                 <TextBlock FontSize="11" Opacity="0.6">
-                                                    <Run Text="{Binding BuyLocation}"/>
+                                                    <Run Text="{Binding BuyLocation}" />
                                                 </TextBlock>
                                             </StackPanel>
                                             <!-- Precio unitario -->
                                             <TextBlock FontSize="11"
                                                        Opacity="0.55"
                                                        Margin="0 2 0 0">
-                                                <Run Text="Precio: "/>
-                                                <Run Text="{Binding UnitPrice, StringFormat=N0}"/>
+                                                <Run Text="Precio: " />
+                                                <Run Text="{Binding UnitPrice, StringFormat=N0}" />
                                             </TextBlock>
                                         </StackPanel>
 
@@ -661,14 +789,14 @@
                                             <TextBlock Text="Total"
                                                        FontSize="10"
                                                        Opacity="0.5"
-                                                       HorizontalAlignment="Right"/>
+                                                       HorizontalAlignment="Right" />
                                             <TextBlock FontSize="14"
                                                        FontWeight="SemiBold"
                                                        HorizontalAlignment="Right"
                                                        Foreground="{DynamicResource MaterialDesign.Brush.Secondary}">
                                                 <TextBlock.Text>
                                                     <MultiBinding StringFormat="{}{0:N0}">
-                                                        <Binding Path="TotalCost"/>
+                                                        <Binding Path="TotalCost" />
                                                     </MultiBinding>
                                                 </TextBlock.Text>
                                             </TextBlock>
@@ -681,7 +809,7 @@
 
                     <!-- Separador y total general -->
                     <Separator Style="{StaticResource CardDivider}"
-                               Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}"/>
+                               Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}" />
 
                     <DockPanel Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}">
                         <TextBlock DockPanel.Dock="Left"
@@ -689,7 +817,7 @@
                                    FontSize="11"
                                    FontWeight="SemiBold"
                                    Opacity="0.65"
-                                   VerticalAlignment="Center"/>
+                                   VerticalAlignment="Center" />
                         <TextBlock DockPanel.Dock="Right"
                                    FontSize="18"
                                    FontWeight="Bold"
@@ -697,7 +825,7 @@
                                    Foreground="{DynamicResource MaterialDesign.Brush.Secondary}">
                             <TextBlock.Text>
                                 <MultiBinding StringFormat="{}{0:N0}">
-                                    <Binding Path="TotalCost"/>
+                                    <Binding Path="TotalCost" />
                                 </MultiBinding>
                             </TextBlock.Text>
                         </TextBlock>

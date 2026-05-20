@@ -80,13 +80,16 @@
 
             </Grid>
         </Border>
-        <TextBlock Grid.Row="1" Text="{Binding Level, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+        <TextBlock Grid.Row="1" Text="{Binding Level}"
+                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
+        
+
         <Grid.ToolTip>
             <ToolTip>
                 <StackPanel>
-                    <TextBlock Text="{Binding DisplayName}"
-                               FontWeight="Medium"
+                    <TextBlock FontWeight="Medium" Text="{Binding DisplayName}"
                                FontSize="13" />
+
                 </StackPanel>
             </ToolTip>
         </Grid.ToolTip>

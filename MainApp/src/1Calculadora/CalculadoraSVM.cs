@@ -1,86 +1,99 @@
 using System.Collections.ObjectModel;
-using Albion_App.Dialog;
-using Albion_App.Features.DataStatic;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using Albion_App.Infrastructure;
 using Albion_App.Models;
 using Albion_App.ViewModel;
+using Albion_App.Components.Achievement;
+using AlbionApp.Application.UseCases.Crafting;
+using AlbionApp.Application.UseCases.Player;
 using AlbionApp.Domain.Crafting;
 using AlbionApp.Domain.Interfaces;
-using AlbionApp.Domain.ItemSearch;
-using AlbionApp.Infrastructure.Services;
+using AlbionApp.Domain.Interfaces.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MaterialDesignThemes.Wpf;
-using Utilidades.Dialogs;
 using ItemBaseVm = Albion_App.Components.Item.ItemBaseVm;
-using ItemSearchVM = Albion_App.Dialog.ItemSearchVM;
 
 namespace Albion_App._1Calculadora;
 
 /// <summary>
-/// ViewModel de la página Calculadora de Crafteo.
+/// ViewModel de la Calculadora de Crafteo.
 ///
-/// Organizado en 5 regiones que corresponden a las 4 cards de la UI más
-/// la metadata de navegación (icono + header para el sidebar).
+/// Responsabilidades:
+///   • Mantener el estado observable de las 4 cards.
+///   • Orquestar los flujos de usuario (buscar ítem, navegar recetas, cambiar parámetros).
+///   • Construir el <see cref="CraftingCostRequest"/> y delegar en
+///     <see cref="CalculateCraftingCostUseCase"/> toda la lógica de negocio.
+///   • Mapear el <see cref="CraftingCostResult"/> al estado UI sin lógica de dominio.
 ///
-/// Decisión de diseño: VM único con regiones claras en lugar de sub-VMs
-/// porque todo el estado es cohesivo (el cambio en cualquier card puede
-/// afectar a las demás). Si la complejidad crece, el paso natural es
-/// extraer RecipeCarouselVM y CraftingResultVM como sub-VMs observables.
-///
-/// Política de imágenes:
-/// - El ítem seleccionado retorna su <see cref="ItemBaseVm"/> directamente
-///   desde el diálogo de búsqueda (imagen ya cargada, sin re-descarga).
-/// - Los ingredientes de la receta son ítems distintos; se construyen nuevos
-///   <see cref="ItemBaseVm"/> y se lanza <c>LoadImageAsync</c> fire-and-forget
-///   bajo un <see cref="CancellationTokenSource"/> que se cancela cuando el
-///   ítem objetivo cambia, evitando descargas huérfanas.
-///
-/// TODO (deuda técnica conocida):
-/// - Integrar IMarketPriceService para precios reales en Card 4.
-/// - Integrar LibAlbionProtocol para cargar inventario en Card 3.
-/// - Exponer IReadOnlyList en lugar de ObservableCollection en propiedades
-///   públicas si no se requiere mutación desde la vista.
+/// Decisiones de diseño:
+///   • Sin <c>OnPropertyChanged(nameof(...))</c> manuales — toda dependencia es
+///     declarativa vía <c>[NotifyPropertyChangedFor]</c> o <c>partial void OnXChanged</c>.
+///   • Los métodos de carga de recetas / inventario son side-effect free respecto
+///     al cálculo: cada uno hace UNA cosa y llama explícitamente a los siguientes.
+///   • <see cref="IItemSearchService"/> desacopla el VM de la View concreta del diálogo.
 /// </summary>
 public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
 {
-    // ─── Dependencias ─────────────────────────────────────────────────────────
-
-    private readonly ItemSearchVM   _itemSearchVm;
-    private readonly IItemDataService _itemDataService;
-
     // ═══════════════════════════════════════════════════════════════════════════
-    // REGIÓN 0 — Metadata de navegación (sidebar)
+    // DEPENDENCIAS
     // ═══════════════════════════════════════════════════════════════════════════
 
-    [ObservableProperty] private string _header = "Calculadora";
-    [ObservableProperty] private PackIconKind _icon = PackIconKind.Calculator;
+    private readonly IItemSearchService            _itemSearch;
+    private readonly IItemDataService              _itemDataService;
+    private readonly ProcessPlayerUseCase          _processPlayer;
+    private readonly ILocalizationService          _localization;
+    private readonly ICraftingLocationService      _craftingLocations;
+    private readonly CalculateCraftingCostUseCase  _calculateCrafting;
+
+    // Bonuses raw del ítem: fuente para achievement focus y return rate.
+    private IReadOnlyList<AggregatedBonus> _rawItemBonuses = [];
+
+    // CancellationTokenSource para imágenes de ingredientes en vuelo.
+    private CancellationTokenSource? _ingredientCts;
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // REGIÓN 1 — Card 1: Ítem objetivo
+    // NAVEGACIÓN (sidebar)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    [ObservableProperty] private string       _header = "Calculadora";
+    [ObservableProperty] private PackIconKind _icon   = PackIconKind.Calculator;
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CARD 1 — Ítem objetivo
     // ═══════════════════════════════════════════════════════════════════════════
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelectedItem))]
+    [NotifyPropertyChangedFor(nameof(HasSelectedItemWithoutRecipe))]
     [NotifyPropertyChangedFor(nameof(RecipeCarouselLabel))]
-
+    [NotifyPropertyChangedFor(nameof(TabTitle))]
     private ItemBaseVm? _selectedItem;
+
+    /// <summary>Título de la pestaña en el workspace. Usado por <see cref="WorkspaceVm"/>.</summary>
+    public string TabTitle => SelectedItem?.DisplayName ?? "Nueva pestaña";
 
     public bool HasSelectedItem => SelectedItem is not null;
 
-    /// <summary>
-    /// Precio aproximado del ítem seleccionado en plata.
-    /// Placeholder hasta integrar IMarketPriceService.
-    /// </summary>
-    public decimal ApproxPrice => 1_500_000m;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasItemBonuses))]
+    private IReadOnlyList<BonusDisplayItem> _itemBonuses = [];
+
+    public bool HasItemBonuses => ItemBonuses.Count > 0;
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // REGIÓN 2 — Card 2: Carrusel de recetas + configuración de crafteo
+    // CARD 2 — Carrusel de recetas + parámetros de crafteo
     // ═══════════════════════════════════════════════════════════════════════════
 
     // ── Carrusel ──────────────────────────────────────────────────────────────
 
     public ObservableCollection<RecipeVm> RecipeOptions { get; } = [];
 
+    /// <summary>
+    /// Índice de la receta visible. CommunityToolkit genera notificaciones para
+    /// todas las propiedades computadas que dependen de él.
+    /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CurrentRecipe))]
     [NotifyPropertyChangedFor(nameof(PreviousRecipeM))]
@@ -90,54 +103,20 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     [NotifyPropertyChangedFor(nameof(RecipeCarouselLabel))]
     private int _recipeIndex;
 
-    /// <summary>
-    /// True cuando hay recetas.
-    /// </summary>
-    public bool HasRecipes => RecipeOptions.Count > 0;
-
-    /// <summary>True cuando hay más de una receta; ambas flechas se habilitan.</summary>
-    public bool HasMultipleRecipes => RecipeOptions.Count > 1;
-
-    /// <summary>
-    /// Ítem seleccionado pero sin receta disponible (no crafteable o no en catálogo).
-    /// Usado para mostrar el placeholder correcto en el carrusel.
-    /// </summary>
-    public bool HasSelectedItemWithoutRecipe => HasSelectedItem && !HasRecipes;
-
+    public bool      HasRecipes    => RecipeOptions.Count > 0;
+    public bool      HasMultipleRecipes          => RecipeOptions.Count > 1;
+    public bool      HasSelectedItemWithoutRecipe => HasSelectedItem && !HasRecipes;
+    public bool      HasPreviousRecipe            => HasMultipleRecipes;
+    public bool      HasNextRecipe                => HasMultipleRecipes;
     public RecipeVm? CurrentRecipe  => RecipeOptions.Count > 0 ? RecipeOptions[RecipeIndex] : null;
-
-    /// <summary>
-    /// Receta "anterior" con wrap-around: si estamos en la primera, expone la última
-    /// para que el peek izquierdo muestre la receta del extremo opuesto.
-    /// </summary>
-    public RecipeVm? PreviousRecipeM => RecipeOptions.Count > 1
-        ? RecipeOptions[RecipeIndex > 0 ? RecipeIndex - 1 : RecipeOptions.Count - 1]
-        : null;
-
-    /// <summary>
-    /// Receta "siguiente" con wrap-around: si estamos en la última, expone la primera.
-    /// </summary>
-    public RecipeVm? NextRecipeM => RecipeOptions.Count > 1
-        ? RecipeOptions[RecipeIndex < RecipeOptions.Count - 1 ? RecipeIndex + 1 : 0]
-        : null;
-
-    // Con scroll infinito los peeks son visibles siempre que haya > 1 receta.
-    public bool HasPreviousRecipe => HasMultipleRecipes;
-    public bool HasNextRecipe     => HasMultipleRecipes;
-
-    /// <summary>Etiqueta de posición: "Receta (2/5)".</summary>
-    public string RecipeCarouselLabel => RecipeOptions.Count > 0
-        ? $"Receta ({RecipeIndex + 1}/{RecipeOptions.Count})"
-        : "—";
+    public RecipeVm? PreviousRecipeM => RecipeOptions.Count > 1 ? RecipeOptions[RecipeIndex > 0 ? RecipeIndex - 1 : RecipeOptions.Count - 1] : null;
+    public RecipeVm? NextRecipeM => RecipeOptions.Count > 1 ? RecipeOptions[RecipeIndex < RecipeOptions.Count - 1 ? RecipeIndex + 1 : 0] : null;
+    public string RecipeCarouselLabel => RecipeOptions.Count > 0 ? $"Receta ({RecipeIndex + 1}/{RecipeOptions.Count})" : "—";
 
     // ── Ciudad y parámetros ───────────────────────────────────────────────────
 
-    public IReadOnlyList<CraftingCity> AvailableCities { get; } =
-        Enum.GetValues<CraftingCity>()
-            .Where(c => c != CraftingCity.None)
-            .ToArray();
-
-    [ObservableProperty] private CraftingCity _selectedCity = CraftingCity.Bridgewatch;
+    [ObservableProperty] private IReadOnlyList<CraftingCityOption> _availableCities = [];
+    [ObservableProperty] private CraftingCityOption?               _selectedCityOption;
 
     public IReadOnlyList<JournalBonusOptionM> JournalBonusOptions { get; } =
     [
@@ -151,7 +130,7 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     [ObservableProperty] private bool _useFocus;
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // REGIÓN 3 — Card 3: Cantidades e inventario
+    // CARD 3 — Cantidades e inventario
     // ═══════════════════════════════════════════════════════════════════════════
 
     [ObservableProperty]
@@ -162,278 +141,415 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     public bool HasIngredientInventory => IngredientInventory.Count > 0;
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // REGIÓN 4 — Card 4: Resumen de la operación
+    // CARD 4 — Resultados
     // ═══════════════════════════════════════════════════════════════════════════
 
     public ObservableCollection<MaterialResultM> MaterialResults { get; } = [];
 
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasResults))]
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasResults))]
     private decimal _totalCost;
 
     public bool HasResults => MaterialResults.Count > 0;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ReturnRateLabel))]
+    private decimal _effectiveReturnRate;
+
+    public string ReturnRateLabel => $"{EffectiveReturnRate * 100:F1}%";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasFocusCost))]
+    [NotifyPropertyChangedFor(nameof(FocusPerCraftLabel))]
+    private int? _focusPerCraft;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasFocusCost))]
+    [NotifyPropertyChangedFor(nameof(TotalFocusCostLabel))]
+    private int? _totalFocusCost;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FocusReductionLabel))]
+    private int _focusReductionPercent;
+
+    /// <summary>Etiqueta del ahorro por Destiny Board. Ej: "(−92% DB)".</summary>
+    public string FocusReductionLabel => $"(−{FocusReductionPercent}% DB)";
+
+    public bool   HasFocusCost       => UseFocus && FocusPerCraft > 0;
+    public string FocusPerCraftLabel  => FocusPerCraft  is int f ? f.ToString("N0") : "—";
+    public string TotalFocusCostLabel => TotalFocusCost is int t ? t.ToString("N0") : "—";
 
     // ═══════════════════════════════════════════════════════════════════════════
     // CONSTRUCTOR
     // ═══════════════════════════════════════════════════════════════════════════
 
     public CalculadoraSvm(
-        ItemSearchVM    itemSearchVm,
-        IItemDataService itemDataService)
+        IItemSearchService            itemSearch,
+        IItemDataService              itemDataService,
+        ProcessPlayerUseCase          processPlayer,
+        ILocalizationService          localization,
+        ICraftingLocationService      craftingLocations,
+        CalculateCraftingCostUseCase  calculateCrafting)
     {
-        _itemSearchVm    = itemSearchVm;
-        _itemDataService = itemDataService;
+        _itemSearch        = itemSearch;
+        _itemDataService   = itemDataService;
+        _processPlayer     = processPlayer;
+        _localization      = localization;
+        _craftingLocations = craftingLocations;
+        _calculateCrafting = calculateCrafting;
 
         SelectedJournalBonus = JournalBonusOptions[0];
+        ResetCiudades();
 
-        // Suscripción a CollectionChanged: garantiza que los bindings de Visibility
-        // que dependen de HasRecipes / HasMultipleRecipes se actualicen en el momento
-        // exacto en que la colección cambia, sin depender de llamadas manuales dispersas.
-        RecipeOptions.CollectionChanged += (_, _) =>
-        {
-            OnPropertyChanged(nameof(HasRecipes));
-            OnPropertyChanged(nameof(HasMultipleRecipes));
-            OnPropertyChanged(nameof(HasSelectedItemWithoutRecipe));
-            // CurrentRecipe es computed desde RecipeOptions[RecipeIndex]. Cuando
-            // RecipeIndex no cambia (ya era 0) la propiedad no se notifica sola,
-            // así que debemos hacerlo aquí cada vez que la colección muta.
-            OnPropertyChanged(nameof(CurrentRecipe));
-            OnPropertyChanged(nameof(PreviousRecipeM));
-            OnPropertyChanged(nameof(NextRecipeM));
-            OnPropertyChanged(nameof(RecipeCarouselLabel));
-            // HasPreviousRecipe / HasNextRecipe dependen de HasMultipleRecipes
-            // pero son propiedades independientes — deben notificarse explícitamente.
-            OnPropertyChanged(nameof(HasPreviousRecipe));
-            OnPropertyChanged(nameof(HasNextRecipe));
-
-            PreviousRecipeCommand.NotifyCanExecuteChanged();
-            NextRecipeCommand.NotifyCanExecuteChanged();
-        };
-
-        // Mismo patrón para las colecciones dependientes de Cards 3 y 4.
-        IngredientInventory.CollectionChanged += (_, _) =>
-        {
-            OnPropertyChanged(nameof(HasIngredientInventory));
-            CalcularCommand.NotifyCanExecuteChanged();
-        };
-
-        MaterialResults.CollectionChanged += (_, _) =>
-            OnPropertyChanged(nameof(HasResults));
+        // Suscripciones a colecciones: un handler por colección, nombre explícito.
+        RecipeOptions.CollectionChanged      += OnRecipeCollectionChanged;
+        IngredientInventory.CollectionChanged += OnIngredientCollectionChanged;
+        MaterialResults.CollectionChanged    += (_, _) => OnPropertyChanged(nameof(HasResults));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // COMANDOS
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Abre el diálogo de búsqueda de ítems.</summary>
+    /// <summary>Abre el diálogo de búsqueda y carga el ítem seleccionado.</summary>
     [RelayCommand]
     private async Task BuscarItemAsync()
     {
-
-        var dialog = new ItemSearchDialogV(_itemSearchVm)
-        {
-            DialogOpenIdentifier = DialogDefaults.Main,
-            AceptarCommand = new AsyncRelayCommand<ItemBaseVm>(OnItemSeleccionadoAsync),
-            CancelarCommand = new AsyncRelayCommand(() => Task.CompletedTask)
-        };
-
-        await DialogService.Instance.MostrarDialogo(dialog);
+        var itemVm = await _itemSearch.SearchAsync();
+        if (itemVm is null) return;
+        await LoadItemAsync(itemVm);
     }
 
-    /// <summary>Limpia el ítem seleccionado y resetea todo el estado de la calculadora.</summary>
+    /// <summary>Limpia el ítem y resetea toda la calculadora.</summary>
     [RelayCommand(CanExecute = nameof(HasSelectedItem))]
     private void LimpiarItem()
     {
-        CancelarCargaDeIngredientes();
-        SelectedItem = null;      // → OnSelectedItemChanged → HasSelectedItemWithoutRecipe
-        RecipeOptions.Clear();    // → CollectionChanged → HasRecipes, HasMultipleRecipes, HasSelectedItemWithoutRecipe
+        CancelIngredientImageLoads();
+
+        SelectedItem = null;
+        _rawItemBonuses = [];
+        ItemBonuses = [];
+
+        ClearCalculationState();
+        ResetCiudades();
+
+        RecipeOptions.Clear();
         RecipeIndex = 0;
-        IngredientInventory.Clear(); // → CollectionChanged → HasIngredientInventory
-        MaterialResults.Clear();     // → CollectionChanged → HasResults
+        IngredientInventory.Clear();
+        MaterialResults.Clear();
         TotalCost = 0;
     }
 
-    /// <summary>
-    /// Navega a la receta anterior con scroll infinito:
-    /// primera → última, resto → anterior.
-    /// </summary>
+    /// <summary>Navega a la receta anterior (wrap-around).</summary>
     [RelayCommand(CanExecute = nameof(HasMultipleRecipes))]
     private void PreviousRecipe()
     {
         RecipeIndex = RecipeIndex > 0 ? RecipeIndex - 1 : RecipeOptions.Count - 1;
-        RefreshCarouselDependencies();
+        RebuildIngredientInventory();
     }
 
-    /// <summary>
-    /// Navega a la receta siguiente con scroll infinito:
-    /// última → primera, resto → siguiente.
-    /// </summary>
+    /// <summary>Navega a la receta siguiente (wrap-around).</summary>
     [RelayCommand(CanExecute = nameof(HasMultipleRecipes))]
     private void NextRecipe()
     {
         RecipeIndex = RecipeIndex < RecipeOptions.Count - 1 ? RecipeIndex + 1 : 0;
-        RefreshCarouselDependencies();
-    }
-
-    /// <summary>
-    /// Carga el inventario de recursos desde el protocolo del juego.
-    /// TODO: integrar con LibAlbionProtocol → IPlayerInventoryService.
-    /// </summary>
-    [RelayCommand]
-    private void CargarRecursos()
-    {
-        // Placeholder: en la implementación real se invocaría
-        // IPlayerInventoryService.GetCurrentInventory() y se mapearían
-        // los ownedCounts en IngredientInventory.
-    }
-
-    /// <summary>Ejecuta el cálculo de crafteo y popula la Card 4.</summary>
-    [RelayCommand(CanExecute = nameof(HasIngredientInventory))]
-    private void Calcular()
-    {
-        // TODO: integrar con CraftingCalculatorService.Calculate(CraftingParameters).
-        // Por ahora popula con datos placeholder para demostrar el layout.
-        PopularResultadosPlaceholder();
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // HANDLERS DE CAMBIO (CommunityToolkit partial methods)
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    partial void OnSelectedItemChanged(ItemBaseVm? value)
-    {
-        // HasSelectedItemWithoutRecipe depende de SelectedItem; se notifica aquí
-        // para que el placeholder del carrusel reaccione de forma inmediata.
-        OnPropertyChanged(nameof(HasSelectedItemWithoutRecipe));
-    }
-
-    partial void OnQuantityToCraftChanged(int value)
-    {
-        // Recalcular RequiredCount de cada ingrediente cuando cambia la cantidad objetivo.
         RebuildIngredientInventory();
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // MÉTODOS PRIVADOS
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// <summary>
-    /// CancellationTokenSource para las cargas de imagen de los ingredientes.
-    /// Se cancela cada vez que cambia el ítem objetivo, evitando descargas huérfanas.
-    /// </summary>
-    private CancellationTokenSource? _ingredientCts;
-
-    private async Task OnItemSeleccionadoAsync(ItemBaseVm? item)
+    /// <summary>Carga el inventario del jugador desde el protocolo del juego.</summary>
+    [RelayCommand]
+    private void CargarRecursos()
     {
-        if (item is null)
-            return;
-
-        // El item ya tiene imagen cargada — no re-descargamos.
-        SelectedItem = item;
-        CargarRecetasDeItem(SelectedItem);
-        LimpiarItemCommand.NotifyCanExecuteChanged();
+        // TODO: integrar con LibAlbionProtocol → IPlayerInventoryService.
     }
 
-    /// <summary>
-    /// Construye las opciones del carrusel a partir del catálogo de crafteo.
-    /// Un ítem puede tener cero, una o varias recetas (crafteo base + mejoras de encantamiento).
-    /// El carrusel refleja todas las recetas disponibles con scroll infinito.
-    ///
-    /// Flujo:
-    ///   1. Cancela cualquier carga de imagen de ingredientes en vuelo.
-    ///   2. Limpia el estado anterior del carrusel.
-    ///   3. Crea un CTS fresco para las cargas de imagen de esta tanda de ingredientes.
-    ///   4. Por cada <see cref="IRecipe"/> devuelta por <see cref="ItemDataService"/>:
-    ///      mapea los <see cref="IIngredient"/> a <see cref="IngredientVm"/> via
-    ///      <see cref="BuildIngredientVm"/>, que lanza la imagen en fire-and-forget.
-    ///   5. Notifica las dependencias del carrusel y reconstruye el inventario de ingredientes.
-    /// </summary>
-    private void CargarRecetasDeItem(ItemBaseVm itemVm)
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PARTIAL METHODS — árbol de dependencias declarativo
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Cuando RecipeIndex cambia, actualiza CanExecute de las flechas.</summary>
+    partial void OnRecipeIndexChanged(int value)
     {
-        CancelarCargaDeIngredientes();
+        PreviousRecipeCommand.NotifyCanExecuteChanged();
+        NextRecipeCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>Cuando cambia la cantidad objetivo, reconstruye el inventario y recalcula.</summary>
+    partial void OnQuantityToCraftChanged(int value) => RebuildIngredientInventory();
+
+    /// <summary>Cuando cambia la ciudad, recalcula.</summary>
+    partial void OnSelectedCityOptionChanged(CraftingCityOption? value) => Recalculate();
+
+    /// <summary>Cuando cambia el bono de diario, recalcula.</summary>
+    partial void OnSelectedJournalBonusChanged(JournalBonusOptionM? value) => Recalculate();
+
+    /// <summary>Cuando cambia el uso de foco, notifica HasFocusCost y recalcula.</summary>
+    partial void OnUseFocusChanged(bool value)
+    {
+        OnPropertyChanged(nameof(HasFocusCost));
+        Recalculate();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FLUJO DE SELECCIÓN DE ÍTEM
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Carga el ítem seleccionado: recetas → bonuses → ciudades.
+    /// Cada paso es independiente; el cálculo se dispara al final desde
+    /// <see cref="RebuildIngredientInventory"/>.
+    /// </summary>
+    /// <summary>
+    /// Carga un ítem directamente desde fuera (ej. restauración de workspace).
+    /// </summary>
+    internal Task LoadItemExternalAsync(ItemBaseVm itemVm) => LoadItemAsync(itemVm);
+
+    private async Task LoadItemAsync(ItemBaseVm itemVm)
+    {
+        SelectedItem = itemVm;
+        LoadRecipes(itemVm);
+        LoadItemBonuses(itemVm);
+        UpdateCitiesForItem(itemVm);
+        LimpiarItemCommand.NotifyCanExecuteChanged();
+        await Task.CompletedTask; // punto de extensión para carga async futura
+    }
+
+    private void LoadRecipes(ItemBaseVm itemVm)
+    {
+        CancelIngredientImageLoads();
         RecipeOptions.Clear();
         RecipeIndex = 0;
 
         var rawRecipes = _itemDataService.GetRecipes(itemVm.ItemId);
+        if (rawRecipes.Length == 0) return;
 
-        if (rawRecipes.Length > 0)
+        _ingredientCts = new CancellationTokenSource();
+        var ct = _ingredientCts.Token;
+
+        for (int i = 0; i < rawRecipes.Length; i++)
         {
-            _ingredientCts = new CancellationTokenSource();
-            var ct = _ingredientCts.Token;
-
-            for (int i = 0; i < rawRecipes.Length; i++)
-            {
-                var raw = rawRecipes[i];
-
-                var ingredients = raw.Ingredients
-                    .Select(ing => new IngredientVm
-                    {
-                        Item                 = BuildIngredientVm(ing.ItemId, ct),
-                        Count                = ing.Count,
-                        ParticipatesInReturn = ing.ParticipatesInReturn
-                    })
-                    .ToArray();
-
-                RecipeOptions.Add(new RecipeVm
+            var raw         = rawRecipes[i];
+            var ingredients = raw.Ingredients
+                .Select(ing => new IngredientVm
                 {
-                    Index         = i,
-                    Label         = "Receta de Crafteo",
-                    SubLabel      = raw.AmountCrafted > 1
-                                        ? $"×{raw.AmountCrafted} producidos por ciclo"
-                                        : "×1 producido por ciclo",
-                    Ingredients   = ingredients,
-                    AmountCrafted = raw.AmountCrafted
-                });
-            }
+                    Item                 = BuildIngredientVm(ing.ItemId, ct),
+                    Count                = ing.Count,
+                    ParticipatesInReturn = ing.ParticipatesInReturn
+                })
+                .ToArray();
+
+            RecipeOptions.Add(new RecipeVm
+            {
+                Index         = i,
+                Label         = "Receta de Crafteo",
+                SubLabel      = raw.AmountCrafted > 1
+                                    ? $"×{raw.AmountCrafted} producidos por ciclo"
+                                    : "×1 producido por ciclo",
+                Ingredients   = ingredients,
+                AmountCrafted = raw.AmountCrafted,
+                CraftingFocus = raw.CraftingFocus,
+                Silver        = raw.Silver
+            });
         }
 
-        // RecipeOptions.Add → CollectionChanged → HasRecipes, HasMultipleRecipes, HasSelectedItemWithoutRecipe
-        RefreshCarouselDependencies();
+        // Reconstruir inventario al terminar (→ Recalculate al final)
         RebuildIngredientInventory();
     }
 
-    /// <summary>
-    /// Crea un <see cref="ItemBaseVm"/> para un ingrediente delegando en
-    /// <see cref="ItemSearchVM.BuildItemVm"/>, que centraliza localización,
-    /// imagen y el fallback para IDs no encontrados en catálogo.
-    /// </summary>
-    private ItemBaseVm BuildIngredientVm(string itemId, CancellationToken ct)
-        => _itemSearchVm.BuildItemVm(itemId, ct);
+    private void LoadItemBonuses(ItemBaseVm itemVm)
+    {
+        var itemBase = _itemDataService.GetById(itemVm.ItemId);
+        if (itemBase is null)
+        {
+            _rawItemBonuses = [];
+            ItemBonuses = [];
+            return;
+        }
 
-    /// <summary>Reconstruye IngredientInventory con los RequiredCounts actualizados.</summary>
+        _rawItemBonuses = _processPlayer.GetBonusesForItem(itemBase);
+
+        // b.Total está en unidades internas del Destiny Board.
+        // Multiplicar × 100 convierte al valor visual del juego (ej: 150 → 15,000).
+        ItemBonuses = _rawItemBonuses
+            .Where(b => b.Type == "craftingfocuscostreduction")
+            .Select(b => new BonusDisplayItem(
+                Label: _localization.GetText(b.Id),
+                Total: b.Total * 100))
+            .ToList();
+    }
+
+    private void UpdateCitiesForItem(ItemBaseVm itemVm)
+    {
+        var craftingCategory = _itemDataService.GetById(itemVm.ItemId)?.CraftingCategory;
+
+        AvailableCities = _craftingLocations.Cities
+            .Select(city => new CraftingCityOption(
+                ClusterId: city.ClusterId,
+                Name:      city.Name,
+                Bonus:     city.GetBonusFor(craftingCategory)))
+            .OrderByDescending(o => o.Bonus)
+            .ThenBy(o => o.Name)
+            .ToList();
+
+        // Auto-selecciona la ciudad con mayor bonus para este ítem
+        SelectedCityOption = AvailableCities.FirstOrDefault();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INVENTARIO DE INGREDIENTES
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Reconstruye Card 3 preservando OwnedCount/UnitPrice del usuario.
+    /// Al terminar dispara <see cref="Recalculate"/>.
+    /// </summary>
     private void RebuildIngredientInventory()
     {
-        // Preservar owned counts del usuario si el mismo ingrediente ya existía.
-        var previousOwned = IngredientInventory
-            .ToDictionary(i => i.ItemId, i => i.OwnedCount);
+        var previousStock = IngredientInventory
+            .ToDictionary(i => i.ItemId, i => (i.OwnedCount, i.UnitPrice));
 
-        IngredientInventory.Clear(); // → CollectionChanged → HasIngredientInventory + CalcularCommand
+        IngredientInventory.Clear();
 
         if (CurrentRecipe is null) return;
 
-        int qty = Math.Max((int)1, (int)QuantityToCraft);
+        int qty = Math.Max(1, QuantityToCraft);
 
         foreach (var ingredient in CurrentRecipe.Ingredients)
         {
             var row = new IngredientInventoryM
             {
-                Item = ingredient.Item,
+                Item          = ingredient.Item,
                 RequiredCount = ingredient.Count * qty
             };
 
-            if (previousOwned.TryGetValue(ingredient.ItemId, out var owned))
-                row.OwnedCount = owned;
+            if (previousStock.TryGetValue(ingredient.ItemId, out var prev))
+            {
+                row.OwnedCount = prev.OwnedCount;
+                row.UnitPrice  = prev.UnitPrice;
+            }
 
-            IngredientInventory.Add(row); // → CollectionChanged
+            IngredientInventory.Add(row);
         }
-        // La última notificación la dispara el último Add via CollectionChanged.
+
+        Recalculate();
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CÁLCULO (orquestación pura — sin lógica de negocio)
+    // ═══════════════════════════════════════════════════════════════════════════
+
     /// <summary>
-    /// Notifica los comandos del carrusel para que WPF actualice el estado
-    /// de los botones ← y →. Se llama siempre que RecipeIndex cambia.
+    /// Construye el request, delega en el UseCase y aplica el resultado al estado UI.
+    /// No contiene lógica de dominio.
     /// </summary>
-    private void RefreshCarouselDependencies()
+    private void Recalculate()
     {
+        MaterialResults.Clear();
+        if (CurrentRecipe is null) return;
+
+        var city = SelectedCityOption is null
+            ? null
+            : _craftingLocations.Cities.FirstOrDefault(c => c.ClusterId == SelectedCityOption.ClusterId);
+
+        var request = BuildRequest(city);
+        var result  = _calculateCrafting.Execute(request);
+
+        ApplyResult(result);
+    }
+
+    private CraftingCostRequest BuildRequest(CraftingCityData? city)
+    {
+        var itemBase = SelectedItem is null
+            ? null
+            : _itemDataService.GetById(SelectedItem.ItemId);
+
+        // ItemValue normaliza el craftingfocus del XML al valor visible en pantalla.
+        // Fórmula: focusBase = craftingFocus / itemValue (ej: 4021 / 128 = 31 para T7 planks).
+        var itemValueStr = itemBase?.RawAttributes.GetValueOrDefault("itemvalue");
+        var itemValue    = int.TryParse(itemValueStr, out var iv) ? Math.Max(1, iv) : 1;
+
+        return new CraftingCostRequest
+        {
+            Recipe             = CurrentRecipe!,
+            City               = city,
+            Quantity           = QuantityToCraft,
+            CraftingCategory   = itemBase?.CraftingCategory,
+            ItemValue          = itemValue,
+            UseFocus           = UseFocus,
+            JournalBonus       = SelectedJournalBonus?.Value ?? 0m,
+            AchievementBonuses = _rawItemBonuses,
+            OwnedStock         = IngredientInventory
+                .Select(i => new IngredientStock(i.ItemId, i.OwnedCount, i.UnitPrice))
+                .ToList()
+        };
+    }
+
+    private void ApplyResult(CraftingCostResult result)
+    {
+        // Foco (siempre disponible, independiente de ciudad)
+        EffectiveReturnRate   = result.ReturnRate;
+        FocusPerCraft         = result.FocusPerCraft;
+        TotalFocusCost        = result.TotalFocusCost;
+        FocusReductionPercent = result.FocusReductionPercent;
+
+        if (result.Lines.Count == 0) return;
+
+        // Mapear líneas del UseCase → MaterialResultM con imagen (ItemBaseVm)
+        var ingredientByItemId = CurrentRecipe!.Ingredients
+            .ToDictionary(i => i.ItemId, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var line in result.Lines)
+        {
+            if (!ingredientByItemId.TryGetValue(line.ItemId, out var ingredientVm))
+                continue;
+
+            MaterialResults.Add(new MaterialResultM
+            {
+                Item        = ingredientVm.Item,
+                NetQuantity = line.NetToBuy,
+                BuyLocation = line.BuyLocation,
+                UnitPrice   = line.UnitPrice
+            });
+        }
+
+        TotalCost = result.TotalCost;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ESTADO DE CIUDADES
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Carga todas las ciudades con bonus = 0 (sin ítem seleccionado).</summary>
+    private void ResetCiudades()
+    {
+        var previousId = SelectedCityOption?.ClusterId;
+
+        AvailableCities = _craftingLocations.Cities
+            .Select(city => new CraftingCityOption(
+                ClusterId: city.ClusterId,
+                Name:      city.Name,
+                Bonus:     0m))
+            .OrderBy(o => o.Name)
+            .ToList();
+
+        SelectedCityOption = AvailableCities
+            .FirstOrDefault(c => c.ClusterId == previousId)
+            ?? AvailableCities.FirstOrDefault();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // HANDLERS DE COLECCIONES
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Notifica todas las propiedades computadas que dependen de <see cref="RecipeOptions"/>.
+    /// No tiene side effects de cálculo ni de inventario.
+    /// </summary>
+    private void OnRecipeCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(HasRecipes));
+        OnPropertyChanged(nameof(HasMultipleRecipes));
+        OnPropertyChanged(nameof(HasSelectedItemWithoutRecipe));
         OnPropertyChanged(nameof(CurrentRecipe));
         OnPropertyChanged(nameof(PreviousRecipeM));
         OnPropertyChanged(nameof(NextRecipeM));
@@ -442,50 +558,53 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         OnPropertyChanged(nameof(HasNextRecipe));
         PreviousRecipeCommand.NotifyCanExecuteChanged();
         NextRecipeCommand.NotifyCanExecuteChanged();
-        RebuildIngredientInventory();
     }
 
     /// <summary>
-    /// Cancela cualquier carga de imagen de ingredientes en vuelo.
-    /// Llamar antes de cambiar el ítem objetivo o limpiar la calculadora.
+    /// Gestiona PropertyChanged de ingredientes (OwnedCount / UnitPrice)
+    /// y la notificación de <see cref="HasIngredientInventory"/>.
     /// </summary>
-    private void CancelarCargaDeIngredientes()
+    private void OnIngredientCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(HasIngredientInventory));
+
+        if (e.NewItems is not null)
+            foreach (IngredientInventoryM item in e.NewItems)
+                item.PropertyChanged += OnIngredientPropertyChanged;
+
+        if (e.OldItems is not null)
+            foreach (IngredientInventoryM item in e.OldItems)
+                item.PropertyChanged -= OnIngredientPropertyChanged;
+    }
+
+    /// <summary>Recalcula cuando el usuario edita OwnedCount o UnitPrice.</summary>
+    private void OnIngredientPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(IngredientInventoryM.OwnedCount)
+                           or nameof(IngredientInventoryM.UnitPrice))
+            Recalculate();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // HELPERS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Delega la construcción del VM de ingrediente en el servicio de búsqueda.</summary>
+    private ItemBaseVm BuildIngredientVm(string itemId, CancellationToken ct)
+        => _itemSearch.BuildItemVm(itemId, ct);
+
+    private void CancelIngredientImageLoads()
     {
         _ingredientCts?.Cancel();
         _ingredientCts?.Dispose();
         _ingredientCts = null;
     }
 
-    /// <summary>
-    /// Popula MaterialResults con datos placeholder hasta integrar el servicio
-    /// real de precios de mercado. Los valores son inventados solo para mostrar el layout.
-    /// </summary>
-    private void PopularResultadosPlaceholder()
+    private void ClearCalculationState()
     {
-        MaterialResults.Clear();
-        if (CurrentRecipe is null) return;
-
-        decimal total = 0;
-
-        foreach (var ingredient in CurrentRecipe.Ingredients)
-        {
-            var inv = IngredientInventory.FirstOrDefault(i => i.ItemId == ingredient.ItemId);
-            int needed = inv?.NeededCount ?? (ingredient.Count * Math.Max((int)1, (int)QuantityToCraft));
-            var precio = 100_000m; // placeholder — reemplazar con IMarketPriceService
-
-            var row = new MaterialResultM
-            {
-                Item = ingredient.Item,   // Reutilizar el VM (y su imagen) del ingrediente
-                NetQuantity = needed,
-                BuyLocation = SelectedCity.ToString(),
-                UnitPrice = precio
-            };
-
-            MaterialResults.Add(row);
-            total += row.TotalCost;
-        }
-
-        TotalCost = total;
-        // HasResults ya se notifica via MaterialResults.CollectionChanged (último Add).
+        EffectiveReturnRate   = 0m;
+        FocusPerCraft         = null;
+        TotalFocusCost        = null;
+        FocusReductionPercent = 0;
     }
 }

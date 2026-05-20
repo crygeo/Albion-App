@@ -39,6 +39,39 @@ public sealed record AlbionAchievement
     /// </summary>
     public IReadOnlyList<string> Parents { get; init; } = [];
 
+    /// <summary>
+    /// Nivel máximo alcanzable, derivado del template en parse time.
+    /// 100 para la mayoría de achievements; 120 para armas (COMBAT_SPEC / COMBAT_OFF_SPEC).
+    /// </summary>
+    public int MaxLevel { get; init; } = 100;
+
+    /// <summary>
+    /// Posición del nodo en el árbol del destiny board.
+    /// <c>ring - 1 = tier</c> del item (ring=5 → T4, ring=9 → T8).
+    /// -1 si no está definido en el XML.
+    /// </summary>
+    public int Ring { get; init; } = -1;
+
+    /// <summary>
+    /// ID del item usado como sprite del nodo en el destiny board.
+    /// Compartido por toda la familia (ej: T4–T8 planks → "T8_PLANKS").
+    /// Solo informativo/display — no usar como clave de búsqueda por tier.
+    /// </summary>
+    public string? ItemForSprite { get; init; }
+
+    /// <summary>
+    /// Nombre de categoría del sprite. Ej: "PLANKS", "FIBER", "METALBAR".
+    /// Coincide con <c>shopsubcategory2</c> del item (case-insensitive).
+    /// Combinado con <c>ring - 1</c> forma una clave 1:1 por (categoría, tier).
+    /// </summary>
+    public string? SpriteReward { get; init; }
+
+    /// <summary>
+    /// Bonos de rendimiento definidos en <c>&lt;baserewards&gt;</c>.
+    /// Vacío para nodos raíz (<c>&lt;achievement&gt;</c>) que no tienen recompensas.
+    /// </summary>
+    public IReadOnlyList<AchievementBonus> Bonuses { get; init; } = [];
+
     // Los niveles del jugador no viven aquí: este record representa catálogo estático.
     // ProcessPlayerUseCase mantiene el snapshot player-specific como id string -> nivel.
 }

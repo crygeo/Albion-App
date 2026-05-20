@@ -7,43 +7,49 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Albion_App.Components.Achievement;
 
+public sealed record BonusDisplayItem(string Label, double Total);
+
 public partial class AchievementVm : ObservableObject
 {
-    private readonly PlayerAchievement _hit;
+    private readonly PlayerAchievement    _hit;
     private readonly ILocalizationService _localization;
     private readonly ProcessPlayerUseCase _player;
 
     public string DisplayName => _localization.GetText(_hit.NameLocalization ?? _hit.Id);
-    
+
     [ObservableProperty] private BitmapSource? _image;
     public byte[]? ImageBytes { get; private set; }
 
-
     public short Level => _hit.Level;
+
+    public IReadOnlyList<BonusDisplayItem> Bonuses { get; private set; } = [];
 
     public AchievementVm(PlayerAchievement hit, ILocalizationService localization, ProcessPlayerUseCase player)
     {
-        _hit = hit;
+        _hit          = hit;
         _localization = localization;
-        _player = player;
+        _player       = player;
 
         _localization.LanguageChanged += OnChanged;
-        _player.AchievementsUpdated += OnChanged;
+        _player.AchievementsUpdated   += OnChanged;
 
         Refresh();
     }
 
-    private void OnChanged(object? sender, EventArgs e)
-    {
-        Refresh();
-    }
+    private void OnChanged(object? sender, EventArgs e) => Refresh();
 
     private void Refresh()
     {
+        Bonuses = _player.GetBonusesFor(_hit.Id)
+            .Select(b => new BonusDisplayItem(
+                Label: _localization.GetText(b.Id),
+                Total: b.Total))
+            .ToList();
+
         OnPropertyChanged(nameof(DisplayName));
         OnPropertyChanged(nameof(Level));
+        OnPropertyChanged(nameof(Bonuses));
     }
-
 
     public async Task LoadImageAsync(IAlbionImageService imageService, CancellationToken ct)
     {

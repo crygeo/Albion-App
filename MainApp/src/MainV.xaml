@@ -15,16 +15,11 @@
         Sidebar:
           • Fila 0: botón de colapsar/expandir (siempre visible)
           • Fila 1: TextBox de búsqueda de secciones (visible sólo expandido)
-          • Fila 2: ScrollViewer con secciones de navegación (CalculadoraS, etc.)
+          • Fila 2: ListBox con secciones de navegación
           • Fila 3: ConfiguracionS fija en el fondo
 
         Área de contenido:
-          • Fila 0: barra de navegación (GoBack / GoForward)
-          • Fila 1: ContentControl con la sección activa
-
-        El ancho del sidebar se gestiona con Border.Width (double) ligado a MainVm.SidebarWidth.
-        Usar Border.Width en lugar de ColumnDefinition.Width evita la necesidad de un
-        IValueConverter double→GridLength.
+          • ContentControl con la sección activa (workspace ocupa toda la altura)
     -->
 
     <Grid>
@@ -43,7 +38,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />  <!-- Botón toggle -->
                     <RowDefinition Height="Auto" />  <!-- Búsqueda de secciones -->
-                    <RowDefinition Height="*" />     <!-- Secciones scrollables -->
+                    <RowDefinition Height="*" />     <!-- Secciones -->
                     <RowDefinition Height="Auto" />  <!-- Configuración fija -->
                 </Grid.RowDefinitions>
 
@@ -82,31 +77,29 @@
                          FontSize="12"
                          Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVis}}" />
 
-                <!-- ── Secciones de navegación (scrollables) ─────────────────── -->
-                <ScrollViewer Grid.Row="2"
-                              VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled">
-                    <ListBox ItemsSource="{Binding Sections}"
-                             SelectedItem="{Binding SectionSelected, Mode=TwoWay}">
-
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <DockPanel Margin="4 0">
-                                    <md:PackIcon Kind="{Binding Icon}"
-                                                 Width="22" Height="22"
-                                                 VerticalAlignment="Center"
-                                                 Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}" />
-                                    <TextBlock Text="{Binding Header}"
-                                               Margin="8 0 0 0"
-                                               VerticalAlignment="Center"
-                                               FontSize="13"
-                                               FontWeight="Medium"
-                                               Visibility="{Binding DataContext.IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}" />
-                                </DockPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </ScrollViewer>
+                <!-- ── Secciones de navegación ────────────────────────────────── -->
+                <ListBox Grid.Row="2"
+                         ItemsSource="{Binding Sections}"
+                         SelectedItem="{Binding SectionSelected, Mode=TwoWay}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <DockPanel Margin="4 0">
+                                <md:PackIcon Kind="{Binding Icon}"
+                                             Width="22" Height="22"
+                                             VerticalAlignment="Center"
+                                             Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}" />
+                                <TextBlock Text="{Binding Header}"
+                                           Margin="8 0 0 0"
+                                           VerticalAlignment="Center"
+                                           FontSize="13"
+                                           FontWeight="Medium"
+                                           Visibility="{Binding DataContext.IsSidebarExpanded,
+                                                        RelativeSource={RelativeSource AncestorType=Window},
+                                                        Converter={StaticResource BoolToVis}}" />
+                            </DockPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
 
                 <!-- ── Configuración (fija, no scrollable) ───────────────────── -->
                 <Border Grid.Row="3"
@@ -132,71 +125,29 @@
         </Border>
 
         <!-- ══ ÁREA DE CONTENIDO ════════════════════════════════════════════════ -->
-        <Grid Grid.Column="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />  <!-- Barra de historial -->
-                <RowDefinition Height="*" />     <!-- Sección activa -->
-            </Grid.RowDefinitions>
-
-            <!-- ── Barra de navegación (atrás / adelante) ────────────────────── -->
-            <!--
-                Diseño deliberado: barra mínima, sin título de sección.
-                Los botones se deshabilitan automáticamente vía CanExecute de los
-                RelayCommands, por lo que no necesitamos converters adicionales.
-                opacity reduce la distracción visual cuando están inactivos.
-            -->
-            <Border Grid.Row="0"
-                    BorderBrush="{DynamicResource MaterialDesign.Brush.Divider}"
-                    BorderThickness="0 0 0 1"
-                    Background="{DynamicResource MaterialDesign.Brush.Paper}"
-                    Padding="4 2">
-                <StackPanel Orientation="Horizontal">
-                    <Button Command="{Binding GoBackCommand}"
-                            Style="{StaticResource MaterialDesignIconButton}"
-                            ToolTip="Atrás">
-                        <md:PackIcon Kind="ArrowLeft" Width="20" Height="20" />
-                    </Button>
-                    <Button Command="{Binding GoForwardCommand}"
-                            Style="{StaticResource MaterialDesignIconButton}"
-                            ToolTip="Adelante">
-                        <md:PackIcon Kind="ArrowRight" Width="20" Height="20" />
-                    </Button>
-                </StackPanel>
-            </Border>
-
-            <!-- ── Sección activa ─────────────────────────────────────────────── -->
-            <!--
-                Un solo ContentControl gestiona tanto el placeholder como el contenido real.
-                Cuando CurrentSection == null → ControlTemplate muestra el mensaje vacío.
-                Cuando CurrentSection != null → WPF busca el DataTemplate implícito en
-                Template.xaml por tipo (DataType="{x:Type VM}") y renderiza la View.
-                No se necesita ningún converter extra ni lógica en code-behind.
-            -->
-            <ContentControl Grid.Row="1"
-                            Content="{Binding CurrentSection}"
-                            Background="{DynamicResource MaterialDesign.Brush.Background}">
-                <ContentControl.Style>
-                    <Style TargetType="ContentControl">
-                        <Style.Triggers>
-                            <!-- Sin sección seleccionada → ControlTemplate de placeholder -->
-                            <DataTrigger Binding="{Binding CurrentSection}" Value="{x:Null}">
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="ContentControl">
-                                            <TextBlock Text="Selecciona una sección del panel lateral"
-                                                       HorizontalAlignment="Center"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
-                                                       FontSize="14"/>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </ContentControl.Style>
-            </ContentControl>
-        </Grid>
+        <ContentControl Grid.Column="1"
+                        Content="{Binding CurrentSection}"
+                        Background="{DynamicResource MaterialDesign.Brush.Background}">
+            <ContentControl.Style>
+                <Style TargetType="ContentControl">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding CurrentSection}" Value="{x:Null}">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ContentControl">
+                                        <TextBlock Text="Selecciona una sección del panel lateral"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                                                   FontSize="14"/>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ContentControl.Style>
+        </ContentControl>
 
     </Grid>
 </UserControl>

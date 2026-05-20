@@ -93,8 +93,8 @@ public sealed class SearchItemsUseCase : ISearchItemsUseCase
         // 1. Parsear el texto. Tier/enchantment del texto se usan sólo si los
         //    dropdowns no tienen valor — los dropdowns ganan en precedencia.
         var parsed    = query.RawText.Parse();
-        var tier      = query.TierFilter        ?? parsed.Tier;
-        var enchant   = query.EnchantmentFilter ?? parsed.Enchantment;
+        var tier      = parsed.Tier ?? query.TierFilter;
+        var enchant   = parsed.Enchantment ?? query.EnchantmentFilter;
         var effective = new SearchQuery(parsed.TextTokens, tier, enchant);
 
         // 2. Resolver candidatos (índice de texto vs catálogo completo).
@@ -141,9 +141,13 @@ public sealed class SearchItemsUseCase : ISearchItemsUseCase
     {
         if (query.HasTextTokens)
         {
-            var itemIds = _localizationService.ItemSearchIndex
+            // El índice de localización solo tiene entradas para ítems base
+            // (el TMX no duplica el nombre en cada variante @N). Usamos
+            // GetItemsByBaseIds para incluir automáticamente las variantes de
+            // encantamiento que comparten el mismo BaseItemId.
+            var baseItemIds = _localizationService.ItemSearchIndex
                 .Filter(query.TextTokens, _localizationService.CurrentSupportedLanguage.Code);
-            return _itemDataService.GetItemsByIds(itemIds);
+            return _itemDataService.GetItemsByBaseIds(baseItemIds);
         }
 
         bool hasStructuralFilter = request.MinCategoryValue.HasValue

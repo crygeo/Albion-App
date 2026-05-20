@@ -13,6 +13,7 @@
       <!-- Capas de arquitectura limpia de AlbionApp -->
       <ProjectReference Include="..\..\..\source\repos\InventarioSINC\Utilidades\Utilidades.csproj" />
       <ProjectReference Include="..\..\LibSolutions\LibNavegation\LibNavegation.csproj" />
+      <ProjectReference Include="..\..\LibSolutions\LibServices\LibServices.csproj" />
       <ProjectReference Include="..\AlbionApp.Application\AlbionApp.Application.csproj" />
       <ProjectReference Include="..\AlbionApp.Infrastructure\AlbionApp.Infrastructure.csproj" />
       <!-- Librerías de infraestructura compartida (protocolo de red, routing, debug) -->

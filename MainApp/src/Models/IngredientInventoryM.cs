@@ -35,6 +35,13 @@ public sealed partial class IngredientInventoryM : ObservableObject
     private int _ownedCount;
 
     /// <summary>
+    /// Precio unitario en plata para este ingrediente (editable por el usuario).
+    /// Se usa en el cálculo del costo total de la Card 4.
+    /// </summary>
+    [ObservableProperty]
+    private decimal _unitPrice;
+
+    /// <summary>
     /// Cantidad neta a comprar: max(0, RequiredCount − OwnedCount).
     /// Se notifica automáticamente cuando <see cref="OwnedCount"/> cambia.
     /// </summary>

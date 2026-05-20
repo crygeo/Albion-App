@@ -1,0 +1,131 @@
+<UserControl x:Class="Albion_App._1Calculadora.WorkspaceV"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:cal="clr-namespace:Albion_App._1Calculadora"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=cal:WorkspaceVm}">
+
+    <DockPanel Margin="0,8,0,0">
+
+        <!-- ══════════════════════════════════════════════════════════════
+             BARRA DE PESTAÑAS — tipo navegador
+             ListBox horizontal con chip por pestaña + botón "+"
+        ══════════════════════════════════════════════════════════════════ -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource MaterialDesign.Brush.CardBackground}"
+                BorderBrush="{DynamicResource MaterialDesign.Brush.Primary}"
+                BorderThickness="0 0 0 3">
+
+            <DockPanel>
+
+                <!-- Botón nueva pestaña (anclado a la derecha) -->
+                <Button DockPanel.Dock="Right"
+                        Command="{Binding NewTabCommand}"
+                        Style="{StaticResource MaterialDesignIconButton}"
+                        ToolTip="Nueva pestaña (Ctrl+T)"
+                        Width="32" Height="32"
+                        Margin="0 0 6 0"
+                        VerticalAlignment="Center">
+                    <md:PackIcon Kind="Plus" Width="16" Height="16" />
+                </Button>
+
+                <!-- Chips de pestaña scrolleables -->
+                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Hidden">
+                    <ListBox ItemsSource="{Binding Tabs}"
+                             SelectedItem="{Binding SelectedTab}"
+                             Style="{StaticResource MaterialDesignListBox}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Padding="4 3 0 3">
+
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+
+                        <!-- Estilo de cada chip de pestaña -->
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem"
+                                   BasedOn="{StaticResource MaterialDesignListBoxItem}">
+                                <Setter Property="Padding" Value="10 0 4 0" />
+                                <Setter Property="Margin"  Value="0 0 2 0" />
+                                <Setter Property="Height"  Value="36" />
+                                <Setter Property="MinWidth" Value="100" />
+                                <Setter Property="MaxWidth" Value="200" />
+                                <Setter Property="md:RippleAssist.IsDisabled" Value="True" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="Bd"
+                                                    Background="{DynamicResource MaterialDesign.Brush.CardBackground}"
+                                                    CornerRadius="6 6 0 0"
+                                                    BorderBrush="{DynamicResource MaterialDesign.Brush.Divider}"
+                                                    BorderThickness="1 1 1 0"
+                                                    Opacity="0.6">
+                                                <ContentPresenter />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="Bd" Property="Opacity" Value="1" />
+                                                    <Setter TargetName="Bd" Property="Background"
+                                                            Value="{DynamicResource MaterialDesign.Brush.Background}" />
+                                                    <Setter TargetName="Bd" Property="BorderBrush"
+                                                            Value="{DynamicResource MaterialDesign.Brush.Primary}" />
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Opacity" Value="0.85" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+
+                        <!-- Contenido de cada chip: título + botón cerrar -->
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type cal:CalculadoraSvm}">
+                                <DockPanel Background="Transparent">
+                                    <!-- Botón cerrar -->
+                                    <Button DockPanel.Dock="Right"
+                                            Command="{Binding DataContext.CloseTabCommand,
+                                                      RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"
+                                            Style="{StaticResource MaterialDesignIconButton}"
+                                            Width="20" Height="20"
+                                            Padding="0"
+                                            Margin="4 0 0 0"
+                                            ToolTip="Cerrar pestaña"
+                                            VerticalAlignment="Center">
+                                        <md:PackIcon Kind="Close" Width="11" Height="11" />
+                                    </Button>
+
+                                    <!-- Título de la pestaña -->
+                                    <TextBlock Text="{Binding TabTitle}"
+                                               VerticalAlignment="Center"
+                                               FontSize="12"
+                                               TextTrimming="CharacterEllipsis" />
+                                </DockPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+
+                    </ListBox>
+                </ScrollViewer>
+
+            </DockPanel>
+        </Border>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             CONTENIDO — muestra la calculadora de la pestaña activa.
+             El DataTemplate en Template.xaml mapea CalculadoraSvm → CalculadoraS
+             automáticamente, sin necesidad de referencia explícita aquí.
+        ══════════════════════════════════════════════════════════════════ -->
+        <ContentControl Content="{Binding SelectedTab}" />
+
+    </DockPanel>
+</UserControl>

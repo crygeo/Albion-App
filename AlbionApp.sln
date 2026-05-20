@@ -24,6 +24,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibServiceLifecycle", "..\L
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibAlbionDebug", "..\LibSolutions\LibAlbionDebug\LibAlbionDebug.csproj", "{0212DCF3-BF1A-4C26-9FCD-92C6B2244174}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibServices", "..\LibSolutions\LibServices\LibServices.csproj", "{632887D5-E7D6-4284-8C6D-CBE03F3CF736}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -78,5 +80,9 @@ Global
 		{0212DCF3-BF1A-4C26-9FCD-92C6B2244174}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0212DCF3-BF1A-4C26-9FCD-92C6B2244174}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0212DCF3-BF1A-4C26-9FCD-92C6B2244174}.Release|Any CPU.Build.0 = Release|Any CPU
+		{632887D5-E7D6-4284-8C6D-CBE03F3CF736}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{632887D5-E7D6-4284-8C6D-CBE03F3CF736}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{632887D5-E7D6-4284-8C6D-CBE03F3CF736}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{632887D5-E7D6-4284-8C6D-CBE03F3CF736}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

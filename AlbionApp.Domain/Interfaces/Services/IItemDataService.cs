@@ -41,6 +41,15 @@ public interface IItemDataService
     IReadOnlyList<ItemBase> GetItemsByIds(IReadOnlyList<string> itemIds);
 
     /// <summary>
+    /// Retorna todos los ítems (base + variantes de encantamiento) cuyos
+    /// <c>BaseItemId</c> están en <paramref name="baseItemIds"/>.
+    /// Diseñado para expandir resultados de búsqueda de texto: el índice de
+    /// localización solo almacena el nombre base, por lo que la búsqueda devuelve
+    /// IDs base; este método agrega automáticamente las variantes @N.
+    /// </summary>
+    IReadOnlyList<ItemBase> GetItemsByBaseIds(IReadOnlyList<string> baseItemIds);
+
+    /// <summary>
     /// Retorna las recetas de crafteo del ítem indicado.
     /// Array vacío si el ítem no es crafteable o no existe en catálogo.
     /// Nunca retorna null.

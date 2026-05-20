@@ -32,8 +32,11 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
 {
     private readonly AlbionData _albionData;
 
-    private volatile FrozenDictionary<string, ItemBase>     _items
+    private volatile FrozenDictionary<string, ItemBase>    _items
         = FrozenDictionary<string, ItemBase>.Empty;
+
+    private volatile FrozenDictionary<string, ItemBase[]> _byBaseId
+        = FrozenDictionary<string, ItemBase[]>.Empty;
 
     private volatile FrozenDictionary<string, IRecipe[]> _recipes
         = FrozenDictionary<string, IRecipe[]>.Empty;
@@ -111,6 +114,23 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
         return result;
     }
 
+    /// <inheritdoc/>
+    public IReadOnlyList<ItemBase> GetItemsByBaseIds(IReadOnlyList<string> baseItemIds)
+    {
+        EnsureOn();
+
+        var index  = _byBaseId;
+        var result = new List<ItemBase>(baseItemIds.Count * 4); // heurística: ~4 variantes por base
+
+        foreach (var baseId in baseItemIds)
+        {
+            if (index.TryGetValue(baseId, out var variants))
+                result.AddRange(variants);
+        }
+
+        return result;
+    }
+
     /// <summary>
     /// Recetas del ítem. Nunca null:
     /// array vacío si el ítem no tiene recetas o el id no existe.
@@ -128,8 +148,9 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
 
     protected override Task OnStopAsync(CancellationToken ct)
     {
-        _items   = FrozenDictionary<string, ItemBase>.Empty;
-        _recipes = FrozenDictionary<string, IRecipe[]>.Empty;
+        _items    = FrozenDictionary<string, ItemBase>.Empty;
+        _byBaseId = FrozenDictionary<string, ItemBase[]>.Empty;
+        _recipes  = FrozenDictionary<string, IRecipe[]>.Empty;
         return Task.CompletedTask;
     }
 
@@ -207,6 +228,13 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
         SetProgress(90);
         _items   = itemsBuilder  .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
         _recipes = recipesBuilder.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
+        // Índice BaseItemId → variantes (base + encantamientos @N).
+        // Permite expandir resultados de búsqueda de texto sin escanear los ~20k ítems.
+        _byBaseId = itemsBuilder.Values
+            .GroupBy(i => i.BaseItemId, StringComparer.OrdinalIgnoreCase)
+            .ToFrozenDictionary(g => g.Key, g => g.ToArray(), StringComparer.OrdinalIgnoreCase);
+
         SetProgress(100);
     }
 
@@ -341,12 +369,18 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
 
         var count = ParseInt(Attr(element, "count")) ?? 1;
 
-        var participates = int.TryParse(Attr(element, "maxreturnamount"), out var max)
-            && max > 0;
+        // Regla de retorno de materiales (Resource Return Rate):
+        //   • Atributo ausente     → el ingrediente SÍ participa en el retorno (valor por defecto).
+        //     Aplica a todos los ingredientes normales de refinado y crafteo.
+        //   • maxreturnamount="0"  → el ingrediente NO participa (opt-out explícito).
+        //     Aplica a ítems especiales: capas de facción, ítems de evento, tokens, etc.
+        var maxReturnRaw  = Attr(element, "maxreturnamount");
+        var participates  = maxReturnRaw is null
+                         || !maxReturnRaw.Equals("0", StringComparison.Ordinal);
 
         return new Ingredient(
-            ItemId:                ingredientId,
-            Count:               count,
+            ItemId:               ingredientId,
+            Count:                count,
             ParticipatesInReturn: participates);
     }
 

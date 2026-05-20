@@ -5,21 +5,25 @@ using Albion_App.Components.Destinyboard;
 using Albion_App.Components.Item;
 using Albion_App.Components.Market;
 using Albion_App.Infrastructure;
+using Albion_App.Infrastructure.Handlers;
 using AlbionApp.Application.UseCases.Player;
 using AlbionApp.Application.UseCases.SearchItems;
+using AlbionApp.Domain.Localization;
+using AlbionApp.Application.UseCases.Crafting;
 using AlbionApp.Infrastructure.Services;
 using LibAlbionData;
 using LibAlbionDebug;
-using LibAlbionProtocol.Models;
 using LibAlbionProtocol.Parsing;
-using LibAlbionProtocol.PacketModels;
 using LibAlbionRouting.Handlers;
 using LibNetWork.Interfaces;
 using LibNetWork.Models;
 using LibNetWork.Networking;
 using LibNetWork.PortResolution;
 using LibServiceLifecycle;
+using LibServices.AppConfig;
+using LibServices.PlayerState;
 using CalculadoraSvm = Albion_App._1Calculadora.CalculadoraSvm;
+using WorkspaceVm    = Albion_App._1Calculadora.WorkspaceVm;
 using ConfiguracionSvm = Albion_App._0Config.ConfiguracionSvm;
 using ItemSearchVM = Albion_App.Dialog.ItemSearchVM;
 
@@ -51,6 +55,9 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        var config       = new AppConfigService();        
+        var playerState  = new PlayerStateService();
+        
         // ── Infraestructura raíz ──────────────────────────────────────────────
         var albionData = new AlbionData();
 
@@ -75,10 +82,11 @@ public partial class App : Application
         var itemDataService = new ItemDataService(albionData);
         var categoryDataService = new CategoryDataService(albionData);
         var achievementService = new AchievementDataService(albionData);
+        var craftingLocationService = new CraftingLocationService(albionData, localizationService);
 
-        // PreloadService arranca en secuencia: Localization → Items → Categories → Achievements.
+        // PreloadService arranca en secuencia: Localization → Items → Categories → Achievements → CraftingLocations.
         var preloader = new PreloadService(
-            [localizationService, itemDataService, categoryDataService, achievementService]);
+            [localizationService, itemDataService, categoryDataService, achievementService, craftingLocationService]);
         await preloader.StartAsync();
 
 
@@ -95,16 +103,33 @@ public partial class App : Application
         var clipboardService = new ClipboardService();
 
         var marketVm = new MarketVm(searchItemsUseCase, localizationService, categoryDataService, itemVmFactory, clipboardService);
-        var itemSearch = new ItemSearchVM(marketVm);
-        var destinyBoard = new DestinyBoardVm(processPlayerUseCase, archievemenVmFactory);
+        var itemSearchVm = new ItemSearchVM(marketVm);
+        var itemSearchService = new ItemSearchDialogService(itemSearchVm);
+        var calculateCraftingUseCase = new CalculateCraftingCostUseCase();
+        var destinyBoard = new DestinyBoardVm(processPlayerUseCase, archievemenVmFactory, playerState);
 
         // ── ViewModels de sección ─────────────────────────────────────────────
-        var configuracion = new ConfiguracionSvm(localizationService);
-        var calculadora = new CalculadoraSvm(itemSearch, itemDataService);
-        var player = new PlayerVm(destinyBoard);
+        var configuracion = new ConfiguracionSvm(localizationService, config);
+        var player        = new PlayerVm(destinyBoard, playerState);
+
+        // Fábrica de pestañas: cada llamada crea un CalculadoraSvm independiente.
+        CalculadoraSvm TabFactory() => new(
+            itemSearchService,
+            itemDataService,
+            processPlayerUseCase,
+            localizationService,
+            craftingLocationService,
+            calculateCraftingUseCase);
+
+        var workspace = new WorkspaceVm(
+            TabFactory,
+            new WorkspacePersistenceService(),
+            itemVmFactory);
+
+        await workspace.InitializeAsync();
 
         // ── ViewModel principal ───────────────────────────────────────────────
-        var mainVm = new MainVm(configuracion, [player, calculadora]);
+        var mainVm = new MainVm(configuracion, [player, workspace]);
 
         // ── Stack de red + debug packet logger ───────────────────────────────
         var albionParser = new AlbionParser();
@@ -112,15 +137,9 @@ public partial class App : Application
         var requestHandler = new GenericRequestHandler();
         var responseHandler = new GenericResponseHandler();
 
-        eventHandler.Subscribe<FullAchievementInfoModel>(
-            EventCodes.FullAchievementInfo,
-            model =>
-            {
-                var levelsByOrdinal = model.GetAllEntries()
-                    .ToDictionary(entry => entry.Id, entry => entry.Level);
-                processPlayerUseCase.Execute(levelsByOrdinal);
-                return Task.CompletedTask;
-            });
+        new EventHandlerRegistry()
+            .Add(new AchievementHandler(processPlayerUseCase, achievementService, playerState))
+            .RegisterAll(eventHandler);
 
         // Registrar handlers en el parser (debug loggers AL FINAL = llamados PRIMERO
         // por HandlersCollection, que invierte el orden del array).
@@ -161,10 +180,13 @@ public partial class App : Application
         var window = new MainWindow { DataContext = mainVm };
         window.Show();
 
-        // Liberar el log writer al cerrar la app.
-        window.Closed += (_, _) =>
+        // Guardar workspace y liberar recursos al cerrar la app.
+        window.Closed += async (_, _) =>
         {
+            await workspace.SaveWorkspaceAsync();
             networkManager.Stop();
         };
     }
+
+    
 }

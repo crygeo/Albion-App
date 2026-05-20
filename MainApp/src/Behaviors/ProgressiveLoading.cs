@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -43,6 +44,13 @@ public static class ProgressiveLoading
         DependencyProperty.RegisterAttached(
             "Cancellation",
             typeof(CancellationTokenSource),
+            typeof(ProgressiveLoading));
+
+    // Handler de CollectionChanged almacenado por control para poder desuscribir
+    private static readonly DependencyProperty CollectionHandlerProperty =
+        DependencyProperty.RegisterAttached(
+            "CollectionHandler",
+            typeof(NotifyCollectionChangedEventHandler),
             typeof(ProgressiveLoading));
 
     public static readonly DependencyProperty
@@ -160,8 +168,66 @@ public static class ProgressiveLoading
         if (d is not ItemsControl itemsControl)
             return;
 
-        if (GetIsEnabled(itemsControl))
-            StartLoading(itemsControl);
+        if (!GetIsEnabled(itemsControl))
+            return;
+
+        // ── Desuscribir del source anterior ──────────────────────────────
+        if (e.OldValue is INotifyCollectionChanged oldColl &&
+            itemsControl.GetValue(CollectionHandlerProperty)
+                is NotifyCollectionChangedEventHandler oldHandler)
+        {
+            oldColl.CollectionChanged -= oldHandler;
+            itemsControl.ClearValue(CollectionHandlerProperty);
+        }
+
+        // ── Suscribir al nuevo source si es observable ────────────────────
+        // Necesario cuando el source es una colección que muta en lugar de
+        // reemplazarse (ej: RangeObservableCollection en MarketVm).
+        if (e.NewValue is INotifyCollectionChanged newColl)
+        {
+            NotifyCollectionChangedEventHandler handler =
+                (_, args) => OnCollectionChanged(itemsControl, args);
+
+            newColl.CollectionChanged += handler;
+            itemsControl.SetValue(CollectionHandlerProperty, handler);
+        }
+
+        // ── Resetear estado y cargar el nuevo source ──────────────────────
+        if (itemsControl.GetValue(StateProperty) is LoadingState state)
+        {
+            state.Proxy.Clear();
+            state.CurrentIndex = 0;
+        }
+
+        StartLoading(itemsControl);
+    }
+
+    private static void OnCollectionChanged(
+        ItemsControl itemsControl,
+        NotifyCollectionChangedEventArgs e)
+    {
+        if (!GetIsEnabled(itemsControl))
+            return;
+
+        switch (e.Action)
+        {
+            case NotifyCollectionChangedAction.Reset:
+                // La colección fue limpiada o reemplazada (ej: ReplaceAll).
+                // Reiniciar desde cero.
+                if (itemsControl.GetValue(StateProperty) is LoadingState state)
+                {
+                    state.Proxy.Clear();
+                    state.CurrentIndex = 0;
+                }
+                StartLoading(itemsControl);
+                break;
+
+            case NotifyCollectionChangedAction.Add:
+                // Se añadieron ítems nuevos al final — continuar la carga
+                // desde el índice actual para recogerlos.
+                StartLoading(itemsControl);
+                break;
+        }
     }
 
     // ─── Core ────────────────────────────────────────────────────────────────
@@ -295,8 +361,17 @@ public static class ProgressiveLoading
             cts.Dispose();
         }
 
-        itemsControl.ClearValue(
-            CancellationProperty);
+        itemsControl.ClearValue(CancellationProperty);
+
+        // ─── Desuscribir de CollectionChanged ───────────────────
+        if (GetSource(itemsControl) is INotifyCollectionChanged coll &&
+            itemsControl.GetValue(CollectionHandlerProperty)
+                is NotifyCollectionChangedEventHandler handler)
+        {
+            coll.CollectionChanged -= handler;
+        }
+
+        itemsControl.ClearValue(CollectionHandlerProperty);
 
         // ─── Limpieza opcional ──────────────────────────────────
 

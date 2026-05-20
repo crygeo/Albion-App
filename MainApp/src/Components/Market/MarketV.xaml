@@ -8,6 +8,7 @@
              xmlns:helpers="clr-namespace:Albion_App.Helpers"
              xmlns:vwp="clr-namespace:WpfToolkit.Controls;assembly=VirtualizingWrapPanel"
              xmlns:comp="clr-namespace:Albion_App.Components.Item"
+             xmlns:behaviors="clr-namespace:Albion_App.Behaviors"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:MarketVm}">
 
@@ -149,14 +150,13 @@
                     (VirtualizationMode=Recycling), por lo que sólo materializa los
                     ~30 tiles visibles en pantalla.
 
-                 Configuración relevante:
-                  - CanContentScroll=True → scroll por ítem/fila (no por píxel) para
-                    permitir virtualización.
-                  - VirtualizationMode=Recycling → reusa ListBoxItem en vez de crear
-                    uno nuevo por cada scroll.
-                  - SpacingMode=Uniform → reparte el espacio sobrante uniformemente
-                    entre los tiles, en lugar de dejar todo el hueco a la derecha. -->
-            <ListBox ItemsSource="{Binding Items}"
+                 ProgressiveLoading: alimenta el proxy en lotes de 30 ítems, cediendo
+                 el hilo UI entre lotes para evitar freeze al recibir resultados masivos. -->
+            <ListBox behaviors:ProgressiveLoading.IsEnabled="True"
+                     behaviors:ProgressiveLoading.Source="{Binding Items}"
+                     behaviors:ProgressiveLoading.BatchSize="5"
+                     behaviors:ProgressiveLoading.DelayMs="1"
+                     behaviors:ProgressiveLoading.ClearOnUnload="True"
                      SelectedItem="{Binding SelectedItem}"
                      SelectionMode="Single"
                      Margin="8"
@@ -179,7 +179,7 @@
                 </ListBox.ItemsPanel>
 
                 <!-- Eliminar el chrome del ListBoxItem (fondo azul, padding, etc.)
-                         La selección se visualiza dentro del DataTemplate via RelativeSource -->
+                     La selección se visualiza dentro del DataTemplate via RelativeSource -->
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
                         <Setter Property="Padding" Value="0" />
@@ -199,8 +199,8 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <!-- Tile 64×64: imagen + badge tier, tooltip con nombre.
-                                 Border.Style gestiona colores de selección y hover via
-                                 DataTrigger sobre el ListBoxItem ancestro. -->
+                             Border.Style gestiona colores de selección y hover via
+                             DataTrigger sobre el ListBoxItem ancestro. -->
                         <comp:ItemBaseV DataContext="{Binding}">
                             <comp:ItemBaseV.ContextMenu>
                                 <ContextMenu VerticalAlignment="Center" Margin="0 0 2 0">
