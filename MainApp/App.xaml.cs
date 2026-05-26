@@ -1,5 +1,8 @@
 using System.Windows;
 using Albion_App._2Player;
+using Albion_App._3Builds;
+using Albion_App._4Groups;
+using Albion_App._5Events;
 using Albion_App.Components.Achievement;
 using Albion_App.Components.Destinyboard;
 using Albion_App.Components.Item;
@@ -10,11 +13,15 @@ using AlbionApp.Application.UseCases.Player;
 using AlbionApp.Application.UseCases.SearchItems;
 using AlbionApp.Domain.Localization;
 using AlbionApp.Application.UseCases.Crafting;
+using AlbionApp.Infrastructure.Persistence;
 using AlbionApp.Infrastructure.Services;
 using LibAlbionData;
 using LibAlbionDebug;
 using LibAlbionProtocol.Parsing;
 using LibAlbionRouting.Handlers;
+using Albion_App._0Config;
+using LibEvents.Discord;
+using LibEvents.Services;
 using LibNetWork.Interfaces;
 using LibNetWork.Models;
 using LibNetWork.Networking;
@@ -55,9 +62,16 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        var config       = new AppConfigService();        
-        var playerState  = new PlayerStateService();
-        
+        // ── Splash: lo primero visible, cubre todo el startup ─────────────────
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+        var splashVm = new SplashVm();
+        var splash   = new SplashWindow { DataContext = splashVm };
+        splash.Show();
+
+        var config      = new AppConfigService();
+        var playerState = new PlayerStateService();
+
         // ── Infraestructura raíz ──────────────────────────────────────────────
         var albionData = new AlbionData();
 
@@ -67,6 +81,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
+            splash.Close();
             MessageBox.Show(
                 $"No se pudo localizar Albion Online:\n\n{ex.Message}\n\n" +
                 "Asegúrate de que el juego está instalado o configura la ruta manualmente.",
@@ -78,17 +93,20 @@ public partial class App : Application
         }
 
         // ── Servicios de datos ────────────────────────────────────────────────
-        var localizationService = new LocalizationService(albionData);
-        var itemDataService = new ItemDataService(albionData);
-        var categoryDataService = new CategoryDataService(albionData);
-        var achievementService = new AchievementDataService(albionData);
+        var localizationService     = new LocalizationService(albionData);
+        var itemDataService         = new ItemDataService(albionData);
+        var categoryDataService     = new CategoryDataService(albionData);
+        var achievementService      = new AchievementDataService(albionData);
         var craftingLocationService = new CraftingLocationService(albionData, localizationService);
 
         // PreloadService arranca en secuencia: Localization → Items → Categories → Achievements → CraftingLocations.
-        var preloader = new PreloadService(
-            [localizationService, itemDataService, categoryDataService, achievementService, craftingLocationService]);
-        await preloader.StartAsync();
+        IService[] dataServices =
+            [localizationService, itemDataService, categoryDataService, achievementService, craftingLocationService];
 
+        var preloader = new PreloadService(dataServices);
+        preloader.ProgressChanged += (_, _) => splashVm.UpdateProgress(preloader.Progress ?? 0);
+
+        await preloader.StartAsync();
 
         var imageService = new AlbionImageService();
 
@@ -108,8 +126,35 @@ public partial class App : Application
         var calculateCraftingUseCase = new CalculateCraftingCostUseCase();
         var destinyBoard = new DestinyBoardVm(processPlayerUseCase, archievemenVmFactory, playerState);
 
+        // ── Builds / Groups / Events (persistencia SQLite) ────────────────────
+        var eventsDbFactory = EventsDbContextFactory.Create();
+        var buildService    = new BuildService(eventsDbFactory);
+
+        var buildEditorVm   = new BuildEditorVm(buildService, itemSearchService, itemDataService, searchItemsUseCase, itemVmFactory);
+        var buildsVm        = new BuildsVm(buildService, buildEditorVm);
+        await buildsVm.LoadAsync();
+
+        var groupEditorVm   = new GroupEditorVm(buildService);
+        var groupsVm        = new GroupsVm(buildService, groupEditorVm);
+        await groupsVm.LoadAsync();
+
+        var discordBot      = new DiscordBotService(eventsDbFactory);
+        var discordConfigVm = new DiscordConfigVm(discordBot, config);
+
+        var eventEditorVm   = new EventEditorVm(buildService);
+        var eventsVm        = new EventsVm(buildService, eventEditorVm, discordBot, config);
+        await eventsVm.LoadAsync();
+
+        // Reconectar Discord automáticamente si hay token guardado
+        if (!string.IsNullOrWhiteSpace(config.DiscordBotToken))
+        {
+            if (Enum.TryParse<DiscordInteractionMode>(config.DiscordInteractionMode, out var mode))
+                discordBot.InteractionMode = mode;
+            _ = discordBot.StartAsync(config.DiscordBotToken);
+        }
+
         // ── ViewModels de sección ─────────────────────────────────────────────
-        var configuracion = new ConfiguracionSvm(localizationService, config);
+        var configuracion = new ConfiguracionSvm(localizationService, config, discordBot, discordConfigVm);
         var player        = new PlayerVm(destinyBoard, playerState);
 
         // Fábrica de pestañas: cada llamada crea un CalculadoraSvm independiente.
@@ -129,7 +174,7 @@ public partial class App : Application
         await workspace.InitializeAsync();
 
         // ── ViewModel principal ───────────────────────────────────────────────
-        var mainVm = new MainVm(configuracion, [player, workspace]);
+        var mainVm = new MainVm(configuracion, [player, workspace, buildsVm, groupsVm, eventsVm]);
 
         // ── Stack de red + debug packet logger ───────────────────────────────
         var albionParser = new AlbionParser();
@@ -141,13 +186,18 @@ public partial class App : Application
             .Add(new AchievementHandler(processPlayerUseCase, achievementService, playerState))
             .RegisterAll(eventHandler);
 
+        new ResponseHandlerRegistry()
+            .Add(new JoinHandler(player))
+            .RegisterAll(responseHandler);
+
+        new RequestHandlerRegistry()
+            .RegisterAll(requestHandler);
+
         // Registrar handlers en el parser (debug loggers AL FINAL = llamados PRIMERO
         // por HandlersCollection, que invierte el orden del array).
         albionParser.AddHandler(eventHandler);
         albionParser.AddHandler(requestHandler);
         albionParser.AddHandler(responseHandler);
-        albionParser.AddHandler(new FullAchievementInfoDetailLogger());
-        //albionParser.AddHandlers(debugger.Handlers);
 
         PacketProvider packetProvider = new SharpPcapPacketProvider(
             albionParser,
@@ -180,11 +230,16 @@ public partial class App : Application
         var window = new MainWindow { DataContext = mainVm };
         window.Show();
 
+        // El splash cierra DESPUÉS de que MainWindow ya es visible — sin hueco en blanco.
+        splash.Close();
+        ShutdownMode = ShutdownMode.OnLastWindowClose;
+
         // Guardar workspace y liberar recursos al cerrar la app.
         window.Closed += async (_, _) =>
         {
             await workspace.SaveWorkspaceAsync();
             networkManager.Stop();
+            await discordBot.DisposeAsync();
         };
     }
 
