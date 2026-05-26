@@ -1,0 +1,464 @@
+<UserControl x:Class="Albion_App._5Events.EventsV"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:local="clr-namespace:Albion_App._5Events"
+             xmlns:lib="clr-namespace:LibEvents.Entities;assembly=LibEvents"
+             mc:Ignorable="d"
+             d:DesignHeight="680" d:DesignWidth="960"
+             d:DataContext="{d:DesignInstance local:EventsVm}">
+
+    <UserControl.Resources>
+        <local:EventStatusToBrushConverter x:Key="StatusToBrush"/>
+        <local:EventStatusToLabelConverter x:Key="StatusToLabel"/>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="270" MinWidth="200"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ══ PANEL IZQUIERDO ════════════════════════════════════════════════ -->
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0"
+                    BorderBrush="{DynamicResource MaterialDesign.Brush.Separator}"
+                    BorderThickness="0 0 0 1"
+                    Padding="8 6">
+                <DockPanel>
+                    <TextBlock Text="Eventos"
+                               FontSize="14" FontWeight="Medium"
+                               VerticalAlignment="Center"
+                               DockPanel.Dock="Left"/>
+                    <Button DockPanel.Dock="Right"
+                            Command="{Binding NewEventCommand}"
+                            Style="{StaticResource MaterialDesignIconButton}"
+                            ToolTip="Nueva plantilla de evento">
+                        <md:PackIcon Kind="Plus" Width="18" Height="18"/>
+                    </Button>
+                </DockPanel>
+            </Border>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+
+                    <!-- ── Sección ACTIVOS ──────────────────────────────────── -->
+                    <StackPanel>
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ActiveEvents.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+
+                        <TextBlock Text="ACTIVOS"
+                                   FontSize="10" FontWeight="Bold"
+                                   Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                                   Margin="12 8 8 4"/>
+
+                        <ItemsControl ItemsSource="{Binding ActiveEvents}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type lib:GuildEvent}">
+                                    <Border Margin="8 3"
+                                            CornerRadius="6"
+                                            BorderThickness="1"
+                                            BorderBrush="#00B4D8"
+                                            Background="#0D00B4D8"
+                                            Cursor="Hand">
+                                        <Border.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick"
+                                                          Command="{Binding DataContext.SelectEventCommand,
+                                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                          CommandParameter="{Binding}"/>
+                                        </Border.InputBindings>
+                                        <Grid Margin="10 8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="{Binding Name}"
+                                                           FontSize="13" FontWeight="Medium"/>
+                                                <TextBlock Text="{Binding ScheduledAt,
+                                                                   StringFormat='ddd d MMM · HH:mm'}"
+                                                           FontSize="11"
+                                                           Foreground="#00B4D8"
+                                                           Margin="0 2 0 0"/>
+                                            </StackPanel>
+                                            <md:PackIcon Grid.Column="1"
+                                                         Kind="ChevronRight"
+                                                         Width="18" Height="18"
+                                                         VerticalAlignment="Center"
+                                                         Foreground="#00B4D8"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- ── Sección PLANTILLAS ───────────────────────────────── -->
+                    <TextBlock Text="PLANTILLAS"
+                               FontSize="10" FontWeight="Bold"
+                               Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                               Margin="12 12 8 4"/>
+
+                    <ItemsControl ItemsSource="{Binding TemplateEvents}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type lib:GuildEvent}">
+                                <Grid Margin="4 2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Nombre (clicable para detalle) -->
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding Name}"
+                                               FontSize="13"
+                                               VerticalAlignment="Center"
+                                               Margin="8 0 0 0"
+                                               TextTrimming="CharacterEllipsis"
+                                               Cursor="Hand">
+                                        <TextBlock.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick"
+                                                          Command="{Binding DataContext.SelectEventCommand,
+                                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                          CommandParameter="{Binding}"/>
+                                        </TextBlock.InputBindings>
+                                    </TextBlock>
+
+                                    <!-- Acciones -->
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <Button Style="{StaticResource MaterialDesignIconButton}"
+                                                Command="{Binding DataContext.BeginActivateCommand,
+                                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip="Activar evento"
+                                                Width="28" Height="28" Padding="0"
+                                                Foreground="#00B4D8">
+                                            <md:PackIcon Kind="Play" Width="14" Height="14"/>
+                                        </Button>
+                                        <Button Style="{StaticResource MaterialDesignIconButton}"
+                                                Command="{Binding DataContext.EditEventCommand,
+                                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip="Editar"
+                                                Width="28" Height="28" Padding="0">
+                                            <md:PackIcon Kind="Pencil" Width="14" Height="14"/>
+                                        </Button>
+                                        <Button Style="{StaticResource MaterialDesignIconButton}"
+                                                Command="{Binding DataContext.DeleteEventCommand,
+                                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip="Eliminar"
+                                                Width="28" Height="28" Padding="0"
+                                                Foreground="{DynamicResource MaterialDesign.Brush.Secondary}">
+                                            <md:PackIcon Kind="Delete" Width="14" Height="14"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Mensaje vacío -->
+                    <TextBlock Text="Sin plantillas. Crea la primera con +"
+                               FontSize="12"
+                               Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                               HorizontalAlignment="Center"
+                               Margin="0 24">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding ActiveEvents.Count}"   Value="0"/>
+                                            <Condition Binding="{Binding TemplateEvents.Count}" Value="0"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- Separador vertical -->
+        <GridSplitter Grid.Column="1"
+                      Width="1"
+                      Background="{DynamicResource MaterialDesign.Brush.Separator}"
+                      ResizeDirection="Columns"
+                      HorizontalAlignment="Stretch"/>
+
+        <!-- ══ PANEL DERECHO ══════════════════════════════════════════════════ -->
+        <Grid Grid.Column="2">
+
+            <!-- Placeholder -->
+            <TextBlock Text="Selecciona un evento o crea una plantilla"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                       FontSize="14"
+                       Visibility="{Binding IsNone, Converter={StaticResource BoolToVis}}"/>
+
+            <!-- ── Detalle del evento ─────────────────────────────────────── -->
+            <Grid Visibility="{Binding IsDetail, Converter={StaticResource BoolToVis}}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24 16">
+
+                        <!-- Nombre + estado -->
+                        <Grid Margin="0 0 0 4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding SelectedEvent.Name}"
+                                       FontSize="20" FontWeight="Medium"
+                                       VerticalAlignment="Center"/>
+                            <Border Grid.Column="1"
+                                    CornerRadius="10"
+                                    Padding="10 4"
+                                    Background="{Binding SelectedEvent.Status,
+                                                 Converter={StaticResource StatusToBrush}}"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="{Binding SelectedEvent.Status,
+                                                   Converter={StaticResource StatusToLabel}}"
+                                           FontSize="11" FontWeight="Medium"
+                                           Foreground="White"/>
+                            </Border>
+                        </Grid>
+
+                        <!-- Descripción -->
+                        <TextBlock Text="{Binding SelectedEvent.Description}"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                                   TextWrapping="Wrap"
+                                   Margin="0 0 0 12">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedEvent.Description}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- Fecha y countdown (solo activos) -->
+                        <Border CornerRadius="8"
+                                Background="#0D00B4D8"
+                                BorderBrush="#00B4D8"
+                                BorderThickness="1"
+                                Padding="14 10"
+                                Margin="0 0 0 16"
+                                Visibility="{Binding DetailIsActive, Converter={StaticResource BoolToVis}}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="{Binding SelectedEvent.ScheduledAt,
+                                                       StringFormat='dddd d MMMM · HH:mm'}"
+                                               FontSize="13"/>
+                                    <TextBlock Text="{Binding TimeUntilLabel}"
+                                               FontSize="12"
+                                               Foreground="#00B4D8"
+                                               Margin="0 2 0 0"/>
+                                </StackPanel>
+                                <md:PackIcon Grid.Column="1"
+                                             Kind="ClockOutline"
+                                             Width="28" Height="28"
+                                             Foreground="#00B4D8"
+                                             VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Composición de roles -->
+                        <TextBlock Text="COMPOSICIÓN"
+                                   FontSize="10" FontWeight="Bold"
+                                   Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                                   Margin="0 0 0 8"/>
+
+                        <!-- Cuando hay grupo -->
+                        <ItemsControl ItemsSource="{Binding CompositionDisplay}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type local:CompositionSlotDisplayVm}">
+                                    <StackPanel Margin="0 4">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{Binding Emoji}"
+                                                       FontFamily="Segoe UI Emoji"
+                                                       FontSize="16"
+                                                       VerticalAlignment="Center"
+                                                       HorizontalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Name}"
+                                                       FontSize="13"
+                                                       VerticalAlignment="Center"
+                                                       Margin="4 0"/>
+                                            <Border Grid.Column="2"
+                                                    CornerRadius="10"
+                                                    Background="#22FFFFFF"
+                                                    Padding="8 2">
+                                                <TextBlock Text="{Binding CounterText}"
+                                                           FontSize="12" FontWeight="SemiBold"/>
+                                            </Border>
+                                        </Grid>
+                                        <!-- Nombres de inscritos -->
+                                        <TextBlock Text="{Binding UsernamesText}"
+                                                   FontSize="11"
+                                                   Foreground="#00B4D8"
+                                                   Margin="32 1 0 0"
+                                                   TextWrapping="Wrap">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding UsernamesText}" Value="">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Sin grupo asignado -->
+                        <TextBlock Text="Sin grupo de composición asignado"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                                   FontStyle="Italic">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedEvent.BuildGroupId}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- Discord: publicar / inscritos (solo activos) -->
+                        <StackPanel Margin="0 16 0 0"
+                                    Visibility="{Binding DetailIsActive, Converter={StaticResource BoolToVis}}">
+
+                            <!-- Resumen de inscritos -->
+                            <TextBlock Text="{Binding ParticipationSummary}"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                                       Margin="0 0 0 6"/>
+
+                            <!-- Botón publicar / despublicar -->
+                            <StackPanel Orientation="Horizontal">
+                                <!-- Publicar (visible cuando NO publicado) -->
+                                <Button Command="{Binding PublishToDiscordCommand}"
+                                        CommandParameter="{Binding SelectedEvent}"
+                                        Content="Publicar en Discord"
+                                        Height="32" Padding="12 0"
+                                        Margin="0 0 8 0">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignOutlinedButton}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsPublished}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+
+                                <!-- Retirar (visible cuando SÍ publicado) -->
+                                <Button Command="{Binding UnpublishFromDiscordCommand}"
+                                        CommandParameter="{Binding SelectedEvent}"
+                                        Content="Retirar de Discord"
+                                        Height="32" Padding="12 0">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignOutlinedButton}">
+                                            <Setter Property="Visibility"   Value="Collapsed"/>
+                                            <Setter Property="Foreground"   Value="{DynamicResource MaterialDesign.Brush.Secondary}"/>
+                                            <Setter Property="BorderBrush"  Value="{DynamicResource MaterialDesign.Brush.Secondary}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsPublished}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Acciones (evento activo) -->
+                        <StackPanel Orientation="Horizontal" Margin="0 16 0 0"
+                                    Visibility="{Binding DetailIsActive, Converter={StaticResource BoolToVis}}">
+                            <Button Command="{Binding CloseEventCommand}"
+                                    CommandParameter="{Binding SelectedEvent}"
+                                    Content="Cerrar evento"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Margin="0 0 8 0"/>
+                            <Button Command="{Binding CancelEventCommand}"
+                                    CommandParameter="{Binding SelectedEvent}"
+                                    Content="Cancelar"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Foreground="{DynamicResource MaterialDesign.Brush.Secondary}"
+                                    BorderBrush="{DynamicResource MaterialDesign.Brush.Secondary}"
+                                    Margin="0 0 8 0"/>
+                            <Button Command="{Binding CompleteEventCommand}"
+                                    CommandParameter="{Binding SelectedEvent}"
+                                    Content="Completado ✓"
+                                    Style="{StaticResource MaterialDesignRaisedButton}"
+                                    Background="#66BB6A" BorderBrush="#66BB6A"/>
+                        </StackPanel>
+
+                        <!-- Acciones (plantilla) -->
+                        <StackPanel Orientation="Horizontal" Margin="0 24 0 0"
+                                    Visibility="{Binding DetailIsTemplate, Converter={StaticResource BoolToVis}}">
+                            <Button Command="{Binding BeginActivateCommand}"
+                                    CommandParameter="{Binding SelectedEvent}"
+                                    Content="▶  Activar evento"
+                                    Style="{StaticResource MaterialDesignRaisedButton}"
+                                    Background="#00B4D8" BorderBrush="#00B4D8"
+                                    Margin="0 0 8 0"/>
+                            <Button Command="{Binding EditEventCommand}"
+                                    CommandParameter="{Binding SelectedEvent}"
+                                    Content="Editar"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"/>
+                        </StackPanel>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+
+        </Grid>
+    </Grid>
+</UserControl>

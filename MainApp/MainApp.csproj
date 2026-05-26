@@ -21,12 +21,13 @@
       <ProjectReference Include="..\..\LibSolutions\LibAlbionRouting\LibAlbionRouting.csproj" />
       <ProjectReference Include="..\..\LibSolutions\LibNetWork\LibNetWork.csproj" />
       <ProjectReference Include="..\..\LibSolutions\LibAlbionDebug\LibAlbionDebug.csproj" />
+      <ProjectReference Include="..\..\LibSolutions\LibWpfControls\LibWpfControls.csproj" />
       <!-- LibAlbionData queda como transitiva via AlbionApp.Infrastructure -->
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-      <PackageReference Include="MaterialDesignColors" Version="5.3.2" />
+<PackageReference Include="MaterialDesignColors" Version="5.3.2" />
       <PackageReference Include="MaterialDesignThemes" Version="5.3.2" />
       <!--
         VirtualizingWrapPanel: WrapPanel con virtualización por filas. Necesario
