@@ -67,6 +67,16 @@ public sealed partial class DiscordConfigVm : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Notifies the two bool helper properties whenever InteractionMode changes
+    /// (e.g. when Load() restores it from config), so RadioButtons stay in sync.
+    /// </summary>
+    partial void OnInteractionModeChanged(DiscordInteractionMode value)
+    {
+        OnPropertyChanged(nameof(IsButtonsMode));
+        OnPropertyChanged(nameof(IsReactionsMode));
+    }
+
     public event Action? Saved;
     public event Action? Cancelled;
 
