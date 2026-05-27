@@ -127,7 +127,7 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     // ── Formulario de activación ──────────────────────────────────────────────
 
     [ObservableProperty] private DateTime? _activationDate = DateTime.UtcNow.Date;
-    [ObservableProperty] private string    _activationTime = "20:00";
+    [ObservableProperty] private DateTime? _activationTime = DateTime.Today.AddHours(20);
 
     public event Action? ActivationConfirmed;
     public event Action? ActivationCancelled;
@@ -215,7 +215,7 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     {
         SelectedEvent  = ev;
         ActivationDate = DateTime.UtcNow.Date;
-        ActivationTime = "20:00";
+        ActivationTime = DateTime.Today.AddHours(20);
         await DialogService.Instance.MostrarDialogo<ActivateEventDialogV>(
             this,
             "Activar evento",
@@ -231,10 +231,9 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     {
         if (SelectedEvent is null) return;
 
-        var date = (ActivationDate ?? DateTime.UtcNow.Date).Date;
-        SelectedEvent.ScheduledAt = TimeSpan.TryParseExact(ActivationTime, @"hh\:mm", null, out var ts)
-            ? DateTime.SpecifyKind(date.Add(ts), DateTimeKind.Utc)
-            : DateTime.SpecifyKind(date,          DateTimeKind.Utc);
+        var date      = (ActivationDate ?? DateTime.UtcNow.Date).Date;
+        var timeOfDay = ActivationTime?.TimeOfDay ?? TimeSpan.FromHours(20);
+        SelectedEvent.ScheduledAt = DateTime.SpecifyKind(date.Add(timeOfDay), DateTimeKind.Utc);
         SelectedEvent.Status = EventStatus.Open;
 
         await _buildService.UpdateEventAsync(SelectedEvent);
@@ -294,7 +293,7 @@ public partial class EventsVm : ObservableObject, ISectionIcons
 
         await _discordBot.PublishEventAsync(ev, channelId);
         OnPropertyChanged(nameof(IsPublished));
-        DialogService.Instance.MensajeQueue.Enqueue($"✅  \"{ev.Name}\" publicado en Discord.");
+        DialogService.Instance.MensajeQueue.Enqueue($"✅ Evento \"{ev.Name}\" publicado en Discord.");
     }
 
     [RelayCommand]
@@ -302,7 +301,7 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     {
         await _discordBot.UnpublishEventAsync(ev);
         OnPropertyChanged(nameof(IsPublished));
-        DialogService.Instance.MensajeQueue.Enqueue($"🗑️  \"{ev.Name}\" eliminado de Discord.");
+        DialogService.Instance.MensajeQueue.Enqueue($"🗑️ Evento \"{ev.Name}\" eliminado de Discord.");
     }
 
     // ── Callback participación Discord ────────────────────────────────────────
