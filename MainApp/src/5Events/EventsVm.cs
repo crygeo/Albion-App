@@ -305,6 +305,8 @@ public partial class EventsVm : ObservableObject, ISectionIcons
         ActivationConfirmed?.Invoke();
         SelectedEvent = ActiveEvents.FirstOrDefault(e => e.Id == created.Id);
         RightPanel    = RightPanelState.Detail;
+
+        await TryAutoPublishAsync(SelectedEvent);
     }
 
     // ── Comandos: gestión de evento activo ────────────────────────────────────
@@ -354,6 +356,9 @@ public partial class EventsVm : ObservableObject, ISectionIcons
         await _buildService.ClosePreparationAsync(ev.Id);
         await LoadAsync();
         SelectedEvent = ActiveEvents.FirstOrDefault(e => e.Id == ev.Id);
+
+        if (SelectedEvent is not null && SelectedEvent.IsPublished && _discordBot.IsConnected)
+            await _discordBot.UpdateEmbedToRunningAsync(SelectedEvent);
     }
 
     [RelayCommand]
@@ -381,6 +386,34 @@ public partial class EventsVm : ObservableObject, ISectionIcons
         await _buildService.EndInProgressAsync(ev.Id);
         await LoadAsync();
         SelectedEvent = ActiveEvents.FirstOrDefault(e => e.Id == ev.Id);
+
+        if (SelectedEvent is not null && SelectedEvent.IsPublished && _discordBot.IsConnected)
+            await _discordBot.UpdateEmbedToFinishedAsync(SelectedEvent);
+    }
+
+    private async Task TryAutoPublishAsync(GuildEvent? ev)
+    {
+        if (ev is null || !_discordBot.IsConnected) return;
+
+        if (!ulong.TryParse(_appConfig.DiscordChannelId, out var channelId))
+        {
+            DialogService.Instance.MensajeQueue.Enqueue(
+                "⚠️ Evento activado, pero no hay canal de Discord configurado.");
+            return;
+        }
+
+        try
+        {
+            await _discordBot.PublishEventAsync(ev, channelId);
+            OnPropertyChanged(nameof(IsPublished));
+            DialogService.Instance.MensajeQueue.Enqueue(
+                $"✅ Evento \"{ev.Name}\" publicado en Discord.");
+        }
+        catch (Exception ex)
+        {
+            DialogService.Instance.MensajeQueue.Enqueue(
+                $"⚠️ No se pudo publicar en Discord: {ex.Message}");
+        }
     }
 
     private async Task TryUnpublishAsync(GuildEvent ev)
