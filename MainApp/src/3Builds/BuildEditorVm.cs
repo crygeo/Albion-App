@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LibEvents.Entities;
 using LibEvents.Services;
+using Utilidades.Dialogs;
 
 namespace Albion_App._3Builds;
 
@@ -174,6 +175,7 @@ public partial class BuildEditorVm : ObservableObject
             await _buildService.UpdateBuildAsync(build);
 
         IsDirty = false;
+        DialogService.Instance.MensajeQueue.Enqueue($"✅ Build \"{build.Name}\" guardada.");
         Saved?.Invoke();
     }
 
