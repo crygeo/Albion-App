@@ -25,6 +25,11 @@ public partial class BuildsVm : ObservableObject, ISectionIcons
     [ObservableProperty] private Build?                      _selectedBuild;
     [ObservableProperty] private bool                        _isEditing;
 
+    // Guards para OnSelectedBuildChanged
+    private Build? _previousBuild;
+    private bool   _isReverting;
+    private bool   _suppressDirtyCheck;
+
     public BuildEditorVm Editor { get; }
 
     // ── Constructor ───────────────────────────────────────────────────────────
@@ -48,22 +53,34 @@ public partial class BuildsVm : ObservableObject, ISectionIcons
 
     // ── Comandos ──────────────────────────────────────────────────────────────
 
-    [RelayCommand]
-    private async Task NewBuild()
+    partial void OnSelectedBuildChanged(Build? value)
     {
-        if (!await ConfirmDiscardIfDirty()) return;
-        SelectedBuild = null;
-        Editor.LoadBuild(null);
+        if (_isReverting || _suppressDirtyCheck || value is null) return;
+
+        if (IsEditing && Editor.IsDirty)
+        {
+            var requested = value;
+            _isReverting  = true;
+            SelectedBuild = _previousBuild;   // revert visual selection
+            _isReverting  = false;
+            _ = ConfirmAndSwitch(requested);
+            return;
+        }
+
+        _previousBuild = value;
+        Editor.LoadBuild(value);
         IsEditing = true;
     }
 
     [RelayCommand]
-    private async Task SelectBuild(Build build)
+    private async Task NewBuild()
     {
-        if (ReferenceEquals(SelectedBuild, build)) return;
         if (!await ConfirmDiscardIfDirty()) return;
-        SelectedBuild = build;
-        Editor.LoadBuild(build);
+        _suppressDirtyCheck = true;
+        SelectedBuild       = null;
+        _suppressDirtyCheck = false;
+        _previousBuild      = null;
+        Editor.LoadBuild(null);
         IsEditing = true;
     }
 
@@ -106,6 +123,18 @@ public partial class BuildsVm : ObservableObject, ISectionIcons
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private async Task ConfirmAndSwitch(Build target)
+    {
+        if (!await ConfirmDiscardIfDirty()) return;
+
+        _suppressDirtyCheck = true;
+        SelectedBuild       = target;
+        _suppressDirtyCheck = false;
+        _previousBuild      = target;
+        Editor.LoadBuild(target);
+        IsEditing = true;
+    }
 
     private async Task<bool> ConfirmDiscardIfDirty()
     {
