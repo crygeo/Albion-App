@@ -283,15 +283,25 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     {
         if (SelectedEvent is null) return;
 
-        var date      = (ActivationDate ?? DateTime.UtcNow.Date).Date;
-        var timeOfDay = ActivationTime?.TimeOfDay ?? TimeSpan.FromHours(20);
+        var date        = (ActivationDate ?? DateTime.UtcNow.Date).Date;
+        var timeOfDay   = ActivationTime?.TimeOfDay ?? TimeSpan.FromHours(20);
         var scheduledAt = DateTime.SpecifyKind(date.Add(timeOfDay), DateTimeKind.Utc);
 
-        await _buildService.ActivateEventAsync(SelectedEvent.Id, scheduledAt);
+        // Clonar la plantilla y activar el clon; la plantilla original queda en Draft.
+        var clone = new GuildEvent
+        {
+            Name         = SelectedEvent.Name,
+            Description  = SelectedEvent.Description,
+            Status       = EventStatus.Draft,
+            BuildGroupId = SelectedEvent.BuildGroupId,
+        };
+        var created = await _buildService.CreateEventAsync(clone);
+        await _buildService.ActivateEventAsync(created.Id, scheduledAt);
         await LoadAsync();
 
         ActivationConfirmed?.Invoke();
-        RightPanel = RightPanelState.Detail;
+        SelectedEvent = ActiveEvents.FirstOrDefault(e => e.Id == created.Id);
+        RightPanel    = RightPanelState.Detail;
     }
 
     // ── Comandos: gestión de evento activo ────────────────────────────────────
