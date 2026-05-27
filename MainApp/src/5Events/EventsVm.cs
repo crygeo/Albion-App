@@ -43,16 +43,19 @@ public partial class EventsVm : ObservableObject, ISectionIcons
 
     [ObservableProperty] private ObservableCollection<GuildEvent> _activeEvents    = [];
     [ObservableProperty] private ObservableCollection<GuildEvent> _templateEvents  = [];
+    [ObservableProperty] private ObservableCollection<GuildEvent> _historyEvents   = [];
 
     // ── Selección y estado del panel derecho ──────────────────────────────────
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsNone))]
     [NotifyPropertyChangedFor(nameof(IsDetail))]
+    [NotifyPropertyChangedFor(nameof(IsHistory))]
     private RightPanelState _rightPanel = RightPanelState.None;
 
-    public bool IsNone   => RightPanel == RightPanelState.None;
-    public bool IsDetail => RightPanel == RightPanelState.Detail;
+    public bool IsNone    => RightPanel == RightPanelState.None;
+    public bool IsDetail  => RightPanel == RightPanelState.Detail;
+    public bool IsHistory => RightPanel == RightPanelState.History;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DetailIsActive))]
@@ -62,6 +65,8 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     [NotifyPropertyChangedFor(nameof(IsPaused))]
     [NotifyPropertyChangedFor(nameof(IsFinished))]
     [NotifyPropertyChangedFor(nameof(ElapsedDisplay))]
+    [NotifyPropertyChangedFor(nameof(HistoryElapsedDisplay))]
+    [NotifyPropertyChangedFor(nameof(HistoryCancelledInfo))]
     [NotifyPropertyChangedFor(nameof(CompositionDisplay))]
     [NotifyPropertyChangedFor(nameof(TimeUntilLabel))]
     [NotifyPropertyChangedFor(nameof(Participants))]
@@ -173,6 +178,9 @@ public partial class EventsVm : ObservableObject, ISectionIcons
          || e.Status == EventStatus.Finished));
         TemplateEvents = new ObservableCollection<GuildEvent>(all.Where(e =>
             e.Status == EventStatus.Draft));
+
+        var history = await _buildService.GetEventHistoryAsync();
+        HistoryEvents = new ObservableCollection<GuildEvent>(history);
     }
 
     // ── Comandos: plantillas ──────────────────────────────────────────────────
@@ -219,6 +227,25 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     {
         SelectedEvent = ev;
         RightPanel    = RightPanelState.Detail;
+    }
+
+    [RelayCommand]
+    private void SelectHistoryEvent(GuildEvent ev)
+    {
+        SelectedEvent = ev;
+        RightPanel    = RightPanelState.History;
+    }
+
+    [RelayCommand]
+    private async Task DeleteHistoryEvent(GuildEvent ev)
+    {
+        await _buildService.DeleteEventAsync(ev.Id);
+        HistoryEvents.Remove(ev);
+        if (ReferenceEquals(SelectedEvent, ev))
+        {
+            SelectedEvent = null;
+            RightPanel    = RightPanelState.None;
+        }
     }
 
     // ── Comandos: activación ──────────────────────────────────────────────────
@@ -425,7 +452,40 @@ public partial class EventsVm : ObservableObject, ISectionIcons
         _elapsedTimer?.Stop();
     }
 
+    // ── Historial — propiedades de solo lectura ───────────────────────────────
+
+    public string HistoryElapsedDisplay
+    {
+        get
+        {
+            if (SelectedEvent is not { } ev) return "";
+            TimeSpan? ts = ev.Status == EventStatus.Cancelled
+                ? ev.CancelledElapsedTime
+                : ev.ElapsedBeforePause == TimeSpan.Zero ? null : (TimeSpan?)ev.ElapsedBeforePause;
+            return ts is null ? "" : ts.Value.ToString(@"hh\:mm\:ss");
+        }
+    }
+
+    public string HistoryCancelledInfo
+    {
+        get
+        {
+            if (SelectedEvent?.Status != EventStatus.Cancelled) return "";
+            if (SelectedEvent.CancelledFromStatus is not { } prev) return "Cancelado";
+            var label = prev switch
+            {
+                EventStatus.Draft        => "Borrador",
+                EventStatus.Preparation  => "Preparación",
+                EventStatus.Running      => "En progreso",
+                EventStatus.Paused       => "Pausado",
+                EventStatus.Finished     => "Finalizado",
+                _                        => prev.ToString()
+            };
+            return $"Cancelado desde: {label}";
+        }
+    }
+
     // ── Enum de estado del panel ──────────────────────────────────────────────
 
-    public enum RightPanelState { None, Detail }
+    public enum RightPanelState { None, Detail, History }
 }

@@ -175,6 +175,63 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
+                    <!-- ── Sección HISTORIAL ────────────────────────────────── -->
+                    <StackPanel>
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HistoryEvents.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+
+                        <TextBlock Text="HISTORIAL"
+                                   FontSize="10" FontWeight="Bold"
+                                   Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                                   Margin="12 12 8 4"/>
+
+                        <ItemsControl ItemsSource="{Binding HistoryEvents}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type lib:GuildEvent}">
+                                    <Grid Margin="4 2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Cursor="Hand" Margin="8 4 0 4">
+                                            <StackPanel.InputBindings>
+                                                <MouseBinding MouseAction="LeftClick"
+                                                              Command="{Binding DataContext.SelectHistoryEventCommand,
+                                                                        RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                              CommandParameter="{Binding}"/>
+                                            </StackPanel.InputBindings>
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontSize="13" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Status,
+                                                               Converter={StaticResource StatusToLabel}}"
+                                                       FontSize="11"
+                                                       Foreground="{Binding Status, Converter={StaticResource StatusToBrush}}"
+                                                       Margin="0 1 0 0"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1"
+                                                Style="{StaticResource MaterialDesignIconButton}"
+                                                Command="{Binding DataContext.DeleteHistoryEventCommand,
+                                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip="Eliminar del historial"
+                                                Width="28" Height="28" Padding="0"
+                                                Foreground="{DynamicResource MaterialDesign.Brush.Secondary}">
+                                            <md:PackIcon Kind="Delete" Width="14" Height="14"/>
+                                        </Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
                     <!-- Mensaje vacío -->
                     <TextBlock Text="Sin plantillas. Crea la primera con +"
                                FontSize="12"
@@ -582,6 +639,213 @@
                                     Content="Editar"
                                     Style="{StaticResource MaterialDesignOutlinedButton}"/>
                         </StackPanel>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- ── Detalle historial (solo lectura) ─────────────────────── -->
+            <Grid Visibility="{Binding IsHistory, Converter={StaticResource BoolToVis}}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24 16">
+
+                        <!-- Nombre + estado -->
+                        <Grid Margin="0 0 0 4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding SelectedEvent.Name}"
+                                       FontSize="20" FontWeight="Medium"
+                                       VerticalAlignment="Center"/>
+                            <Border Grid.Column="1"
+                                    CornerRadius="10"
+                                    Padding="10 4"
+                                    Background="{Binding SelectedEvent.Status,
+                                                 Converter={StaticResource StatusToBrush}}"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="{Binding SelectedEvent.Status,
+                                                   Converter={StaticResource StatusToLabel}}"
+                                           FontSize="11" FontWeight="Medium"
+                                           Foreground="White"/>
+                            </Border>
+                        </Grid>
+
+                        <!-- Descripción -->
+                        <TextBlock Text="{Binding SelectedEvent.Description}"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                                   TextWrapping="Wrap"
+                                   Margin="0 0 0 12">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedEvent.Description}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- Fecha -->
+                        <TextBlock FontSize="13"
+                                   Margin="0 0 0 8"
+                                   Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedEvent.ScheduledAt}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                            <Run Text="Fecha: "/>
+                            <Run Text="{Binding SelectedEvent.ScheduledAt, StringFormat='dddd d MMMM yyyy · HH:mm'}"/>
+                        </TextBlock>
+
+                        <!-- Tiempo total / Cancelado info -->
+                        <Border CornerRadius="8"
+                                Padding="14 10"
+                                Margin="0 0 0 16">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Setter Property="Background"     Value="#0DCE93D8"/>
+                                    <Setter Property="BorderBrush"    Value="#CE93D8"/>
+                                    <Setter Property="BorderThickness" Value="1"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HistoryElapsedDisplay}" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding SelectedEvent.Status}" Value="{x:Static lib:EventStatus.Closed}">
+                                            <Setter Property="Visibility"  Value="Visible"/>
+                                            <Setter Property="Background"  Value="#0D66BB6A"/>
+                                            <Setter Property="BorderBrush" Value="#66BB6A"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding SelectedEvent.Status}" Value="{x:Static lib:EventStatus.Cancelled}">
+                                            <Setter Property="Visibility"  Value="Visible"/>
+                                            <Setter Property="Background"  Value="#0DFF7043"/>
+                                            <Setter Property="BorderBrush" Value="#FF7043"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock Text="{Binding HistoryElapsedDisplay}"
+                                           FontSize="28" FontWeight="Bold"
+                                           HorizontalAlignment="Center"
+                                           FontFamily="Consolas">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#66BB6A"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedEvent.Status}" Value="{x:Static lib:EventStatus.Cancelled}">
+                                                    <Setter Property="Foreground" Value="#FF7043"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock HorizontalAlignment="Center"
+                                           FontSize="10" Margin="0 2 0 0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text"       Value="TIEMPO TOTAL DEL EVENTO"/>
+                                            <Setter Property="Foreground" Value="#66BB6A"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedEvent.Status}" Value="{x:Static lib:EventStatus.Cancelled}">
+                                                    <Setter Property="Text"       Value="{Binding HistoryCancelledInfo}"/>
+                                                    <Setter Property="Foreground" Value="#FF7043"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Composición de roles -->
+                        <TextBlock Text="COMPOSICIÓN"
+                                   FontSize="10" FontWeight="Bold"
+                                   Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                                   Margin="0 0 0 8"/>
+
+                        <ItemsControl ItemsSource="{Binding CompositionDisplay}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type local:CompositionSlotDisplayVm}">
+                                    <StackPanel Margin="0 4">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{Binding Emoji}"
+                                                       FontFamily="Segoe UI Emoji"
+                                                       FontSize="16"
+                                                       VerticalAlignment="Center"
+                                                       HorizontalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Name}"
+                                                       FontSize="13"
+                                                       VerticalAlignment="Center"
+                                                       Margin="4 0"/>
+                                            <Border Grid.Column="2"
+                                                    CornerRadius="10"
+                                                    Background="#22FFFFFF"
+                                                    Padding="8 2">
+                                                <TextBlock Text="{Binding CounterText}"
+                                                           FontSize="12" FontWeight="SemiBold"/>
+                                            </Border>
+                                        </Grid>
+                                        <TextBlock Text="{Binding UsernamesText}"
+                                                   FontSize="11"
+                                                   Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                                                   Margin="32 1 0 0"
+                                                   TextWrapping="Wrap">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding UsernamesText}" Value="">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="Sin grupo de composición asignado"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                                   FontStyle="Italic">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedEvent.BuildGroupId}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- Eliminar del historial -->
+                        <Button Command="{Binding DeleteHistoryEventCommand}"
+                                CommandParameter="{Binding SelectedEvent}"
+                                Content="Eliminar del historial"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Foreground="{DynamicResource MaterialDesign.Brush.Secondary}"
+                                BorderBrush="{DynamicResource MaterialDesign.Brush.Secondary}"
+                                Margin="0 24 0 0"/>
 
                     </StackPanel>
                 </ScrollViewer>
