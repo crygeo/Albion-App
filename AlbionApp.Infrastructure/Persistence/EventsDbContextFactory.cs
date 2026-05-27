@@ -113,6 +113,12 @@ public static class EventsDbContextFactory
         // v6: nickname del servidor para trazabilidad histórica de cambios de nombre
         TryAddColumn(conn, "EventParticipants", "DiscordNickname", "TEXT");
 
+        // v8: Builds.Emoji fue eliminado de la entidad (movido a BuildGroupSlot.Emoji en v4).
+        // Si la columna sigue existiendo como NOT NULL la inserción falla → hay que dropearlo.
+        // ALTER TABLE … DROP COLUMN requiere SQLite ≥ 3.35 (Microsoft.Data.Sqlite 9.x lo incluye).
+        if (ColumnExists(conn, "Builds", "Emoji"))
+            db.Database.ExecuteSqlRaw("ALTER TABLE Builds DROP COLUMN Emoji");
+
         // v7: state machine — remap Status int values and add timer/snapshot columns
         // Guard: only remap if InProgressStartedAt does not yet exist (first run of v7).
         if (!ColumnExists(conn, "GuildEvents", "InProgressStartedAt"))
