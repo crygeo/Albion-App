@@ -302,6 +302,7 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     {
         await _discordBot.UnpublishEventAsync(ev);
         OnPropertyChanged(nameof(IsPublished));
+        DialogService.Instance.MensajeQueue.Enqueue($"🗑️  \"{ev.Name}\" eliminado de Discord.");
     }
 
     // ── Callback participación Discord ────────────────────────────────────────
