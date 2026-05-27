@@ -64,8 +64,11 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     [NotifyPropertyChangedFor(nameof(IsPublished))]
     private GuildEvent? _selectedEvent;
 
-    public bool DetailIsActive   => SelectedEvent?.Status == EventStatus.Open;
-    public bool DetailIsTemplate => SelectedEvent?.Status == EventStatus.Closed;
+    public bool DetailIsActive   => SelectedEvent?.Status is EventStatus.Preparation
+                                                           or EventStatus.Running
+                                                           or EventStatus.Paused
+                                                           or EventStatus.Finished;
+    public bool DetailIsTemplate => SelectedEvent?.Status == EventStatus.Draft;
 
     // ── Composición con participantes del evento seleccionado ─────────────────
 
@@ -158,8 +161,13 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     public async Task LoadAsync()
     {
         var all = await _buildService.GetEventsAsync();
-        ActiveEvents   = new ObservableCollection<GuildEvent>(all.Where(e => e.Status == EventStatus.Open));
-        TemplateEvents = new ObservableCollection<GuildEvent>(all.Where(e => e.Status != EventStatus.Open));
+        ActiveEvents   = new ObservableCollection<GuildEvent>(all.Where(e =>
+            e.Status == EventStatus.Preparation
+         || e.Status == EventStatus.Running
+         || e.Status == EventStatus.Paused
+         || e.Status == EventStatus.Finished));
+        TemplateEvents = new ObservableCollection<GuildEvent>(all.Where(e =>
+            e.Status == EventStatus.Draft));
     }
 
     // ── Comandos: plantillas ──────────────────────────────────────────────────
@@ -233,10 +241,9 @@ public partial class EventsVm : ObservableObject, ISectionIcons
 
         var date      = (ActivationDate ?? DateTime.UtcNow.Date).Date;
         var timeOfDay = ActivationTime?.TimeOfDay ?? TimeSpan.FromHours(20);
-        SelectedEvent.ScheduledAt = DateTime.SpecifyKind(date.Add(timeOfDay), DateTimeKind.Utc);
-        SelectedEvent.Status = EventStatus.Open;
+        var scheduledAt = DateTime.SpecifyKind(date.Add(timeOfDay), DateTimeKind.Utc);
 
-        await _buildService.UpdateEventAsync(SelectedEvent);
+        await _buildService.ActivateEventAsync(SelectedEvent.Id, scheduledAt);
         await LoadAsync();
 
         ActivationConfirmed?.Invoke();
@@ -249,7 +256,7 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     private async Task CompleteEvent(GuildEvent ev)
     {
         await TryUnpublishAsync(ev);
-        ev.Status = EventStatus.Completed;
+        ev.Status = EventStatus.Closed;
         await _buildService.UpdateEventAsync(ev);
         await LoadAsync();
         RightPanel = RightPanelState.None;
@@ -259,8 +266,7 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     private async Task CancelEvent(GuildEvent ev)
     {
         await TryUnpublishAsync(ev);
-        ev.Status = EventStatus.Cancelled;
-        await _buildService.UpdateEventAsync(ev);
+        await _buildService.CancelEventAsync(ev.Id);
         await LoadAsync();
         RightPanel = RightPanelState.None;
     }
@@ -269,7 +275,7 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     private async Task CloseEvent(GuildEvent ev)
     {
         await TryUnpublishAsync(ev);
-        ev.Status      = EventStatus.Closed;
+        ev.Status      = EventStatus.Draft;
         ev.ScheduledAt = null;
         await _buildService.UpdateEventAsync(ev);
         await LoadAsync();

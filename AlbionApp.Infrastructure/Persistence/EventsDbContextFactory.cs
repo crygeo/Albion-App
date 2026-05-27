@@ -37,7 +37,7 @@ public static class EventsDbContextFactory
             Name         TEXT    NOT NULL,
             Description  TEXT,
             ScheduledAt  TEXT,
-            Status       INTEGER NOT NULL DEFAULT 1,
+            Status       INTEGER NOT NULL DEFAULT 0,
             BuildGroupId INTEGER,
             FOREIGN KEY (BuildGroupId) REFERENCES BuildGroups(Id) ON DELETE SET NULL
         )
@@ -112,6 +112,43 @@ public static class EventsDbContextFactory
 
         // v6: nickname del servidor para trazabilidad histórica de cambios de nombre
         TryAddColumn(conn, "EventParticipants", "DiscordNickname", "TEXT");
+
+        // v7: state machine — remap Status int values and add timer/snapshot columns
+        // Guard: only remap if InProgressStartedAt does not yet exist (first run of v7).
+        if (!ColumnExists(conn, "GuildEvents", "InProgressStartedAt"))
+        {
+            db.Database.ExecuteSqlRaw("""
+                UPDATE GuildEvents SET Status = CASE
+                  WHEN Status = 0 THEN 1
+                  WHEN Status = 1 THEN 0
+                  WHEN Status = 2 THEN 6
+                  WHEN Status = 3 THEN 5
+                  ELSE 0
+                END
+                """);
+        }
+        TryAddColumn(conn, "GuildEvents", "InProgressStartedAt",  "TEXT");
+        TryAddColumn(conn, "GuildEvents", "ElapsedBeforePause",   "TEXT NOT NULL DEFAULT '00:00:00'");
+        TryAddColumn(conn, "GuildEvents", "CancelledFromStatus",  "INTEGER");
+        TryAddColumn(conn, "GuildEvents", "CancelledElapsedTime", "TEXT");
+    }
+
+    private static bool ColumnExists(System.Data.Common.DbConnection conn, string table, string column)
+    {
+        conn.Open();
+        try
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = $"PRAGMA table_info({table})";
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                if (reader.GetString(1) == column)
+                    return true;
+            }
+            return false;
+        }
+        finally { conn.Close(); }
     }
 
     private static void TryAddColumn(System.Data.Common.DbConnection conn, string table, string column, string type)
