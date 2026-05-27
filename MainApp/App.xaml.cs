@@ -22,6 +22,7 @@ using LibAlbionRouting.Handlers;
 using Albion_App._0Config;
 using LibEvents.Discord;
 using LibEvents.Services;
+using Utilidades.Dialogs;
 using LibNetWork.Interfaces;
 using LibNetWork.Models;
 using LibNetWork.Networking;
@@ -139,6 +140,7 @@ public partial class App : Application
         await groupsVm.LoadAsync();
 
         var discordBot      = new DiscordBotService(eventsDbFactory);
+        discordBot.ErrorOccurred += msg => DialogService.Instance.MensajeQueue.Enqueue(msg);
         var discordConfigVm = new DiscordConfigVm(discordBot, config);
 
         var eventEditorVm   = new EventEditorVm(buildService);
