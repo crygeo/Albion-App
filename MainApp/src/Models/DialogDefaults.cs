@@ -7,5 +7,11 @@ public static class DialogDefaults
     public const string Main       = "dialogMain";
     public const string Progress   = "dialogProgress";
     public const string ItemSearch = "dialogItemSearch";
-    public const string DestinyBoard = "dialogDestinyBoard";
+    public const string DestinyBoard  = "dialogDestinyBoard";
+    public const string GroupEditor   = "dialogGroupEditor";
+    public const string EventEditor   = "dialogEventEditor";
+    public const string ActivateEvent = "dialogActivateEvent";
+    public const string DiscordConfig = "dialogDiscordConfig";
+    public const string EventHistory  = "dialogEventHistory";
+    public const string Confirm       = "dialogConfirm";
 }

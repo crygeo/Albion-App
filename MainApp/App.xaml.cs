@@ -144,7 +144,8 @@ public partial class App : Application
         var discordConfigVm = new DiscordConfigVm(discordBot, config);
 
         var eventEditorVm   = new EventEditorVm(buildService);
-        var eventsVm        = new EventsVm(buildService, eventEditorVm, discordBot, config);
+        var eventHistoryVm  = new EventHistoryVm(buildService);
+        var eventsVm        = new EventsVm(buildService, eventEditorVm, discordBot, config, eventHistoryVm);
         await eventsVm.LoadAsync();
 
         // Reconectar Discord automáticamente si hay token guardado

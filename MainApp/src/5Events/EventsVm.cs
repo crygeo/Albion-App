@@ -41,21 +41,18 @@ public partial class EventsVm : ObservableObject, ISectionIcons
 
     // ── Listas ────────────────────────────────────────────────────────────────
 
-    [ObservableProperty] private ObservableCollection<GuildEvent> _activeEvents    = [];
-    [ObservableProperty] private ObservableCollection<GuildEvent> _templateEvents  = [];
-    [ObservableProperty] private ObservableCollection<GuildEvent> _historyEvents   = [];
+    [ObservableProperty] private ObservableCollection<GuildEvent> _activeEvents   = [];
+    [ObservableProperty] private ObservableCollection<GuildEvent> _templateEvents = [];
 
     // ── Selección y estado del panel derecho ──────────────────────────────────
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsNone))]
     [NotifyPropertyChangedFor(nameof(IsDetail))]
-    [NotifyPropertyChangedFor(nameof(IsHistory))]
     private RightPanelState _rightPanel = RightPanelState.None;
 
-    public bool IsNone    => RightPanel == RightPanelState.None;
-    public bool IsDetail  => RightPanel == RightPanelState.Detail;
-    public bool IsHistory => RightPanel == RightPanelState.History;
+    public bool IsNone   => RightPanel == RightPanelState.None;
+    public bool IsDetail => RightPanel == RightPanelState.Detail;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DetailIsActive))]
@@ -65,8 +62,6 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     [NotifyPropertyChangedFor(nameof(IsPaused))]
     [NotifyPropertyChangedFor(nameof(IsFinished))]
     [NotifyPropertyChangedFor(nameof(ElapsedDisplay))]
-    [NotifyPropertyChangedFor(nameof(HistoryElapsedDisplay))]
-    [NotifyPropertyChangedFor(nameof(HistoryCancelledInfo))]
     [NotifyPropertyChangedFor(nameof(CompositionDisplay))]
     [NotifyPropertyChangedFor(nameof(TimeUntilLabel))]
     [NotifyPropertyChangedFor(nameof(Participants))]
@@ -147,7 +142,8 @@ public partial class EventsVm : ObservableObject, ISectionIcons
 
     // ── Editor de plantilla ───────────────────────────────────────────────────
 
-    public EventEditorVm Editor { get; }
+    public EventEditorVm     Editor     { get; }
+    public EventHistoryVm    History    { get; }
 
     // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -155,12 +151,14 @@ public partial class EventsVm : ObservableObject, ISectionIcons
         BuildService      buildService,
         EventEditorVm     editor,
         DiscordBotService discordBot,
-        AppConfigService  appConfig)
+        AppConfigService  appConfig,
+        EventHistoryVm    history)
     {
         _buildService = buildService;
         _discordBot   = discordBot;
         _appConfig    = appConfig;
         Editor        = editor;
+        History       = history;
 
         Editor.Saved += OnEditorSaved;
         _discordBot.ParticipationChanged += OnParticipationChanged;
@@ -178,9 +176,6 @@ public partial class EventsVm : ObservableObject, ISectionIcons
          || e.Status == EventStatus.Finished));
         TemplateEvents = new ObservableCollection<GuildEvent>(all.Where(e =>
             e.Status == EventStatus.Draft));
-
-        var history = await _buildService.GetEventHistoryAsync();
-        HistoryEvents = new ObservableCollection<GuildEvent>(history);
     }
 
     // ── Comandos: plantillas ──────────────────────────────────────────────────
@@ -212,14 +207,39 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     [RelayCommand]
     private async Task DeleteEvent(GuildEvent ev)
     {
-        await _buildService.DeleteEventAsync(ev.Id);
-        ActiveEvents.Remove(ev);
-        TemplateEvents.Remove(ev);
-        if (ReferenceEquals(SelectedEvent, ev))
+        var confirmDialog = new ConfirmDialog
         {
-            SelectedEvent = null;
-            RightPanel    = RightPanelState.None;
-        }
+            TextHeader           = "Eliminar plantilla",
+            Message              = $"¿Eliminar la plantilla \"{ev.Name}\"?",
+            AceptarCommand       = new AsyncRelayCommand(async () =>
+            {
+                await _buildService.DeleteEventAsync(ev.Id);
+                ActiveEvents.Remove(ev);
+                TemplateEvents.Remove(ev);
+                if (ReferenceEquals(SelectedEvent, ev))
+                {
+                    SelectedEvent = null;
+                    RightPanel    = RightPanelState.None;
+                }
+            }),
+            DialogNameIdentifier = DialogDefaults.Confirm,
+            DialogOpenIdentifier = DialogDefaults.Main,
+        };
+        await DialogService.Instance.MostrarDialogo(confirmDialog);
+    }
+
+    [RelayCommand]
+    private async Task CloneEvent(GuildEvent ev)
+    {
+        var clone = new GuildEvent
+        {
+            Name         = $"Copia de {ev.Name}",
+            Description  = ev.Description,
+            Status       = EventStatus.Draft,
+            BuildGroupId = ev.BuildGroupId,
+        };
+        await _buildService.CreateEventAsync(clone);
+        await LoadAsync();
     }
 
     [RelayCommand]
@@ -230,22 +250,14 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     }
 
     [RelayCommand]
-    private void SelectHistoryEvent(GuildEvent ev)
+    private async Task OpenHistory()
     {
-        SelectedEvent = ev;
-        RightPanel    = RightPanelState.History;
-    }
-
-    [RelayCommand]
-    private async Task DeleteHistoryEvent(GuildEvent ev)
-    {
-        await _buildService.DeleteEventAsync(ev.Id);
-        HistoryEvents.Remove(ev);
-        if (ReferenceEquals(SelectedEvent, ev))
+        var dialog = new EventHistoryDialogV(History)
         {
-            SelectedEvent = null;
-            RightPanel    = RightPanelState.None;
-        }
+            DialogOpenIdentifier = DialogDefaults.Main,
+            DialogNameIdentifier = DialogDefaults.EventHistory,
+        };
+        await DialogService.Instance.MostrarDialogo(dialog);
     }
 
     // ── Comandos: activación ──────────────────────────────────────────────────
@@ -297,10 +309,21 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     [RelayCommand]
     private async Task CancelEvent(GuildEvent ev)
     {
-        await TryUnpublishAsync(ev);
-        await _buildService.CancelEventAsync(ev.Id);
-        await LoadAsync();
-        RightPanel = RightPanelState.None;
+        var confirmDialog = new ConfirmDialog
+        {
+            TextHeader           = "Cancelar evento",
+            Message              = $"¿Cancelar \"{ev.Name}\"? El evento pasará al historial.",
+            AceptarCommand       = new AsyncRelayCommand(async () =>
+            {
+                await TryUnpublishAsync(ev);
+                await _buildService.CancelEventAsync(ev.Id);
+                await LoadAsync();
+                RightPanel = RightPanelState.None;
+            }),
+            DialogNameIdentifier = DialogDefaults.Confirm,
+            DialogOpenIdentifier = DialogDefaults.Main,
+        };
+        await DialogService.Instance.MostrarDialogo(confirmDialog);
     }
 
     [RelayCommand]
@@ -452,40 +475,7 @@ public partial class EventsVm : ObservableObject, ISectionIcons
         _elapsedTimer?.Stop();
     }
 
-    // ── Historial — propiedades de solo lectura ───────────────────────────────
-
-    public string HistoryElapsedDisplay
-    {
-        get
-        {
-            if (SelectedEvent is not { } ev) return "";
-            TimeSpan? ts = ev.Status == EventStatus.Cancelled
-                ? ev.CancelledElapsedTime
-                : ev.ElapsedBeforePause == TimeSpan.Zero ? null : (TimeSpan?)ev.ElapsedBeforePause;
-            return ts is null ? "" : ts.Value.ToString(@"hh\:mm\:ss");
-        }
-    }
-
-    public string HistoryCancelledInfo
-    {
-        get
-        {
-            if (SelectedEvent?.Status != EventStatus.Cancelled) return "";
-            if (SelectedEvent.CancelledFromStatus is not { } prev) return "Cancelado";
-            var label = prev switch
-            {
-                EventStatus.Draft        => "Borrador",
-                EventStatus.Preparation  => "Preparación",
-                EventStatus.Running      => "En progreso",
-                EventStatus.Paused       => "Pausado",
-                EventStatus.Finished     => "Finalizado",
-                _                        => prev.ToString()
-            };
-            return $"Cancelado desde: {label}";
-        }
-    }
-
     // ── Enum de estado del panel ──────────────────────────────────────────────
 
-    public enum RightPanelState { None, Detail, History }
+    public enum RightPanelState { None, Detail }
 }
