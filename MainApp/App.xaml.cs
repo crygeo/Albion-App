@@ -67,11 +67,13 @@ public partial class App : Application
         // ── Splash: lo primero visible, cubre todo el startup ─────────────────
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
-        var splashVm = new SplashVm();
-        var splash   = new SplashWindow { DataContext = splashVm };
+        var splashVm   = new SplashVm();
+        var splash     = new SplashWindow { DataContext = splashVm };
         splash.Show();
 
-        EmojiService.Warmup();
+        // Corre en paralelo con todo el startup; garantiza que los caches
+        // de emoji están listos cuando MainWindow abre.
+        var emojiWarmup = EmojiService.WarmupAsync();
 
         var config      = new AppConfigService();
         var playerState = new PlayerStateService();
@@ -233,6 +235,8 @@ public partial class App : Application
         });
 
         // ── Ventana ───────────────────────────────────────────────────────────
+        await emojiWarmup;   // garantía: caches listos antes de que el usuario pueda abrir el picker
+
         var window = new MainWindow { DataContext = mainVm };
         window.Show();
 
