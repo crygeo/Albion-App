@@ -1,4 +1,5 @@
 using System.Windows;
+using LibWpfControls.EmojiPicker;
 using Albion_App._2Player;
 using Albion_App._3Builds;
 using Albion_App._4Groups;
@@ -69,6 +70,8 @@ public partial class App : Application
         var splashVm = new SplashVm();
         var splash   = new SplashWindow { DataContext = splashVm };
         splash.Show();
+
+        EmojiService.Warmup();
 
         var config      = new AppConfigService();
         var playerState = new PlayerStateService();
