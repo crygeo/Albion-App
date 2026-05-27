@@ -134,8 +134,9 @@ public partial class EventsVm : ObservableObject, ISectionIcons
 
     // ── Formulario de activación ──────────────────────────────────────────────
 
-    [ObservableProperty] private DateTime? _activationDate = DateTime.UtcNow.Date;
-    [ObservableProperty] private DateTime? _activationTime = DateTime.Today.AddHours(20);
+    [ObservableProperty] private DateTime? _activationDate        = DateTime.UtcNow.Date;
+    [ObservableProperty] private DateTime? _activationTime        = DateTime.Today.AddHours(20);
+    [ObservableProperty] private string?   _activationDescription;
 
     public event Action? ActivationConfirmed;
     public event Action? ActivationCancelled;
@@ -265,9 +266,10 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     [RelayCommand]
     private async Task BeginActivate(GuildEvent ev)
     {
-        SelectedEvent  = ev;
-        ActivationDate = DateTime.UtcNow.Date;
-        ActivationTime = DateTime.Today.AddHours(20);
+        SelectedEvent          = ev;
+        ActivationDate         = DateTime.UtcNow.Date;
+        ActivationTime         = DateTime.Today.AddHours(20);
+        ActivationDescription  = ev.Description;
         await DialogService.Instance.MostrarDialogo<ActivateEventDialogV>(
             this,
             "Activar evento",
@@ -291,7 +293,7 @@ public partial class EventsVm : ObservableObject, ISectionIcons
         var clone = new GuildEvent
         {
             Name         = SelectedEvent.Name,
-            Description  = SelectedEvent.Description,
+            Description  = ActivationDescription,
             Status       = EventStatus.Draft,
             BuildGroupId = SelectedEvent.BuildGroupId,
         };

@@ -1,0 +1,109 @@
+<UserControl x:Class="Albion_App._5Events.ActivateEventDialogV"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:local="clr-namespace:Albion_App._5Events"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=local:EventsVm}"
+             Width="400">
+
+    <md:Card Padding="0" UniformCornerRadius="8">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="56"/>  <!-- Header -->
+                <RowDefinition Height="*"/>   <!-- Body   -->
+                <RowDefinition Height="56"/>  <!-- Footer -->
+            </Grid.RowDefinitions>
+
+            <!-- ══ HEADER ══════════════════════════════════════════════════════ -->
+            <Border Grid.Row="0"
+                    Background="{DynamicResource MaterialDesign.Brush.Primary.Dark}"
+                    CornerRadius="8 8 0 0">
+                <DockPanel Margin="16 0">
+                    <md:PackIcon Kind="CalendarClock"
+                                 Foreground="White"
+                                 Width="22" Height="22"
+                                 VerticalAlignment="Center"
+                                 Margin="0 0 10 0"/>
+                    <TextBlock Text="Activar evento"
+                               Foreground="White"
+                               FontSize="17"
+                               FontWeight="Medium"
+                               VerticalAlignment="Center"/>
+                </DockPanel>
+            </Border>
+
+            <!-- ══ BODY ════════════════════════════════════════════════════════ -->
+            <StackPanel Grid.Row="1" Margin="20 20">
+
+                <!-- Icono + nombre del evento -->
+                <md:PackIcon Kind="CalendarClock"
+                             Width="36" Height="36"
+                             HorizontalAlignment="Center"
+                             Foreground="#00B4D8"
+                             Margin="0 0 0 8"/>
+
+                <TextBlock Text="{Binding SelectedEvent.Name}"
+                           FontSize="15" FontWeight="SemiBold"
+                           HorizontalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           Margin="0 0 0 16"/>
+
+                <!-- Descripción (editable) -->
+                <TextBox Text="{Binding ActivationDescription, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         md:HintAssist.Hint="Descripción (opcional)"
+                         md:HintAssist.IsFloating="True"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         MinLines="2" MaxLines="4"
+                         VerticalScrollBarVisibility="Auto"
+                         Margin="0 0 0 16"/>
+
+                <!-- Fecha y hora en fila -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="110"/>
+                    </Grid.ColumnDefinitions>
+
+                    <DatePicker Grid.Column="0"
+                                SelectedDate="{Binding ActivationDate}"
+                                Style="{StaticResource MaterialDesignOutlinedDatePicker}"
+                                md:HintAssist.Hint="Fecha (UTC)"
+                                md:HintAssist.IsFloating="True"/>
+
+                    <md:TimePicker Grid.Column="2" 
+                                   SelectedTime="{Binding ActivationTime}"
+                                   md:HintAssist.Hint="HH:mm"
+                                   md:HintAssist.IsFloating="True"
+                                   Is24Hours="True"
+                                   IsInvalidTextAllowed="True"/>
+                </Grid>
+
+            </StackPanel>
+
+            <!-- ══ FOOTER ═══════════════════════════════════════════════════════ -->
+            <Border Grid.Row="2"
+                    BorderBrush="{DynamicResource MaterialDesign.Brush.Separator}"
+                    BorderThickness="0 1 0 0">
+                <DockPanel Margin="16 0" LastChildFill="False">
+                    <Button DockPanel.Dock="Right"
+                            Content="Activar"
+                            Command="{Binding ConfirmActivationCommand}"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            Background="#00B4D8" BorderBrush="#00B4D8"
+                            Margin="8 0 0 0"/>
+                    <Button DockPanel.Dock="Right"
+                            Content="Cancelar"
+                            Command="{Binding CancelActivationCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"/>
+                </DockPanel>
+            </Border>
+
+        </Grid>
+    </md:Card>
+</UserControl>
