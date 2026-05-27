@@ -57,6 +57,11 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DetailIsActive))]
     [NotifyPropertyChangedFor(nameof(DetailIsTemplate))]
+    [NotifyPropertyChangedFor(nameof(IsPreparation))]
+    [NotifyPropertyChangedFor(nameof(IsRunning))]
+    [NotifyPropertyChangedFor(nameof(IsPaused))]
+    [NotifyPropertyChangedFor(nameof(IsFinished))]
+    [NotifyPropertyChangedFor(nameof(ElapsedDisplay))]
     [NotifyPropertyChangedFor(nameof(CompositionDisplay))]
     [NotifyPropertyChangedFor(nameof(TimeUntilLabel))]
     [NotifyPropertyChangedFor(nameof(Participants))]
@@ -275,11 +280,44 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     private async Task CloseEvent(GuildEvent ev)
     {
         await TryUnpublishAsync(ev);
-        ev.Status      = EventStatus.Draft;
-        ev.ScheduledAt = null;
-        await _buildService.UpdateEventAsync(ev);
+        await _buildService.CloseEventAsync(ev.Id);
         await LoadAsync();
         RightPanel = RightPanelState.None;
+    }
+
+    [RelayCommand]
+    private async Task ClosePreparation(GuildEvent ev)
+    {
+        await _buildService.ClosePreparationAsync(ev.Id);
+        await LoadAsync();
+        SelectedEvent = ActiveEvents.FirstOrDefault(e => e.Id == ev.Id);
+    }
+
+    [RelayCommand]
+    private async Task PauseEvent(GuildEvent ev)
+    {
+        StopElapsedTimer();
+        await _buildService.PauseEventAsync(ev.Id);
+        await LoadAsync();
+        SelectedEvent = ActiveEvents.FirstOrDefault(e => e.Id == ev.Id);
+    }
+
+    [RelayCommand]
+    private async Task ResumeEvent(GuildEvent ev)
+    {
+        await _buildService.ResumeEventAsync(ev.Id);
+        await LoadAsync();
+        SelectedEvent = ActiveEvents.FirstOrDefault(e => e.Id == ev.Id);
+        StartElapsedTimer();
+    }
+
+    [RelayCommand]
+    private async Task EndInProgress(GuildEvent ev)
+    {
+        StopElapsedTimer();
+        await _buildService.EndInProgressAsync(ev.Id);
+        await LoadAsync();
+        SelectedEvent = ActiveEvents.FirstOrDefault(e => e.Id == ev.Id);
     }
 
     private async Task TryUnpublishAsync(GuildEvent ev)
@@ -331,6 +369,60 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     {
         await LoadAsync();
         SelectedEvent = null;
+    }
+
+    // ── Estado de la máquina — visibilidad por sub-estado ────────────────────
+
+    public bool IsPreparation => SelectedEvent?.Status == EventStatus.Preparation;
+    public bool IsRunning     => SelectedEvent?.Status == EventStatus.Running;
+    public bool IsPaused      => SelectedEvent?.Status == EventStatus.Paused;
+    public bool IsFinished    => SelectedEvent?.Status == EventStatus.Finished;
+
+    // ── Cronómetro ────────────────────────────────────────────────────────────
+
+    private System.Windows.Threading.DispatcherTimer? _elapsedTimer;
+
+    /// <summary>
+    /// Tiempo transcurrido formateado "hh:mm:ss".
+    /// Running: ElapsedBeforePause + (UtcNow - InProgressStartedAt).
+    /// Paused/Finished: solo ElapsedBeforePause (congelado).
+    /// </summary>
+    public string ElapsedDisplay
+    {
+        get
+        {
+            if (SelectedEvent is not { } ev) return "00:00:00";
+            var elapsed = ev.ElapsedBeforePause;
+            if (ev.InProgressStartedAt is { } start)
+                elapsed += DateTime.UtcNow - start;
+            return elapsed.ToString(@"hh\:mm\:ss");
+        }
+    }
+
+    partial void OnSelectedEventChanged(GuildEvent? value)
+    {
+        if (value?.Status == EventStatus.Running)
+            StartElapsedTimer();
+        else
+            StopElapsedTimer();
+    }
+
+    private void StartElapsedTimer()
+    {
+        if (_elapsedTimer is null)
+        {
+            _elapsedTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _elapsedTimer.Tick += (_, _) => OnPropertyChanged(nameof(ElapsedDisplay));
+        }
+        _elapsedTimer.Start();
+    }
+
+    private void StopElapsedTimer()
+    {
+        _elapsedTimer?.Stop();
     }
 
     // ── Enum de estado del panel ──────────────────────────────────────────────

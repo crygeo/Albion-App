@@ -418,26 +418,154 @@
                             </StackPanel>
                         </StackPanel>
 
-                        <!-- Acciones (evento activo) -->
-                        <StackPanel Orientation="Horizontal" Margin="0 16 0 0"
-                                    Visibility="{Binding DetailIsActive, Converter={StaticResource BoolToVis}}">
-                            <Button Command="{Binding CloseEventCommand}"
+                        <!-- ── Cronómetro (Running / Paused / Finished) ──────── -->
+                        <Border CornerRadius="8"
+                                Padding="14 10"
+                                Margin="0 16 0 0">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Setter Property="Background" Value="#0D66BB6A"/>
+                                    <Setter Property="BorderBrush" Value="#66BB6A"/>
+                                    <Setter Property="BorderThickness" Value="1"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Setter Property="Background" Value="#0D66BB6A"/>
+                                            <Setter Property="BorderBrush" Value="#66BB6A"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsPaused}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Setter Property="Background" Value="#0DFFCA28"/>
+                                            <Setter Property="BorderBrush" Value="#FFCA28"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsFinished}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Setter Property="Background" Value="#0DCE93D8"/>
+                                            <Setter Property="BorderBrush" Value="#CE93D8"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock Text="{Binding ElapsedDisplay}"
+                                           FontSize="28" FontWeight="Bold"
+                                           HorizontalAlignment="Center"
+                                           FontFamily="Consolas">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#66BB6A"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsPaused}"   Value="True">
+                                                    <Setter Property="Foreground" Value="#FFCA28"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsFinished}" Value="True">
+                                                    <Setter Property="Foreground" Value="#CE93D8"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock HorizontalAlignment="Center"
+                                           FontSize="10" Margin="0 2 0 0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text"       Value="CRONÓMETRO — ACTIVO"/>
+                                            <Setter Property="Foreground" Value="#66BB6A"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsPaused}"   Value="True">
+                                                    <Setter Property="Text"       Value="CRONÓMETRO — PAUSADO"/>
+                                                    <Setter Property="Foreground" Value="#FFCA28"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsFinished}" Value="True">
+                                                    <Setter Property="Text"       Value="TIEMPO TOTAL DEL EVENTO"/>
+                                                    <Setter Property="Foreground" Value="#CE93D8"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ── Acciones: Preparation ─────────────────────────── -->
+                        <StackPanel Orientation="Horizontal" Margin="0 12 0 0"
+                                    Visibility="{Binding IsPreparation, Converter={StaticResource BoolToVis}}">
+                            <Button Command="{Binding ClosePreparationCommand}"
                                     CommandParameter="{Binding SelectedEvent}"
-                                    Content="Cerrar evento"
-                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Content="Cerrar preparación"
+                                    Style="{StaticResource MaterialDesignRaisedButton}"
+                                    Background="#1565C0" BorderBrush="#1565C0"
                                     Margin="0 0 8 0"/>
                             <Button Command="{Binding CancelEventCommand}"
                                     CommandParameter="{Binding SelectedEvent}"
                                     Content="Cancelar"
                                     Style="{StaticResource MaterialDesignOutlinedButton}"
                                     Foreground="{DynamicResource MaterialDesign.Brush.Secondary}"
-                                    BorderBrush="{DynamicResource MaterialDesign.Brush.Secondary}"
-                                    Margin="0 0 8 0"/>
-                            <Button Command="{Binding CompleteEventCommand}"
+                                    BorderBrush="{DynamicResource MaterialDesign.Brush.Secondary}"/>
+                        </StackPanel>
+
+                        <!-- ── Acciones: Running ──────────────────────────────── -->
+                        <StackPanel Orientation="Horizontal" Margin="0 12 0 0"
+                                    Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
+                            <Button Command="{Binding PauseEventCommand}"
                                     CommandParameter="{Binding SelectedEvent}"
-                                    Content="Completado ✓"
+                                    Content="Pausar"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Foreground="#FFCA28" BorderBrush="#FFCA28"
+                                    Margin="0 0 8 0"/>
+                            <Button Command="{Binding EndInProgressCommand}"
+                                    CommandParameter="{Binding SelectedEvent}"
+                                    Content="Finalizar InProgress"
                                     Style="{StaticResource MaterialDesignRaisedButton}"
-                                    Background="#66BB6A" BorderBrush="#66BB6A"/>
+                                    Background="#6A1B9A" BorderBrush="#6A1B9A"
+                                    Margin="0 0 8 0"/>
+                            <Button Command="{Binding CancelEventCommand}"
+                                    CommandParameter="{Binding SelectedEvent}"
+                                    Content="Cancelar"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Foreground="{DynamicResource MaterialDesign.Brush.Secondary}"
+                                    BorderBrush="{DynamicResource MaterialDesign.Brush.Secondary}"/>
+                        </StackPanel>
+
+                        <!-- ── Acciones: Paused ───────────────────────────────── -->
+                        <StackPanel Orientation="Horizontal" Margin="0 12 0 0"
+                                    Visibility="{Binding IsPaused, Converter={StaticResource BoolToVis}}">
+                            <Button Command="{Binding ResumeEventCommand}"
+                                    CommandParameter="{Binding SelectedEvent}"
+                                    Content="Reanudar"
+                                    Style="{StaticResource MaterialDesignRaisedButton}"
+                                    Background="#2E7D32" BorderBrush="#2E7D32"
+                                    Margin="0 0 8 0"/>
+                            <Button Command="{Binding EndInProgressCommand}"
+                                    CommandParameter="{Binding SelectedEvent}"
+                                    Content="Finalizar InProgress"
+                                    Style="{StaticResource MaterialDesignRaisedButton}"
+                                    Background="#6A1B9A" BorderBrush="#6A1B9A"
+                                    Margin="0 0 8 0"/>
+                            <Button Command="{Binding CancelEventCommand}"
+                                    CommandParameter="{Binding SelectedEvent}"
+                                    Content="Cancelar"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Foreground="{DynamicResource MaterialDesign.Brush.Secondary}"
+                                    BorderBrush="{DynamicResource MaterialDesign.Brush.Secondary}"/>
+                        </StackPanel>
+
+                        <!-- ── Acciones: Finished ─────────────────────────────── -->
+                        <StackPanel Orientation="Horizontal" Margin="0 12 0 0"
+                                    Visibility="{Binding IsFinished, Converter={StaticResource BoolToVis}}">
+                            <Button Command="{Binding CloseEventCommand}"
+                                    CommandParameter="{Binding SelectedEvent}"
+                                    Content="Cerrar evento"
+                                    Style="{StaticResource MaterialDesignRaisedButton}"
+                                    Background="#1B5E20" BorderBrush="#1B5E20"
+                                    Margin="0 0 8 0"/>
+                            <Button Command="{Binding CancelEventCommand}"
+                                    CommandParameter="{Binding SelectedEvent}"
+                                    Content="Cancelar"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Foreground="{DynamicResource MaterialDesign.Brush.Secondary}"
+                                    BorderBrush="{DynamicResource MaterialDesign.Brush.Secondary}"/>
                         </StackPanel>
 
                         <!-- Acciones (plantilla) -->
