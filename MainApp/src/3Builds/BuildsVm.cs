@@ -49,16 +49,19 @@ public partial class BuildsVm : ObservableObject, ISectionIcons
     // ── Comandos ──────────────────────────────────────────────────────────────
 
     [RelayCommand]
-    private void NewBuild()
+    private async Task NewBuild()
     {
+        if (!await ConfirmDiscardIfDirty()) return;
         SelectedBuild = null;
         Editor.LoadBuild(null);
         IsEditing = true;
     }
 
     [RelayCommand]
-    private void EditBuild(Build build)
+    private async Task SelectBuild(Build build)
     {
+        if (ReferenceEquals(SelectedBuild, build)) return;
+        if (!await ConfirmDiscardIfDirty()) return;
         SelectedBuild = build;
         Editor.LoadBuild(build);
         IsEditing = true;
@@ -100,5 +103,24 @@ public partial class BuildsVm : ObservableObject, ISectionIcons
     {
         IsEditing     = false;
         SelectedBuild = null;
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private async Task<bool> ConfirmDiscardIfDirty()
+    {
+        if (!IsEditing || !Editor.IsDirty) return true;
+
+        var confirmed = false;
+        var dialog = new ConfirmDialog
+        {
+            TextHeader           = "Cambios sin guardar",
+            Message              = "Tienes cambios sin guardar. ¿Descartar y continuar?",
+            AceptarCommand       = new AsyncRelayCommand(async () => { confirmed = true; }),
+            DialogNameIdentifier = DialogDefaults.Confirm,
+            DialogOpenIdentifier = DialogDefaults.Main,
+        };
+        await DialogService.Instance.MostrarDialogo(dialog);
+        return confirmed;
     }
 }
