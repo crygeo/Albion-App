@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LibEvents.Entities;
 using LibEvents.Services;
+using Utilidades.Dialogs;
 
 namespace Albion_App._5Events;
 
@@ -60,6 +61,7 @@ public partial class EventEditorVm : ObservableObject
         else
             await _buildService.UpdateEventAsync(ev);
 
+        DialogService.Instance.MensajeQueue.Enqueue($"✅ Evento \"{ev.Name}\" guardado.");
         Saved?.Invoke();
     }
 

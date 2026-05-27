@@ -95,6 +95,7 @@ public partial class BuildsVm : ObservableObject, ISectionIcons
             {
                 await _buildService.DeleteBuildAsync(build.Id);
                 Builds.Remove(build);
+                DialogService.Instance.MensajeQueue.Enqueue($"🗑️ Build \"{build.Name}\" eliminada.");
                 if (ReferenceEquals(SelectedBuild, build))
                 {
                     SelectedBuild = null;

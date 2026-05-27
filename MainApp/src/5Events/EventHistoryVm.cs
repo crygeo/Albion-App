@@ -69,6 +69,7 @@ public partial class EventHistoryVm : ObservableObject
                 await _buildService.DeleteEventAsync(ev.Id);
                 _allHistory.Remove(ev);
                 OnPropertyChanged(nameof(FilteredHistory));
+                DialogService.Instance.MensajeQueue.Enqueue($"🗑️ \"{ev.Name}\" eliminado del historial.");
                 if (ReferenceEquals(SelectedHistoryEvent, ev))
                     SelectedHistoryEvent = null;
             }),

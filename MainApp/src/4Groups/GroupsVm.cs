@@ -87,6 +87,7 @@ public partial class GroupsVm : ObservableObject, ISectionIcons
             {
                 await _buildService.DeleteGroupAsync(group.Id);
                 Groups.Remove(group);
+                DialogService.Instance.MensajeQueue.Enqueue($"🗑️ Grupo \"{group.Name}\" eliminado.");
                 if (ReferenceEquals(SelectedGroup, group))
                     SelectedGroup = null;
             }),

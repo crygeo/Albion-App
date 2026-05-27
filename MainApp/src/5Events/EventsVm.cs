@@ -217,6 +217,7 @@ public partial class EventsVm : ObservableObject, ISectionIcons
                 await _buildService.DeleteEventAsync(ev.Id);
                 ActiveEvents.Remove(ev);
                 TemplateEvents.Remove(ev);
+                DialogService.Instance.MensajeQueue.Enqueue($"🗑️ Plantilla \"{ev.Name}\" eliminada.");
                 if (ReferenceEquals(SelectedEvent, ev))
                 {
                     SelectedEvent = null;
