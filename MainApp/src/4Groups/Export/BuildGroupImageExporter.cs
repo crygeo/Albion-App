@@ -79,10 +79,11 @@ public sealed class BuildGroupImageExporter
         var width  = (int)Math.Ceiling(Math.Max(control.DesiredSize.Width,  1));
         var height = (int)Math.Ceiling(Math.Max(control.DesiredSize.Height, 1));
 
-        // Get screen DPI; fall back to 96 if MainWindow has no PresentationSource yet.
-        var source = PresentationSource.FromVisual(Application.Current.MainWindow);
-        var dpiX   = source?.CompositionTarget?.TransformToDevice.M11 * 96.0 ?? 96.0;
-        var dpiY   = source?.CompositionTarget?.TransformToDevice.M22 * 96.0 ?? 96.0;
+        // Get screen DPI from any open window; fall back to 96 if none available.
+        var anyWindow = Application.Current.Windows.OfType<Window>().FirstOrDefault();
+        var source    = anyWindow is not null ? PresentationSource.FromVisual(anyWindow) : null;
+        var dpiX      = source?.CompositionTarget?.TransformToDevice.M11 * 96.0 ?? 96.0;
+        var dpiY      = source?.CompositionTarget?.TransformToDevice.M22 * 96.0 ?? 96.0;
 
         var rtb = new RenderTargetBitmap(width, height, dpiX, dpiY, PixelFormats.Pbgra32);
         rtb.Render(control);
