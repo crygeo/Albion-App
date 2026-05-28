@@ -1,18 +1,32 @@
+# ── Build output ──────────────────────────────────────────────────────────────
 bin/
 obj/
+publish/
 /packages/
+TestResults/
+
+# ── IDEs ──────────────────────────────────────────────────────────────────────
+.vs/
+.idea/
+*.user
 riderModule.iml
 /_ReSharper.Caches/
-.idea/
-.claude/
-graphify-out/
-docs/
-.vs/
+
+# ── Datos de usuario (runtime) ────────────────────────────────────────────────
+# Base de datos SQLite generada por EF Core al arrancar la app
+*.db
+*.db-shm
+*.db-wal
+
+# ── Superpowers / tooling local ───────────────────────────────────────────────
 .claude/
 .codex/
-.git/
+graphify-out/
 .graphify_incremental.json
 .graphify_python
+docs/
+
+# ── Scripts y archivos de desarrollo local ────────────────────────────────────
 AGENTS.md
 CLAUDE.md
 find_divider.py
