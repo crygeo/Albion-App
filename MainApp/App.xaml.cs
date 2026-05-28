@@ -3,6 +3,7 @@ using LibWpfControls.EmojiPicker;
 using Albion_App._2Player;
 using Albion_App._3Builds;
 using Albion_App._4Groups;
+using Albion_App._4Groups.Export;
 using Albion_App._5Events;
 using Albion_App.Components.Achievement;
 using Albion_App.Components.Destinyboard;
@@ -114,7 +115,8 @@ public partial class App : Application
 
         await preloader.StartAsync();
 
-        var imageService = new AlbionImageService();
+        var imageService       = new AlbionImageService();
+        var groupImageExporter = new BuildGroupImageExporter(imageService);
 
         // ── Caso de uso de búsqueda + fábrica de VMs ──────────────────────────
         // El caso de uso encapsula parsing, índice, filtros y orden — testeable y
@@ -141,7 +143,7 @@ public partial class App : Application
         await buildsVm.LoadAsync();
 
         var groupEditorVm   = new GroupEditorVm(buildService);
-        var groupsVm        = new GroupsVm(buildService, groupEditorVm);
+        var groupsVm        = new GroupsVm(buildService, groupEditorVm, groupImageExporter);
         await groupsVm.LoadAsync();
 
         var discordBot      = new DiscordBotService(eventsDbFactory);

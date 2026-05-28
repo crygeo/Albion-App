@@ -14,4 +14,5 @@ public static class DialogDefaults
     public const string DiscordConfig = "dialogDiscordConfig";
     public const string EventHistory  = "dialogEventHistory";
     public const string Confirm       = "dialogConfirm";
+    public const string Export        = "dialogExport";
 }

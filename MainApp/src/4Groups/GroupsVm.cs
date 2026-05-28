@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Windows.Media.Imaging;
+using Albion_App._4Groups.Export;
 using Albion_App.Features.DataStatic;
 using Albion_App.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -12,7 +14,8 @@ namespace Albion_App._4Groups;
 
 public partial class GroupsVm : ObservableObject, ISectionIcons
 {
-    private readonly BuildService _buildService;
+    private readonly BuildService            _buildService;
+    private readonly BuildGroupImageExporter _exporter;
 
     // ── ISectionIcons ─────────────────────────────────────────────────────────
 
@@ -35,9 +38,10 @@ public partial class GroupsVm : ObservableObject, ISectionIcons
 
     // ── Constructor ───────────────────────────────────────────────────────────
 
-    public GroupsVm(BuildService buildService, GroupEditorVm editor)
+    public GroupsVm(BuildService buildService, GroupEditorVm editor, BuildGroupImageExporter exporter)
     {
         _buildService = buildService;
+        _exporter     = exporter;
         Editor        = editor;
 
         Editor.Saved += OnEditorSaved;
@@ -95,6 +99,30 @@ public partial class GroupsVm : ObservableObject, ISectionIcons
             DialogOpenIdentifier = DialogDefaults.Main,
         };
         await DialogService.Instance.MostrarDialogo(confirmDialog);
+    }
+
+    [RelayCommand]
+    private async Task ExportImage()
+    {
+        if (SelectedGroup is null) return;
+
+        BitmapSource bitmap;
+        try
+        {
+            bitmap = await _exporter.RenderAsync(SelectedGroup);
+        }
+        catch (Exception ex)
+        {
+            DialogService.Instance.MensajeQueue.Enqueue($"Error al generar imagen: {ex.Message}");
+            return;
+        }
+
+        var vm = new ExportDialogVm(bitmap, SelectedGroup.Name);
+        await DialogService.Instance.MostrarDialogo<ExportDialogV>(
+            vm,
+            "Exportar imagen",
+            DialogDefaults.Main,
+            DialogDefaults.Export);
     }
 
     // ── Callback del editor ───────────────────────────────────────────────────

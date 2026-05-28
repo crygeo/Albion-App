@@ -133,6 +133,7 @@
                     <RowDefinition Height="Auto"/>  <!-- Header nombre + acciones -->
                     <RowDefinition Height="Auto"/>  <!-- Cabecera tabla -->
                     <RowDefinition Height="*"/>     <!-- Lista de slots -->
+                    <RowDefinition Height="Auto"/>  <!-- Footer exportar -->
                 </Grid.RowDefinitions>
 
                 <!-- Nombre + botones Editar / Eliminar -->
@@ -236,6 +237,18 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ScrollViewer>
+
+                <!-- Footer: exportar imagen -->
+                <Border Grid.Row="3"
+                        BorderBrush="{DynamicResource MaterialDesign.Brush.Separator}"
+                        BorderThickness="0 1 0 0"
+                        Padding="16 10">
+                    <Button Content="🖼  Exportar imagen"
+                            Command="{Binding ExportImageCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            HorizontalAlignment="Left"
+                            Height="36" Padding="14 0"/>
+                </Border>
 
             </Grid>
         </Grid>
