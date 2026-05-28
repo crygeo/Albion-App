@@ -117,6 +117,7 @@ public partial class App : Application
 
         var imageService       = new AlbionImageService();
         var groupImageExporter = new BuildGroupImageExporter(imageService);
+        var updateChecker      = new UpdateCheckService(DialogService.Instance.MensajeQueue);
 
         // ── Caso de uso de búsqueda + fábrica de VMs ──────────────────────────
         // El caso de uso encapsula parsing, índice, filtros y orden — testeable y
@@ -245,6 +246,9 @@ public partial class App : Application
         // El splash cierra DESPUÉS de que MainWindow ya es visible — sin hueco en blanco.
         splash.Close();
         ShutdownMode = ShutdownMode.OnLastWindowClose;
+
+        // Chequear actualizaciones en background — silencioso si falla.
+        _ = updateChecker.CheckAsync();
 
         // Guardar workspace y liberar recursos al cerrar la app.
         window.Closed += async (_, _) =>

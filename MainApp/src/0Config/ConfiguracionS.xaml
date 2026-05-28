@@ -8,42 +8,163 @@
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=con:ConfiguracionSvm}">
 
-    <!--
-        Sección de configuración fijada en la parte inferior del sidebar.
-        Cuando el sidebar está expandido: muestra icono + ComboBox de idioma.
-        Cuando está colapsado: sólo muestra el icono.
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32 24" MaxWidth="560">
 
-        IsSidebarExpanded se lee desde el DataContext de la ventana (MainVM) via
-        RelativeSource→Window. Es una dependencia de presentación, no de negocio.
-    -->
+            <!-- ══ TÍTULO ══════════════════════════════════════════════════════ -->
+            <TextBlock Text="Configuración"
+                       FontSize="22" FontWeight="Medium"
+                       Margin="0 0 0 24"/>
 
-    <Border Padding="8 6">
-        <DockPanel>
+            <!-- ══ SECCIÓN: IDIOMA ══════════════════════════════════════════════ -->
+            <TextBlock Text="IDIOMA"
+                       FontSize="11" FontWeight="Bold"
+                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                       Margin="0 0 0 10"/>
 
-            <!-- Icono siempre visible -->
-            <md:PackIcon Kind="Cog"
-                         Width="22" Height="22"
-                         VerticalAlignment="Center"
-                         Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"/>
+            <md:Card Padding="16" Margin="0 0 0 24" UniformCornerRadius="6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-            <!-- ComboBox de idioma — visible sólo cuando el sidebar está expandido -->
-            <ComboBox Margin="8 0 0 0"
-                      VerticalAlignment="Center"
-                      ItemsSource="{Binding AvailableLanguages}"
-                      SelectedItem="{Binding SelectedLanguage}"
-                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                      md:HintAssist.Hint="Idioma"
-                      md:HintAssist.IsFloating="False"
-                      FontSize="12"
-                      >
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding Label}"/>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
+                    <ComboBox Grid.Column="0"
+                              ItemsSource="{Binding AvailableLanguages}"
+                              SelectedItem="{Binding SelectedLanguage}"
+                              Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                              md:HintAssist.Hint="Idioma de la aplicación"
+                              md:HintAssist.IsFloating="True">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Label}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
 
-            <Button Content="Guardar" Command="{Binding SaveConfigurationCommand}"/>
-        </DockPanel>
-    </Border>
+                    <Button Grid.Column="2"
+                            Content="Guardar"
+                            Command="{Binding SaveConfigurationCommand}"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            VerticalAlignment="Center"/>
+                </Grid>
+            </md:Card>
+
+            <!-- ══ SECCIÓN: DISCORD BOT ════════════════════════════════════════ -->
+            <TextBlock Text="DISCORD BOT"
+                       FontSize="11" FontWeight="Bold"
+                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                       Margin="0 0 0 10"/>
+
+            <md:Card Padding="16" UniformCornerRadius="6">
+                <StackPanel>
+
+                    <!-- Estado de conexión -->
+                    <Border CornerRadius="6" Padding="12 8" Margin="0 0 0 14">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="#1AEF5350"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding DiscordConnected}" Value="True">
+                                        <Setter Property="Background" Value="#1A66BB6A"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <DockPanel>
+                            <md:PackIcon DockPanel.Dock="Left"
+                                         Width="18" Height="18"
+                                         VerticalAlignment="Center"
+                                         Margin="0 0 8 0">
+                                <md:PackIcon.Style>
+                                    <Style TargetType="md:PackIcon">
+                                        <Setter Property="Kind"       Value="AlertCircleOutline"/>
+                                        <Setter Property="Foreground" Value="#EF5350"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DiscordConnected}" Value="True">
+                                                <Setter Property="Kind"       Value="CheckCircleOutline"/>
+                                                <Setter Property="Foreground" Value="#66BB6A"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </md:PackIcon.Style>
+                            </md:PackIcon>
+                            <TextBlock Text="{Binding DiscordStatusText}"
+                                       VerticalAlignment="Center"
+                                       FontSize="13"/>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Resumen: servidor y canal guardados -->
+                    <Grid Margin="0 0 0 14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="SERVIDOR"
+                                       FontSize="10" FontWeight="Bold"
+                                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                                       Margin="0 0 0 2"/>
+                            <TextBlock FontSize="13">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text"       Value="{Binding DiscordGuildName}"/>
+                                        <Setter Property="FontWeight" Value="Medium"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DiscordGuildName}" Value="">
+                                                <Setter Property="Text"       Value="Sin configurar"/>
+                                                <Setter Property="FontStyle"  Value="Italic"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.BodyLight}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="CANAL"
+                                       FontSize="10" FontWeight="Bold"
+                                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                                       Margin="0 0 0 2"/>
+                            <TextBlock FontSize="13">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text"       Value="{Binding DiscordChannelName}"/>
+                                        <Setter Property="FontWeight" Value="Medium"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DiscordChannelName}" Value="">
+                                                <Setter Property="Text"       Value="Sin configurar"/>
+                                                <Setter Property="FontStyle"  Value="Italic"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.BodyLight}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Botón para abrir el diálogo de configuración -->
+                    <Button Content="Configurar Bot Discord"
+                            Command="{Binding OpenDiscordConfigCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            HorizontalAlignment="Left"/>
+
+                </StackPanel>
+            </md:Card>
+
+            <!-- ══ VERSIÓN ════════════════════════════════════════════════════════ -->
+            <TextBlock Text="{Binding AppVersion, StringFormat='Albion App {0}'}"
+                       FontSize="11"
+                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                       HorizontalAlignment="Center"
+                       Margin="0 32 0 0"/>
+
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>
