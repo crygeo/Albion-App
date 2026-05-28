@@ -3,6 +3,7 @@ bin/
 obj/
 publish/
 dist/
+publish-release.ps1
 /packages/
 TestResults/
 
