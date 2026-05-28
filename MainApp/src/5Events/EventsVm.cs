@@ -245,8 +245,15 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     }
 
     [RelayCommand]
-    private void SelectEvent(GuildEvent ev)
+    private async Task SelectEvent(GuildEvent ev)
     {
+        // Refrescar el grupo desde la BD para que los cambios recientes al grupo
+        // se reflejen en la vista del evento (evita datos de grupo desactualizados).
+        if (ev.BuildGroupId.HasValue)
+        {
+            var freshGroups = await _buildService.GetGroupsAsync();
+            ev.BuildGroup = freshGroups.FirstOrDefault(g => g.Id == ev.BuildGroupId.Value);
+        }
         SelectedEvent = ev;
         RightPanel    = RightPanelState.Detail;
     }

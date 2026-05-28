@@ -122,10 +122,19 @@
                                Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
                                Margin="12 12 8 4"/>
 
-                    <ItemsControl ItemsSource="{Binding TemplateEvents}">
-                        <ItemsControl.ItemTemplate>
+                    <ListBox ItemsSource="{Binding TemplateEvents}"
+                             Background="Transparent"
+                             BorderThickness="0">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem"
+                                   BasedOn="{StaticResource MaterialDesignListBoxItem}">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Padding" Value="0 2"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
                             <DataTemplate DataType="{x:Type lib:GuildEvent}">
-                                <Grid Margin="4 2">
+                                <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
@@ -147,8 +156,20 @@
                                         </TextBlock.InputBindings>
                                     </TextBlock>
 
-                                    <!-- Acciones -->
+                                    <!-- Acciones: visibles solo en hover -->
                                     <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <StackPanel.Style>
+                                            <Style TargetType="StackPanel">
+                                                <Setter Property="Visibility" Value="Hidden"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Value="True"
+                                                                 Binding="{Binding IsMouseOver,
+                                                                           RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </StackPanel.Style>
                                         <Button Style="{StaticResource MaterialDesignIconButton}"
                                                 Command="{Binding DataContext.BeginActivateCommand,
                                                           RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -186,8 +207,8 @@
                                     </StackPanel>
                                 </Grid>
                             </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
 
                     <!-- Mensaje vacío -->
                     <TextBlock Text="Sin plantillas. Crea la primera con +"

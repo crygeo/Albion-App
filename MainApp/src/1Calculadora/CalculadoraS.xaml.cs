@@ -1,9 +1,9 @@
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Microsoft.Win32;
+using Albion_App._4Groups.Export;
+using Utilidades.Dialogs;
 
 namespace Albion_App._1Calculadora;
 
@@ -33,61 +33,37 @@ public partial class CalculadoraS : UserControl
             _vm.ExportRequested += OnExportRequested;
     }
 
-    private void OnExportRequested()
+    private async void OnExportRequested()
     {
         if (_vm is null) return;
 
-        // ── Layout actualizado antes de medir ─────────────────────────────────
-        Card4Root.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        Card4Root.Arrange(new Rect(Card4Root.DesiredSize));
-        Card4Root.UpdateLayout();
+        // ── Render off-screen — mismo patrón que BuildGroupImageExporter ──────
+        // CalculadoraExportControl NO está en el árbol visual: Measure+Arrange
+        // resuelven el layout sin las restricciones de la columna en pantalla.
+        var control = new CalculadoraExportControl { DataContext = _vm };
 
-        var dpi    = VisualTreeHelper.GetDpi(this);
-        var w      = Card4Root.ActualWidth;
-        var h      = Card4Root.ActualHeight;
-        var pw     = (int)Math.Ceiling(w * dpi.DpiScaleX);
-        var ph     = (int)Math.Ceiling(h * dpi.DpiScaleY);
+        control.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        control.Arrange(new Rect(control.DesiredSize));
+        control.UpdateLayout();
 
-        if (pw <= 0 || ph <= 0) return;
+        var width  = (int)Math.Ceiling(Math.Max(control.DesiredSize.Width,  1));
+        var height = (int)Math.Ceiling(Math.Max(control.DesiredSize.Height, 1));
+        if (width <= 0 || height <= 0) return;
 
-        // ── Renderizar con fondo sólido ───────────────────────────────────────
-        // RenderTargetBitmap produce fondo transparente por defecto.
-        // Usamos un DrawingVisual intermedio para pintar el fondo primero.
-        var background = Card4Root.TryFindResource("MaterialDesign.Brush.CardBackground") as Brush
-                         ?? new SolidColorBrush(Color.FromRgb(39, 43, 51));
+        // DPI: tomado de cualquier ventana abierta; fallback a 96.
+        var anyWindow = Application.Current.Windows.OfType<Window>().FirstOrDefault();
+        var source    = anyWindow is not null ? PresentationSource.FromVisual(anyWindow) : null;
+        var dpiX      = source?.CompositionTarget?.TransformToDevice.M11 * 96.0 ?? 96.0;
+        var dpiY      = source?.CompositionTarget?.TransformToDevice.M22 * 96.0 ?? 96.0;
 
-        var visual = new DrawingVisual();
-        using (var ctx = visual.RenderOpen())
-        {
-            ctx.DrawRectangle(background, null, new Rect(0, 0, w, h));
-            ctx.DrawRectangle(new VisualBrush(Card4Root) { Stretch = Stretch.None },
-                              null,
-                              new Rect(0, 0, w, h));
-        }
+        var rtb = new RenderTargetBitmap(width, height, dpiX, dpiY, PixelFormats.Pbgra32);
+        rtb.Render(control);
+        rtb.Freeze();
 
-        var bmp = new RenderTargetBitmap(pw, ph, dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
-        bmp.Render(visual);
-
-        // ── Nombre del archivo: {ItemId}_C{Cantidad} ─────────────────────────
-        var itemId   = _vm.SelectedItem?.ItemId ?? "ITEM";
-        var cantidad = _vm.QuantityToCraft;
-        var fileName = $"{itemId}_C{cantidad}.png";
-
-        var dialog = new SaveFileDialog
-        {
-            Title        = "Exportar Materiales como PNG",
-            Filter       = "Imagen PNG|*.png",
-            FileName     = fileName,
-            DefaultExt   = ".png",
-            AddExtension = true,
-        };
-
-        if (dialog.ShowDialog() != true) return;
-
-        var encoder = new PngBitmapEncoder();
-        encoder.Frames.Add(BitmapFrame.Create(bmp));
-
-        using var stream = File.OpenWrite(dialog.FileName);
-        encoder.Save(stream);
+        // ── Abrir diálogo con preview + copiar / guardar ──────────────────────
+        var fileName = _vm.SelectedItem?.ItemId ?? "crafting";
+        var dialogVm = new ExportDialogVm(rtb, fileName);
+        var dialog   = new ExportDialogV(dialogVm);
+        await DialogService.Instance.MostrarDialogo(dialog);
     }
 }

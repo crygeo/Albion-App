@@ -46,9 +46,16 @@
                      SelectedItem="{Binding SelectedBuild, Mode=TwoWay}"
                      Background="Transparent"
                      BorderThickness="0">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem"
+                           BasedOn="{StaticResource MaterialDesignListBoxItem}">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Setter Property="Padding" Value="4 2"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Grid Margin="2 1">
+                        <Grid Margin="0 1">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
@@ -56,10 +63,11 @@
 
                             <TextBlock Text="{Binding Name}"
                                        FontSize="13"
+                                       VerticalAlignment="Center"
                                        TextTrimming="CharacterEllipsis" />
 
+                            <!-- Botón eliminar: visible solo en hover -->
                             <Button Grid.Column="1"
-                                    Style="{StaticResource MaterialDesignIconButton}"
                                     Command="{Binding DataContext.DeleteBuildCommand,
                                               RelativeSource={RelativeSource AncestorType=ListBox}}"
                                     CommandParameter="{Binding}"
@@ -67,6 +75,19 @@
                                     Width="28" Height="28" Padding="0"
                                     Foreground="{DynamicResource MaterialDesign.Brush.Secondary}"
                                     HorizontalAlignment="Right">
+                                <Button.Style>
+                                    <Style TargetType="Button"
+                                           BasedOn="{StaticResource MaterialDesignIconButton}">
+                                        <Setter Property="Visibility" Value="Hidden"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Value="True"
+                                                         Binding="{Binding IsMouseOver,
+                                                                   RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
                                 <md:PackIcon Kind="Delete" Width="14" Height="14" />
                             </Button>
                         </Grid>

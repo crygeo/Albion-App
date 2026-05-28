@@ -51,9 +51,16 @@
                      SelectedItem="{Binding SelectedGroup, Mode=TwoWay}"
                      Background="Transparent"
                      BorderThickness="0">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem"
+                           BasedOn="{StaticResource MaterialDesignListBoxItem}">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Setter Property="Padding" Value="4 2"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate>
                     <DataTemplate DataType="{x:Type lib:BuildGroup}">
-                        <Grid Margin="4 2">
+                        <Grid Margin="0 2">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -73,7 +80,20 @@
                                 </TextBlock>
                             </StackPanel>
 
+                            <!-- Botones editar/eliminar: visibles solo en hover -->
                             <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Hidden"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Value="True"
+                                                         Binding="{Binding IsMouseOver,
+                                                                   RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
                                 <Button Style="{StaticResource MaterialDesignIconButton}"
                                         Command="{Binding DataContext.EditGroupCommand,
                                                   RelativeSource={RelativeSource AncestorType=ListBox}}"

@@ -276,6 +276,7 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         {
             OnPropertyChanged(nameof(HasResults));
             OnPropertyChanged(nameof(HasHideoutBadge));
+            ExportarPngCommand.NotifyCanExecuteChanged();
         };
     }
 
