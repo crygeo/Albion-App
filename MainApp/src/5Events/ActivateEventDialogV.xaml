@@ -78,6 +78,7 @@
 
                     <md:TimePicker Grid.Column="2" 
                                    SelectedTime="{Binding ActivationTime}"
+                                   Style="{StaticResource MaterialDesignOutlinedTimePicker}"
                                    md:HintAssist.Hint="HH:mm"
                                    md:HintAssist.IsFloating="True"
                                    Is24Hours="True"

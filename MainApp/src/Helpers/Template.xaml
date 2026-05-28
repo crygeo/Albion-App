@@ -3,11 +3,15 @@
                     xmlns:con="clr-namespace:Albion_App._0Config"
                     xmlns:cal="clr-namespace:Albion_App._1Calculadora"
                     xmlns:pla="clr-namespace:Albion_App._2Player"
-                    
+                    xmlns:bld="clr-namespace:Albion_App._3Builds"
+                    xmlns:grp="clr-namespace:Albion_App._4Groups"
+                    xmlns:evt="clr-namespace:Albion_App._5Events"
+                    xmlns:hlp="clr-namespace:Albion_App.Helpers"
                     >
 
     <!-- Converters globales disponibles en toda la aplicación -->
     <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    <hlp:InvertBoolConverter x:Key="InvertBooleanConverter"/>
     
     
     <!-- Workspace (sección registrada en el sidebar) -->
@@ -27,5 +31,17 @@
     <DataTemplate DataType="{x:Type pla:PlayerVm}">
         <pla:PlayerV/>
     </DataTemplate>
-    
+
+    <DataTemplate DataType="{x:Type bld:BuildsVm}">
+        <bld:BuildsV/>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type grp:GroupsVm}">
+        <grp:GroupsV/>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type evt:EventsVm}">
+        <evt:EventsV/>
+    </DataTemplate>
+
 </ResourceDictionary>

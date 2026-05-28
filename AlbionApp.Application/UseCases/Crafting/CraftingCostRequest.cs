@@ -39,6 +39,19 @@ public sealed record CraftingCostRequest
     public decimal JournalBonus { get; init; }
 
     /// <summary>
+    /// Bono generalista del hideout al Return Rate (LPB).
+    /// 0 cuando no se craftea en un hideout o el nivel es 1.
+    /// </summary>
+    public decimal HideoutBonus { get; init; }
+
+    /// <summary>
+    /// Bono especialista del hideout: se suma al exponente del costo de foco.
+    /// Fórmula: focusFactor = 0.5^(exponentDB + HideoutSpecialistBonus)
+    /// 0 cuando el hideout no está especializado para el ítem.
+    /// </summary>
+    public decimal HideoutSpecialistBonus { get; init; }
+
+    /// <summary>
     /// Bonuses del Destiny Board del jugador.
     /// Vacío si el jugador no ha cargado su cuenta todavía.
     /// </summary>

@@ -7,9 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\AlbionApp.Application\AlbionApp.Application.csproj" />
     <ProjectReference Include="..\..\LibSolutions\LibServiceLifecycle\LibServiceLifecycle.csproj" />
     <ProjectReference Include="..\..\LibSolutions\LibAlbionData\LibAlbionData.csproj" />
+    <ProjectReference Include="..\..\LibSolutions\LibEvents\LibEvents.csproj" />
   </ItemGroup>
 
 

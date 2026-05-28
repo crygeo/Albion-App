@@ -31,7 +31,7 @@
 
         <!-- ══ BARRA DE FILTROS ══════════════════════════════════════════════ -->
         <Border Grid.Row="0"
-                BorderBrush="{DynamicResource MaterialDesign.Brush.Divider}"
+                BorderBrush="{DynamicResource MaterialDesign.Brush.Separator}"
                 BorderThickness="0 0 0 1"
                 Padding="8 6">
             <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -152,13 +152,15 @@
 
                  ProgressiveLoading: alimenta el proxy en lotes de 30 ítems, cediendo
                  el hilo UI entre lotes para evitar freeze al recibir resultados masivos. -->
-            <ListBox behaviors:ProgressiveLoading.IsEnabled="True"
+            <ListBox x:Name="PART_ItemsList"
+                     behaviors:ProgressiveLoading.IsEnabled="True"
                      behaviors:ProgressiveLoading.Source="{Binding Items}"
                      behaviors:ProgressiveLoading.BatchSize="5"
                      behaviors:ProgressiveLoading.DelayMs="1"
                      behaviors:ProgressiveLoading.ClearOnUnload="True"
                      SelectedItem="{Binding SelectedItem}"
                      SelectionMode="Single"
+                     MouseDoubleClick="OnItemsListMouseDoubleClick"
                      Margin="8"
                      ScrollViewer.VerticalScrollBarVisibility="Auto"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -216,7 +218,7 @@
 
         <!-- ══ FOOTER ════════════════════════════════════════════════════════ -->
         <Border Grid.Row="2"
-                BorderBrush="{DynamicResource MaterialDesign.Brush.Divider}"
+                BorderBrush="{DynamicResource MaterialDesign.Brush.Separator}"
                 BorderThickness="0 1 0 0"
                 Padding="12 4">
             <TextBlock Foreground="{DynamicResource MaterialDesign.Brush.Primary.Dark.Foreground}"

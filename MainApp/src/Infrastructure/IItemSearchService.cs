@@ -1,3 +1,4 @@
+using AlbionApp.Domain.ItemSearch;
 using ItemBaseVm = Albion_App.Components.Item.ItemBaseVm;
 
 namespace Albion_App.Infrastructure;
@@ -10,9 +11,16 @@ public interface IItemSearchService
 {
     /// <summary>
     /// Abre el diálogo de búsqueda y espera la selección del usuario.
+    /// Si se indica <paramref name="slotTypeFilter"/>, solo se muestran ítems
+    /// cuyo SlotType coincida ("head", "mainhand", "potion", …).
+    /// <paramref name="defaultTier"/> y <paramref name="defaultEnchantment"/> pre-seleccionan
+    /// los filtros de nivel y encantamiento al abrir (se restauran al cerrar).
     /// Retorna el ítem seleccionado, o <c>null</c> si el usuario canceló.
     /// </summary>
-    Task<ItemBaseVm?> SearchAsync();
+    Task<ItemBaseVm?> SearchAsync(
+        SlotType? slotTypeFilter       = null,
+        int?      defaultTier          = null,
+        int?      defaultEnchantment   = null);
 
     /// <summary>
     /// Construye un <see cref="ItemBaseVm"/> para un ingrediente dado su ID.

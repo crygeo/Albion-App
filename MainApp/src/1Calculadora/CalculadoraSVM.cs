@@ -116,7 +116,73 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     // ── Ciudad y parámetros ───────────────────────────────────────────────────
 
     [ObservableProperty] private IReadOnlyList<CraftingCityOption> _availableCities = [];
-    [ObservableProperty] private CraftingCityOption?               _selectedCityOption;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSelectedCity))]
+    [NotifyPropertyChangedFor(nameof(IsHideoutCity))]
+    private CraftingCityOption? _selectedCityOption;
+
+    public bool HasSelectedCity => SelectedCityOption is not null;
+
+    /// <summary>True cuando la ciudad seleccionada es un hideout o black zone con bono.</summary>
+    public bool IsHideoutCity =>
+        HideoutPowerlevel.IsHideoutType(SelectedCityOption?.ClusterType);
+
+    /// <summary>Niveles disponibles para el hideout (1–9).</summary>
+    public static IReadOnlyList<HideoutPowerlevel> HideoutLevels => HideoutPowerlevel.All;
+
+    /// <summary>Nivel de poder del hideout seleccionado (1–9).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HideoutBonusLabel))]
+    [NotifyPropertyChangedFor(nameof(HideoutFocusSaving))]
+    [NotifyPropertyChangedFor(nameof(HasHideoutBadge))]
+    private HideoutPowerlevel _selectedHideoutLevel = HideoutPowerlevel.ForLevel(1);
+
+    /// <summary>
+    /// True = el hideout está especializado para el ítem craftado.
+    /// Activa la REDUCCIÓN DE FOCO adicional (specialistcraftingbonus).
+    /// El bono al Return Rate (generalistcraftingbonus) siempre aplica.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HideoutFocusSaving))]
+    [NotifyPropertyChangedFor(nameof(HideoutBonusLabel))]
+    private bool _useSpecialistBonus;
+
+    /// <summary>
+    /// Etiqueta del badge de hideout en Card 4.
+    /// Formato: "H L-9  26%  -3,000"
+    /// </summary>
+    public string HideoutBonusLabel
+    {
+        get
+        {
+            var level = SelectedHideoutLevel;
+            var pct   = $"+{level.GeneralistBonus * 100:F0}%";
+            if (UseSpecialistBonus && HideoutFocusSaving > 0)
+                return $"H L-{level.Level}  {pct}  -{HideoutFocusSaving:N0} foco";
+            return $"H L-{level.Level}  {pct}";
+        }
+    }
+
+
+    /// <summary>
+    /// Ahorro REAL de foco por craft gracias al bono especialista del hideout.
+    /// Calculado por el UseCase: floor(base × 0.5^db) - floor(base × 0.5^(db+specialist)).
+    /// 0 cuando no hay bono especialista activo.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HideoutBonusLabel))]
+    private int _hideoutFocusSaving;
+
+    /// <summary>True cuando hay resultados y la ciudad es un hideout → mostrar badge.</summary>
+    public bool HasHideoutBadge => IsHideoutCity && HasResults;
+
+    /// <summary>
+    /// Bono generalista al Return Rate — SIEMPRE aplica cuando se craftea en hideout.
+    /// El especialista es ADICIONAL (reducción de foco) y se maneja por separado.
+    /// </summary>
+    private decimal CurrentHideoutBonus =>
+        IsHideoutCity ? SelectedHideoutLevel.GeneralistBonus : 0m;
 
     public IReadOnlyList<JournalBonusOptionM> JournalBonusOptions { get; } =
     [
@@ -161,6 +227,8 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasFocusCost))]
     [NotifyPropertyChangedFor(nameof(FocusPerCraftLabel))]
+    [NotifyPropertyChangedFor(nameof(HideoutFocusSaving))]
+    [NotifyPropertyChangedFor(nameof(HideoutBonusLabel))]
     private int? _focusPerCraft;
 
     [ObservableProperty]
@@ -204,8 +272,25 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         // Suscripciones a colecciones: un handler por colección, nombre explícito.
         RecipeOptions.CollectionChanged      += OnRecipeCollectionChanged;
         IngredientInventory.CollectionChanged += OnIngredientCollectionChanged;
-        MaterialResults.CollectionChanged    += (_, _) => OnPropertyChanged(nameof(HasResults));
+        MaterialResults.CollectionChanged    += (_, _) =>
+        {
+            OnPropertyChanged(nameof(HasResults));
+            OnPropertyChanged(nameof(HasHideoutBadge));
+        };
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // EXPORT PNG
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// La vista se suscribe a este evento y renderiza el elemento visual a PNG.
+    /// Patrón: VM dispara la intención, code-behind ejecuta el render (requiere árbol visual).
+    /// </summary>
+    public event Action? ExportRequested;
+
+    [RelayCommand(CanExecute = nameof(HasResults))]
+    private void ExportarPng() => ExportRequested?.Invoke();
 
     // ═══════════════════════════════════════════════════════════════════════════
     // COMANDOS
@@ -282,6 +367,12 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
 
     /// <summary>Cuando cambia el bono de diario, recalcula.</summary>
     partial void OnSelectedJournalBonusChanged(JournalBonusOptionM? value) => Recalculate();
+
+    /// <summary>Cuando cambia el nivel del hideout, recalcula.</summary>
+    partial void OnSelectedHideoutLevelChanged(HideoutPowerlevel value) => Recalculate();
+
+    /// <summary>Cuando cambia el modo generalista/especialista, recalcula.</summary>
+    partial void OnUseSpecialistBonusChanged(bool value) => Recalculate();
 
     /// <summary>Cuando cambia el uso de foco, notifica HasFocusCost y recalcula.</summary>
     partial void OnUseFocusChanged(bool value)
@@ -384,9 +475,10 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
 
         AvailableCities = _craftingLocations.Cities
             .Select(city => new CraftingCityOption(
-                ClusterId: city.ClusterId,
-                Name:      city.Name,
-                Bonus:     city.GetBonusFor(craftingCategory)))
+                ClusterId:   city.ClusterId,
+                Name:        city.Name,
+                ClusterType: city.ClusterType,
+                Bonus:       city.GetBonusFor(craftingCategory)))
             .OrderByDescending(o => o.Bonus)
             .ThenBy(o => o.Name)
             .ToList();
@@ -477,6 +569,10 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
             ItemValue          = itemValue,
             UseFocus           = UseFocus,
             JournalBonus       = SelectedJournalBonus?.Value ?? 0m,
+            HideoutBonus           = CurrentHideoutBonus,
+            HideoutSpecialistBonus = IsHideoutCity && UseSpecialistBonus
+                                         ? SelectedHideoutLevel.SpecialistBonus
+                                         : 0m,
             AchievementBonuses = _rawItemBonuses,
             OwnedStock         = IngredientInventory
                 .Select(i => new IngredientStock(i.ItemId, i.OwnedCount, i.UnitPrice))
@@ -491,6 +587,7 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         FocusPerCraft         = result.FocusPerCraft;
         TotalFocusCost        = result.TotalFocusCost;
         FocusReductionPercent = result.FocusReductionPercent;
+        HideoutFocusSaving    = result.FocusSpecialistSaving ?? 0;
 
         if (result.Lines.Count == 0) return;
 
@@ -507,6 +604,7 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
             {
                 Item        = ingredientVm.Item,
                 NetQuantity = line.NetToBuy,
+                Surplus     = line.Surplus,
                 BuyLocation = line.BuyLocation,
                 UnitPrice   = line.UnitPrice
             });
@@ -526,9 +624,10 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
 
         AvailableCities = _craftingLocations.Cities
             .Select(city => new CraftingCityOption(
-                ClusterId: city.ClusterId,
-                Name:      city.Name,
-                Bonus:     0m))
+                ClusterId:   city.ClusterId,
+                Name:        city.Name,
+                ClusterType: city.ClusterType,
+                Bonus:       0m))
             .OrderBy(o => o.Name)
             .ToList();
 
@@ -606,5 +705,6 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         FocusPerCraft         = null;
         TotalFocusCost        = null;
         FocusReductionPercent = 0;
+        HideoutFocusSaving    = 0;
     }
 }

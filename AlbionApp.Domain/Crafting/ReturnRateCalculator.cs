@@ -73,14 +73,15 @@ public static class ReturnRateCalculator
         string?          craftingCategory,
         bool             useFocus,
         decimal          achievementBonus = 0m,
-        decimal          journalBonus     = 0m)
+        decimal          journalBonus     = 0m,
+        decimal          hideoutBonus     = 0m)
     {
         var isRefining    = IsRefining(craftingCategory);
         var baseBonus     = isRefining ? city.RefiningBonus : city.CraftingBonus;
         var categoryBonus = city.GetBonusFor(craftingCategory);
         var focusBonus    = useFocus ? FocusLpb + achievementBonus : 0m;
 
-        return FromLpb(baseBonus + categoryBonus + focusBonus + journalBonus);
+        return FromLpb(baseBonus + categoryBonus + focusBonus + journalBonus + hideoutBonus);
     }
 
     /// <summary>

@@ -65,7 +65,8 @@
                                     CommandParameter="{Binding}"
                                     ToolTip="Eliminar"
                                     Width="28" Height="28" Padding="0"
-                                    Foreground="{DynamicResource MaterialDesign.Brush.Secondary}">
+                                    Foreground="{DynamicResource MaterialDesign.Brush.Secondary}"
+                                    HorizontalAlignment="Right">
                                 <md:PackIcon Kind="Delete" Width="14" Height="14" />
                             </Button>
                         </Grid>
@@ -179,13 +180,13 @@
 
                             <!-- Fila 0 -->
                             <local:EquipSlotV Grid.Column="0" Grid.Row="0"
-                                              SlotContext="{Binding Cape}"
+                                              SlotContext="{Binding Bag}"
                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
                             <local:EquipSlotV Grid.Column="1" Grid.Row="0"
                                               SlotContext="{Binding Head}"
                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
                             <local:EquipSlotV Grid.Column="2" Grid.Row="0"
-                                              SlotContext="{Binding Bag}"
+                                              SlotContext="{Binding Cape}"
                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
 
                             <!-- Fila 1 -->

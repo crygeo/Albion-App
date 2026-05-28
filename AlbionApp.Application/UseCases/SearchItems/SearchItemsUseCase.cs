@@ -110,6 +110,7 @@ public sealed class SearchItemsUseCase : ISearchItemsUseCase
 
         // 4. Ordenar y limitar.
         IEnumerable<ItemBase> ordered = filtered
+            .Where(i => query.SlotTypeFilter is null or SlotType.None || i.SlotType == query.SlotTypeFilter)
             .OrderBy(i => i.CategoryValue)
             .ThenBy(i => i.Tier ?? int.MaxValue)
             .ThenBy(i => i.EnchantmentLevel)

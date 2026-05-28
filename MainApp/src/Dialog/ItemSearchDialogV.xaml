@@ -53,12 +53,13 @@
                 MarketV recibe su propio DataContext = Market (instancia de MarketVM).
                 Así MarketV es completamente reutilizable: no sabe que está dentro de un diálogo.
             -->
-            <market:MarketV Grid.Row="1"
+            <market:MarketV x:Name="MarketView"
+                            Grid.Row="1"
                             DataContext="{Binding Market}"/>
 
             <!-- ══ FOOTER ════════════════════════════════════════════════════════ -->
             <Border Grid.Row="2"
-                    BorderBrush="{DynamicResource MaterialDesign.Brush.Divider}"
+                    BorderBrush="{DynamicResource MaterialDesign.Brush.Separator}"
                     BorderThickness="0 1 0 0">
                 <DockPanel Margin="16 0" LastChildFill="False">
                     <Button DockPanel.Dock="Right"

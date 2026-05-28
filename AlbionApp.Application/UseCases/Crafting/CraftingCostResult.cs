@@ -19,6 +19,13 @@ public sealed record CraftingCostResult
     public int FocusReductionPercent { get; init; }
 
     /// <summary>
+    /// Foco ahorrado por craft gracias al bono especialista del hideout.
+    /// Es la diferencia entre el foco sin y con bono especialista en el exponente.
+    /// Null cuando no hay bono especialista activo.
+    /// </summary>
+    public int? FocusSpecialistSaving { get; init; }
+
+    /// <summary>
     /// Filas de materiales necesarios.
     /// Vacío cuando no hay ciudad seleccionada (solo se calculó el foco).
     /// </summary>
@@ -38,6 +45,7 @@ public sealed record CraftingCostResult
 public sealed record MaterialCostLine(
     string  ItemId,
     int     NetToBuy,
+    int     Surplus,
     string  BuyLocation,
     decimal UnitPrice)
 {

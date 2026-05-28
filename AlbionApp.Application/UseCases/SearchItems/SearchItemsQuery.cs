@@ -1,3 +1,5 @@
+using AlbionApp.Domain.ItemSearch;
+
 namespace AlbionApp.Application.UseCases.SearchItems;
 
 /// <summary>
@@ -31,4 +33,9 @@ public readonly record struct SearchItemsQuery(
     int? MaxCategoryValue,
 
     /// <summary>Cantidad máxima de resultados a retornar. 0 o negativo = sin límite.</summary>
-    int MaxResults);
+    int MaxResults,
+
+    /// <summary>
+    /// Filtra por slot de equipamiento. <see cref="SlotType.None"/> o null = sin filtro.
+    /// </summary>
+    SlotType? SlotTypeFilter = null);

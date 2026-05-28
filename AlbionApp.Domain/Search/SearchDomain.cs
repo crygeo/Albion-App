@@ -7,6 +7,7 @@ namespace AlbionApp.Domain.Search;
 /// <list type="bullet">
 ///   <item><see cref="Items"/>  → prefijo <c>@ITEMS_</c></item>
 ///   <item><see cref="Market"/> → prefijo <c>@MARKETPLACEGUI_ROLLOUT_</c></item>
+///   <item><see cref="Destinyboard"/> → prefijo <c>@DESTINYBOARD_TITLE_</c></item>
 /// </list>
 ///
 /// El dominio determina qué índice secundario consulta <c>ILocalizationService.GetTexts</c>.
@@ -26,5 +27,11 @@ public enum SearchDomain
     /// Categorías de la interfaz de mercado.
     /// Claves con prefijo <c>@MARKETPLACEGUI_ROLLOUT_</c> en el TMX.
     /// </summary>
-    Market
+    Market,
+
+    /// <summary>
+    /// Titles del destiny board y achievements.
+    /// Claves con prefijo <c>@DESTINYBOARD_TITLE_</c>.
+    /// </summary>
+    Destinyboard
 }

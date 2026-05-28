@@ -39,9 +39,10 @@ public sealed class CalculateCraftingCostUseCase
         {
             return new CraftingCostResult
             {
-                FocusPerCraft         = focus.PerCraft,
-                TotalFocusCost        = focus.Total,
-                FocusReductionPercent = focus.ReductionPercent
+                FocusPerCraft          = focus.PerCraft,
+                TotalFocusCost         = focus.Total,
+                FocusReductionPercent  = focus.ReductionPercent,
+                FocusSpecialistSaving  = focus.SpecialistSaving
             };
         }
 
@@ -85,8 +86,8 @@ public sealed class CalculateCraftingCostUseCase
         //   focusPerCraft  = floor(baseFocus × factor)             ← display
         //   totalFocus     = ceil(baseFocus × qty × factor / amt)  ← cálculo real
 
-        var exponent    = (double)SumBonus(request, FocusReductionBonusType);
-        var focusFactor = Math.Pow(0.5, exponent);         // 0.5^(bonusSum/100)
+        var dbExponent  = (double)SumBonus(request, FocusReductionBonusType);
+        var focusFactor = Math.Pow(0.5, dbExponent);       // 0.5^(bonusDB)
 
         var amountPerCraft = Math.Max(1, request.Recipe.AmountCrafted);
 
@@ -99,10 +100,27 @@ public sealed class CalculateCraftingCostUseCase
         var focusPerCraft = Math.Max(1, (int)Math.Floor(effective));
         var totalFocus    = Math.Max(1, (int)Math.Ceiling(effective * qty / amountPerCraft));
 
+        // ── Bono especialista del hideout ─────────────────────────────────────
+        // Se suma al exponente: focusFactor = 0.5^(dbExponent + specialistBonus)
+        // Ejemplo nivel 9: 503 × 0.5^(4 + 0.30) = 503 × 0.5^4.30 ≈ 25 foco
+        int? specialistSaving = null;
+        if (request.HideoutSpecialistBonus > 0)
+        {
+            var specialistExponent = dbExponent + (double)request.HideoutSpecialistBonus;
+            var specialistFactor   = Math.Pow(0.5, specialistExponent);
+            var specialistPerCraft = Math.Max(1, (int)Math.Floor(baseFocus * specialistFactor));
+
+            specialistSaving  = focusPerCraft - specialistPerCraft;
+            focusPerCraft     = specialistPerCraft;
+            totalFocus        = Math.Max(1, (int)Math.Ceiling(
+                                    baseFocus * specialistFactor * qty / amountPerCraft));
+        }
+
         return new FocusResult(
-            PerCraft:         focusPerCraft,
-            Total:            totalFocus,
-            ReductionPercent: (int)Math.Round((1.0 - focusFactor) * 100));
+            PerCraft:          focusPerCraft,
+            Total:             totalFocus,
+            ReductionPercent:  (int)Math.Round((1.0 - focusFactor) * 100),
+            SpecialistSaving:  specialistSaving);
     }
 
     // ── Tasa de retorno ───────────────────────────────────────────────────────
@@ -118,7 +136,8 @@ public sealed class CalculateCraftingCostUseCase
             request.CraftingCategory,
             request.UseFocus,
             achievementBonus,
-            request.JournalBonus);
+            request.JournalBonus,
+            request.HideoutBonus);
     }
 
     // ── Materiales ────────────────────────────────────────────────────────────
@@ -154,9 +173,14 @@ public sealed class CalculateCraftingCostUseCase
                 Math.Max(calcNet, minToBuy),
                 Math.Max(0, gross - owned));
 
+            // Sobra: lo que queda en mano al finalizar todos los crafts
+            // = lo que tenías (owned + comprado) − lo que realmente se consumió (net)
+            int surplus = Math.Max(0, owned + netToBuy - net);
+
             lines.Add(new MaterialCostLine(
                 ItemId:      ingredient.ItemId,
                 NetToBuy:    netToBuy,
+                Surplus:     surplus,
                 BuyLocation: request.City!.Name,
                 UnitPrice:   stock?.UnitPrice ?? 0m));
         }
@@ -178,7 +202,11 @@ public sealed class CalculateCraftingCostUseCase
 
     // ── Value objects internos ────────────────────────────────────────────────
 
-    private sealed record FocusResult(int? PerCraft, int? Total, int ReductionPercent)
+    private sealed record FocusResult(
+        int? PerCraft,
+        int? Total,
+        int  ReductionPercent,
+        int? SpecialistSaving = null)
     {
         public static readonly FocusResult None = new(null, null, 0);
     }

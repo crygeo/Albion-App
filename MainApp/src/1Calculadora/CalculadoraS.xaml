@@ -25,7 +25,7 @@
         <!-- Estilo de separador horizontal ligero dentro de cada card -->
         <Style x:Key="CardDivider" TargetType="Separator">
             <Setter Property="Margin" Value="0 10 0 10" />
-            <Setter Property="Background" Value="{DynamicResource MaterialDesign.Brush.Divider}" />
+            <Setter Property="Background" Value="{DynamicResource MaterialDesign.Brush.Separator}" />
             <Setter Property="Height" Value="1" />
         </Style>
 
@@ -111,7 +111,7 @@
                                 Width="64" Height="64"
                                 CornerRadius="6"
                                 Margin="0 0 14 0"
-                                Background="{DynamicResource MaterialDesign.Brush.Divider}">
+                                Background="{DynamicResource MaterialDesign.Brush.Separator}">
                             <!-- Grid para superponer imagen y placeholder -->
                             <Grid>
                                 <!-- Imagen del ítem (con selección) -->
@@ -328,7 +328,7 @@
                                             <StackPanel Margin="4 0" HorizontalAlignment="Center">
                                                 <Border Width="32" Height="32"
                                                         CornerRadius="5"
-                                                        Background="{DynamicResource MaterialDesign.Brush.Divider}">
+                                                        Background="{DynamicResource MaterialDesign.Brush.Separator}">
                                                     <Image Source="{Binding Item.Image}"
                                                            Stretch="Uniform"
                                                            RenderOptions.BitmapScalingMode="HighQuality" />
@@ -453,6 +453,66 @@
                         </TextBlock>
                     </StackPanel>
 
+                    <!-- ── Bono de Hideout (visible solo cuando la ciudad es HIDEOUT/BLACK) ── -->
+                    <Border Margin="0 10 0 0"
+                            Padding="12 10"
+                            CornerRadius="8"
+                            Background="{DynamicResource MaterialDesign.Brush.Paper}"
+                            Visibility="{Binding IsHideoutCity, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+
+                            <!-- Header -->
+                            <DockPanel Margin="0 0 0 10">
+                                <md:PackIcon DockPanel.Dock="Left"
+                                             Kind="HomeAlert"
+                                             Width="16" Height="16"
+                                             VerticalAlignment="Center"
+                                             Margin="0 0 6 0"
+                                             Foreground="{DynamicResource MaterialDesign.Brush.Primary}" />
+                                <TextBlock Text="Bono de Hideout"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center" />
+                                <!-- Etiqueta bono efectivo -->
+                                <TextBlock DockPanel.Dock="Right"
+                                           Text="{Binding HideoutBonusLabel}"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource MaterialDesign.Brush.Primary}"
+                                           HorizontalAlignment="Right"
+                                           VerticalAlignment="Center" />
+                            </DockPanel>
+
+                            <!-- Nivel 1–9 -->
+                            <TextBlock Text="Nivel de poder"
+                                       Style="{StaticResource CardSectionLabel}"
+                                       Margin="0 0 0 4" />
+                            <ComboBox ItemsSource="{Binding HideoutLevels}"
+                                      SelectedItem="{Binding SelectedHideoutLevel}"
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                      Margin="0 0 0 10">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock>
+                                            <Run Text="Nivel " />
+                                            <Run Text="{Binding Level}" FontWeight="SemiBold" />
+                                            <Run Text="  —  General: " Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}" />
+                                            <Run Text="{Binding GeneralistBonus, StringFormat=P1}" />
+                                            <Run Text="  /  Espec: " Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}" />
+                                            <Run Text="{Binding SpecialistBonus, StringFormat=P1}" />
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <!-- Toggle de reducción de foco especialista -->
+                            <CheckBox Content="Hideout especializado para este ítem"
+                                      IsChecked="{Binding UseSpecialistBonus}"
+                                      FontSize="12"
+                                      ToolTip="Activa la reducción extra de costo de foco (specialistcraftingbonus)" />
+
+                        </StackPanel>
+                    </Border>
+
                 </StackPanel>
             </md:Card>
 
@@ -463,13 +523,13 @@
                 <StackPanel>
 
                     <!-- Título card -->
-                    <DockPanel Margin="0 0 0 12">
+                    <DockPanel Margin="0 0 0 12" HorizontalAlignment="Stretch">
                         <TextBlock DockPanel.Dock="Left"
                                    Style="{StaticResource CardTitle}"
                                    Text="Cantidades e Inventario"
-                                   Margin="0" />
+                                   Margin="0"/>
                         <!-- Botón cargar recursos del juego -->
-                        <Button DockPanel.Dock="Right"
+                        <Button DockPanel.Dock="Right" Width="150" HorizontalAlignment="Right"
                                 Command="{Binding CargarRecursosCommand}"
                                 Style="{StaticResource MaterialDesignOutlinedButton}"
                                 FontSize="11"
@@ -548,7 +608,7 @@
                                     <Border Grid.Column="0"
                                             Width="32" Height="32"
                                             CornerRadius="4"
-                                            Background="{DynamicResource MaterialDesign.Brush.Divider}">
+                                            Background="{DynamicResource MaterialDesign.Brush.Separator}">
                                         <Image Source="{Binding Item.Image}"
                                                Stretch="Uniform" />
                                     </Border>
@@ -618,14 +678,27 @@
                  CARD 4 — Resumen de la Operación
             ══════════════════════════════════════════════════════════════════ -->
             <md:Card Style="{StaticResource CalcCard}" Margin="0">
-                <StackPanel>
+                <StackPanel x:Name="Card4Root">
 
-                    <!-- Título card -->
-                    <TextBlock Style="{StaticResource CardTitle}"
-                               Text="Materiales Necesarios"
-                               Margin="0 0 0 8" />
+                    <!-- Título + botón export PNG -->
+                    <DockPanel Margin="0 0 0 8">
+                        <TextBlock DockPanel.Dock="Left"
+                                   Style="{StaticResource CardTitle}"
+                                   Text="Materiales Necesarios"
+                                   Margin="0"
+                                   VerticalAlignment="Center" />
+                        <Button DockPanel.Dock="Right"
+                                Command="{Binding ExportarPngCommand}"
+                                Style="{StaticResource MaterialDesignIconButton}"
+                                ToolTip="Exportar como PNG"
+                                Width="28" Height="28"
+                                HorizontalAlignment="Right"
+                                Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}">
+                            <md:PackIcon Kind="ImageOutline" Width="16" Height="16" />
+                        </Button>
+                    </DockPanel>
 
-                    <!-- Métricas — dos filas independientes -->
+                    <!-- Métricas + badge ciudad -->
                     <StackPanel Orientation="Horizontal">
 
 
@@ -645,6 +718,42 @@
                                            FontSize="11"
                                            FontWeight="SemiBold"
                                            Foreground="White" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Badge Hideout: H L-9  26%  -3,000 foco -->
+                        <Border CornerRadius="4"
+                                Background="#1A6B3A"
+                                Visibility="{Binding HasHideoutBadge, Converter={StaticResource BoolToVis}}"
+                                Padding="8 3" Margin="0 0 4 0">
+                            <StackPanel Orientation="Horizontal">
+                                <md:PackIcon Kind="HomeAlert"
+                                             Width="13" Height="13"
+                                             VerticalAlignment="Center"
+                                             Margin="0 0 4 0"
+                                             Foreground="White" />
+                                <TextBlock Text="{Binding HideoutBonusLabel}"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="White" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Badge ciudad seleccionada -->
+                        <Border CornerRadius="4"
+                                Background="{DynamicResource MaterialDesign.Brush.Primary}"
+                                BorderBrush="{DynamicResource MaterialDesign.Brush.Separator}"
+                                BorderThickness="1"
+                                Visibility="{Binding HasSelectedCity, Converter={StaticResource BoolToVis}}"
+                                Padding="8 3" Margin="0 0 4 0">
+                            <StackPanel Orientation="Horizontal">
+                                <md:PackIcon Kind="City"
+                                             Width="13" Height="13"
+                                             VerticalAlignment="Center"
+                                             Margin="0 0 4 0" />
+                                <TextBlock Text="{Binding SelectedCityOption.DisplayText}"
+                                           FontSize="11"
+                                           FontWeight="SemiBold" />
                             </StackPanel>
                         </Border>
 
@@ -706,7 +815,7 @@
                     <!-- Placeholder sin resultados -->
                     <Border Padding="20"
                             CornerRadius="6"
-                            Background="{DynamicResource MaterialDesign.Brush.Divider}">
+                            Background="{DynamicResource MaterialDesign.Brush.Separator}">
                         <Border.Style>
                             <Style TargetType="Border">
                                 <Setter Property="Visibility" Value="Collapsed" />
@@ -747,7 +856,7 @@
                                         <Border Grid.Column="0"
                                                 Width="44" Height="44"
                                                 CornerRadius="6"
-                                                Background="{DynamicResource MaterialDesign.Brush.Divider}"
+                                                Background="{DynamicResource MaterialDesign.Brush.Separator}"
                                                 Margin="0 0 10 0">
                                             <Image Source="{Binding Item.Image}"
                                                    Stretch="Uniform"
@@ -764,6 +873,14 @@
                                                 <TextBlock FontSize="11" Opacity="0.6">
                                                     <Run Text="Cantidad: " />
                                                     <Run Text="{Binding NetQuantity, StringFormat=N0}" />
+                                                </TextBlock>
+                                                <!-- Sobra: visible solo cuando > 0 -->
+                                                <TextBlock FontSize="11"
+                                                           Foreground="{DynamicResource MaterialDesign.Brush.Primary}"
+                                                           Margin="6 0 0 0"
+                                                           Visibility="{Binding HasSurplus, Converter={StaticResource BoolToVis}}">
+                                                    <Run Text="Sobra: " />
+                                                    <Run Text="{Binding Surplus, StringFormat=N0}" />
                                                 </TextBlock>
                                                 <TextBlock Text=" · "
                                                            FontSize="11"
@@ -806,6 +923,58 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+
+                    <!-- Ítem crafteado resultante -->
+                    <Border Margin="0 8 0 0"
+                            Padding="10"
+                            CornerRadius="6"
+                            Background="{DynamicResource MaterialDesign.Brush.Primary}"
+                            Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="44" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Imagen del ítem crafteado -->
+                            <Border Grid.Column="0"
+                                    Width="40" Height="40"
+                                    CornerRadius="6"
+                                    Background="#22000000"
+                                    Margin="0 0 10 0">
+                                <Image Source="{Binding SelectedItem.Image}"
+                                       Stretch="Uniform"
+                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                            </Border>
+
+                            <!-- Nombre + cantidad producida -->
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding SelectedItem.DisplayName}"
+                                           FontSize="13"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           TextTrimming="CharacterEllipsis" />
+                                <TextBlock FontSize="11"
+                                           Foreground="White"
+                                           Opacity="0.8"
+                                           Margin="0 2 0 0">
+                                    <Run Text="Se obtienen: " />
+                                    <Run FontWeight="SemiBold"
+                                         Text="{Binding QuantityToCraft, StringFormat=N0}" />
+                                    <Run Text=" unidades" />
+                                </TextBlock>
+                            </StackPanel>
+
+                            <!-- Ícono de crafteo -->
+                            <md:PackIcon Grid.Column="2"
+                                         Kind="Hammer"
+                                         Width="22" Height="22"
+                                         VerticalAlignment="Center"
+                                         Foreground="White"
+                                         Opacity="0.6" />
+                        </Grid>
+                    </Border>
 
                     <!-- Separador y total general -->
                     <Separator Style="{StaticResource CardDivider}"

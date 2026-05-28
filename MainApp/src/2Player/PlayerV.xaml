@@ -3,25 +3,209 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:local="clr-namespace:Albion_App._2Player"
              mc:Ignorable="d"
-             d:DesignHeight="300" d:DesignWidth="300"
+             d:DesignHeight="480" d:DesignWidth="280"
              d:DataContext="{d:DesignInstance local:PlayerVm}">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="50" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" CornerRadius="25">
-            <StackPanel>
-                <TextBlock Text="{Binding Header}" />
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="16">
+
+            <!-- ── Avatar + nombre ────────────────────────────────────────────── -->
+            <Grid HorizontalAlignment="Center" Margin="0 8 0 12">
+
+                <!-- Estado vacío: sin jugador -->
+                <StackPanel Visibility="{Binding NoPlayerVisibility}"
+                            HorizontalAlignment="Center">
+                    <Ellipse Width="80" Height="80" HorizontalAlignment="Center">
+                        <Ellipse.Fill>
+                            <SolidColorBrush Color="#606060"/>
+                        </Ellipse.Fill>
+                    </Ellipse>
+                    <TextBlock Text="?"
+                               FontSize="36" FontWeight="Bold"
+                               Foreground="White"
+                               HorizontalAlignment="Center"
+                               Margin="0 -58 0 0"
+                               IsHitTestVisible="False"/>
+                    <TextBlock Text="Esperando conexión…"
+                               FontSize="12"
+                               Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                               HorizontalAlignment="Center"
+                               Margin="0 12 0 0"/>
+                </StackPanel>
+
+                <!-- Estado con jugador -->
+                <StackPanel Visibility="{Binding PlayerVisibility}"
+                            HorizontalAlignment="Center">
+
+                    <!-- Círculo avatar -->
+                    <Grid HorizontalAlignment="Center">
+                        <Ellipse Width="80" Height="80"
+                                 Fill="{Binding AvatarBrush}"/>
+                        <TextBlock Text="{Binding Initials}"
+                                   FontSize="36" FontWeight="Bold"
+                                   Foreground="White"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <!-- Nombre -->
+                    <TextBlock Text="{Binding PlayerName}"
+                               FontSize="18" FontWeight="SemiBold"
+                               HorizontalAlignment="Center"
+                               Margin="0 10 0 0"
+                               TextTrimming="CharacterEllipsis"
+                               MaxWidth="220"/>
+
+                    <!-- Gremio (si tiene) -->
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                Margin="0 3 0 0"
+                                Visibility="{Binding GuildVisibility}">
+                        <md:PackIcon Kind="AccountGroup"
+                                     Width="14" Height="14"
+                                     VerticalAlignment="Center"
+                                     Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"/>
+                        <TextBlock Text="{Binding GuildName}"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                                   Margin="4 0 0 0"
+                                   TextTrimming="CharacterEllipsis"
+                                   MaxWidth="180"/>
+                    </StackPanel>
+
+                    <!-- Sin gremio (si tiene nombre pero no gremio) -->
+                    <TextBlock Text="Sin gremio"
+                               FontSize="12"
+                               FontStyle="Italic"
+                               Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                               HorizontalAlignment="Center"
+                               Margin="0 3 0 0"
+                               Visibility="{Binding NoGuildVisibility}"/>
+
+                </StackPanel>
+            </Grid>
+
+            <Separator Margin="0 4 0 12"
+                       Background="{DynamicResource MaterialDesign.Brush.Separator}"/>
+
+            <!-- ── Acciones ───────────────────────────────────────────────────── -->
+            <TextBlock Text="ACCIONES"
+                       FontSize="10" FontWeight="Medium"
+                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                       Margin="0 0 0 6"/>
+
+            <Button Command="{Binding OpenDialogCommand}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    HorizontalAlignment="Stretch"
+                    Margin="0 0 0 6"
+                    md:ButtonAssist.CornerRadius="6">
+                <StackPanel Orientation="Horizontal">
+                    <md:PackIcon Kind="StarCircleOutline"
+                                 Width="18" Height="18"
+                                 VerticalAlignment="Center"/>
+                    <TextBlock Text="Destiny Board"
+                               Margin="8 0 0 0"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+
+            <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                    IsEnabled="False"
+                    HorizontalAlignment="Stretch"
+                    Margin="0 0 0 6"
+                    md:ButtonAssist.CornerRadius="6">
+                <StackPanel Orientation="Horizontal">
+                    <md:PackIcon Kind="Skull"
+                                 Width="18" Height="18"
+                                 VerticalAlignment="Center"/>
+                    <TextBlock Text="Muertes"
+                               Margin="8 0 0 0"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+
+            <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                    IsEnabled="False"
+                    HorizontalAlignment="Stretch"
+                    Margin="0 0 0 6"
+                    md:ButtonAssist.CornerRadius="6">
+                <StackPanel Orientation="Horizontal">
+                    <md:PackIcon Kind="ChartBar"
+                                 Width="18" Height="18"
+                                 VerticalAlignment="Center"/>
+                    <TextBlock Text="Estadísticas"
+                               Margin="8 0 0 0"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+
+            <!-- ── Estadísticas futuras ───────────────────────────────────────── -->
+            <Separator Margin="0 12 0 12"
+                       Background="{DynamicResource MaterialDesign.Brush.Separator}"
+                       Visibility="{Binding PlayerVisibility}"/>
+
+            <StackPanel Visibility="{Binding PlayerVisibility}">
+                <TextBlock Text="ESTADÍSTICAS"
+                           FontSize="10" FontWeight="Medium"
+                           Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                           Margin="0 0 0 8"/>
+
+                <UniformGrid Columns="2" Rows="2">
+                    <Border Margin="0 0 4 4" Padding="10 8"
+                            CornerRadius="6"
+                            Background="{DynamicResource MaterialDesign.Brush.Card.Background}">
+                        <StackPanel>
+                            <TextBlock Text="Fama"
+                                       FontSize="10"
+                                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"/>
+                            <TextBlock Text="—"
+                                       FontSize="14" FontWeight="Medium"
+                                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Margin="4 0 0 4" Padding="10 8"
+                            CornerRadius="6"
+                            Background="{DynamicResource MaterialDesign.Brush.Card.Background}">
+                        <StackPanel>
+                            <TextBlock Text="Reputación"
+                                       FontSize="10"
+                                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"/>
+                            <TextBlock Text="—"
+                                       FontSize="14" FontWeight="Medium"
+                                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Margin="0 4 4 0" Padding="10 8"
+                            CornerRadius="6"
+                            Background="{DynamicResource MaterialDesign.Brush.Card.Background}">
+                        <StackPanel>
+                            <TextBlock Text="PvP"
+                                       FontSize="10"
+                                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"/>
+                            <TextBlock Text="—"
+                                       FontSize="14" FontWeight="Medium"
+                                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Margin="4 4 0 0" Padding="10 8"
+                            CornerRadius="6"
+                            Background="{DynamicResource MaterialDesign.Brush.Card.Background}">
+                        <StackPanel>
+                            <TextBlock Text="Muertes"
+                                       FontSize="10"
+                                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"/>
+                            <TextBlock Text="—"
+                                       FontSize="14" FontWeight="Medium"
+                                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"/>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
             </StackPanel>
-        </Border>
 
-        <Border Grid.Row="1">
-            <Button Content="Ver DestinyBoard" Command="{Binding OpenDialogCommand}" />
-        </Border>
-    </Grid>
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>

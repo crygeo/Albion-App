@@ -11,8 +11,8 @@ public sealed class ProcessPlayerUseCaseTests
     public void Execute_sets_level_from_raw_value_when_not_at_max()
     {
         var achievementDataService = new FakeAchievementDataService(
-            new AlbionAchievement { OrdinalId = 10, Id = "CRAFT_REFINE_FIBER_T4", NameLocalization = "Fiber T4" },
-            new AlbionAchievement { OrdinalId = 20, Id = "COMBAT_SWORD_T5",       NameLocalization = "Sword T5" });
+            new AlbionAchievement { OrdinalId = 10, Id = "CRAFT_REFINE_FIBER_T4", TitleLocalizationKey = "@DESTINYBOARD_TITLE_CRAFT_REFINE_FIBER_T4" },
+            new AlbionAchievement { OrdinalId = 20, Id = "COMBAT_SWORD_T5",       TitleLocalizationKey = "@DESTINYBOARD_TITLE_COMBAT_SWORD_T5" });
         var useCase = new ProcessPlayerUseCase(achievementDataService);
 
         useCase.Execute([(10, 12, false), (999, 80, false)]);
@@ -27,7 +27,7 @@ public sealed class ProcessPlayerUseCaseTests
     public void Execute_uses_max_level_when_is_at_max()
     {
         var achievementDataService = new FakeAchievementDataService(
-            new AlbionAchievement { OrdinalId = 5, Id = "COMBAT_SWORD_T8", NameLocalization = "Sword T8", UseTemplate = "COMBAT_SPEC" });
+            new AlbionAchievement { OrdinalId = 5, Id = "COMBAT_SWORD_T8", TitleLocalizationKey = "@DESTINYBOARD_TITLE_COMBAT_SWORD_T8", UseTemplate = "COMBAT_SPEC" });
         var useCase = new ProcessPlayerUseCase(achievementDataService);
 
         // Level crudo del servidor es 0, pero IsAtMaxLevel = true → debe usar MaxLevel del dominio.
@@ -54,5 +54,13 @@ public sealed class ProcessPlayerUseCaseTests
 
         public IReadOnlyDictionary<int, AlbionAchievement> ByOrdinal { get; }
 
+        public IReadOnlyDictionary<string, AlbionAchievement> BySpriteAndTier { get; }
+            = new Dictionary<string, AlbionAchievement>();
+
+        public IReadOnlyList<(string AchievementId, AchievementBonus Bonus)> BonusLookup { get; }
+            = [];
+
+        public AlbionAchievement? FindByItem(AlbionApp.Domain.ItemSearch.ItemBase item)
+            => null;
     }
 }

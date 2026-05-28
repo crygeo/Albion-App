@@ -60,7 +60,7 @@ public sealed class ProcessPlayerUseCase
             {
                 Index            = value.OrdinalId,
                 Id               = value.Id,
-                NameLocalization = value.NameLocalization,
+                TitleLocalizationKey = value.TitleLocalizationKey,
                 MaxLevel         = value.MaxLevel,
                 Bonuses          = value.Bonuses,
                 Level            = 0,

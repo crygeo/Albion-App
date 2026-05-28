@@ -226,7 +226,7 @@ public sealed class AchievementDataService : ServiceBase, IAchievementDataServic
         if (string.IsNullOrEmpty(id)) return null;
 
         var useTemplate      = (string?)el.Attribute("usetemplate");
-        var nameLocalization = (string?)el.Element("title")?.Attribute("tag") ?? id;
+        var titleLocalizationKey = (string?)el.Element("title")?.Attribute("tag") ?? id;
         var itemForSprite    = (string?)el.Attribute("itemforsprite");
         var spriteReward     = (string?)el.Attribute("spriteReward");
         int.TryParse((string?)el.Attribute("ring"), out var ring);
@@ -252,7 +252,7 @@ public sealed class AchievementDataService : ServiceBase, IAchievementDataServic
             Id               = id,
             UseTemplate      = useTemplate,
             Parents          = parents,
-            NameLocalization = nameLocalization,
+            TitleLocalizationKey = titleLocalizationKey,
             MaxLevel         = maxLevel,
             Ring             = ring,
             ItemForSprite    = itemForSprite,

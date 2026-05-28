@@ -24,8 +24,15 @@ public sealed record AlbionAchievement
     /// <summary>ID string del XML. Ej: "CRAFT_REFINE_FIBER_T4", "ADVENTURER_MASTER".</summary>
     public required string Id { get; init; }
 
-    /// <summary> TITLE string del XML, para obtener el nombre  </summary>
-    public required string NameLocalization { get; init; }
+    /// <summary>
+    /// Clave de localización del title del XML. Ej: "@DESTINYBOARD_TITLE_CRAFT_SHIELDS_CRYSTAL".
+    /// Si el nodo no trae <c>&lt;title&gt;</c>, se usa <see cref="Id"/> como fallback.
+    /// </summary>
+    public required string TitleLocalizationKey { get; init; }
+
+    /// <summary>Compatibilidad temporal: usar <see cref="TitleLocalizationKey"/>.</summary>
+    [Obsolete("Use TitleLocalizationKey.")]
+    public string NameLocalization => TitleLocalizationKey;
 
     /// <summary>
     /// Nombre del template que define la curva de Fama/LP.

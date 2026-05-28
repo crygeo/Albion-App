@@ -15,7 +15,7 @@ public partial class AchievementVm : ObservableObject
     private readonly ILocalizationService _localization;
     private readonly ProcessPlayerUseCase _player;
 
-    public string DisplayName => _localization.GetText(_hit.NameLocalization ?? _hit.Id);
+    public string DisplayName => _localization.GetText(_hit.TitleLocalizationKey ?? _hit.Id);
 
     [ObservableProperty] private BitmapSource? _image;
     public byte[]? ImageBytes { get; private set; }

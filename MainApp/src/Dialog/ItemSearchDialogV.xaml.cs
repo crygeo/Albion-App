@@ -51,6 +51,17 @@ public partial class ItemSearchDialogV : UserControl, IDialog<ItemBaseVm>
 
         viewModel.ConfirmRequested += OnConfirmRequested;
         viewModel.CancelRequested  += OnCancelRequested;
+
+        // Doble clic sobre un ítem de MarketV equivale a pulsar "Seleccionar".
+        MarketView.ItemDoubleClicked += (_, _) =>
+        {
+            if (viewModel.ConfirmCommand.CanExecute(null))
+                viewModel.ConfirmCommand.Execute(null);
+        };
+
+        // Al abrir el diálogo mover el foco al ListBox para que el scroll con rueda
+        // funcione de inmediato sin necesidad de hacer clic primero.
+        Loaded += (_, _) => MarketView.FocusItemsList();
     }
 
     // ─── Manejo de resultado ──────────────────────────────────────────────────

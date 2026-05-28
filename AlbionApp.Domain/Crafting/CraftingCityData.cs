@@ -7,6 +7,7 @@ namespace AlbionApp.Domain.Crafting;
 public sealed record CraftingCityData(
     string ClusterId,
     string Name,
+    string ClusterType,
     decimal RefiningBonus,
     decimal CraftingBonus,
     IReadOnlyList<CraftingModifier> Modifiers)

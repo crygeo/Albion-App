@@ -17,7 +17,7 @@
         <Border DockPanel.Dock="Top"
                 Background="{DynamicResource MaterialDesign.Brush.CardBackground}"
                 BorderBrush="{DynamicResource MaterialDesign.Brush.Primary}"
-                BorderThickness="0 0 0 3">
+                BorderThickness="0 0 0 2">
 
             <DockPanel>
 
@@ -64,7 +64,7 @@
                                             <Border x:Name="Bd"
                                                     Background="{DynamicResource MaterialDesign.Brush.CardBackground}"
                                                     CornerRadius="6 6 0 0"
-                                                    BorderBrush="{DynamicResource MaterialDesign.Brush.Divider}"
+                                                    BorderBrush="{DynamicResource MaterialDesign.Brush.Separator}"
                                                     BorderThickness="1 1 1 0"
                                                     Opacity="0.6">
                                                 <ContentPresenter />

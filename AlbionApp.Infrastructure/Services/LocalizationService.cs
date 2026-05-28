@@ -93,6 +93,8 @@ public sealed class LocalizationService(
     /// </summary>
     public FrozenDictionary<string, SearchEntry[]> ItemSearchIndex => _itemSearchIndex;
 
+    public FrozenDictionary<string, SearchEntry[]> DestinyboardSearchIndex => _destinyboardSearchIndex;
+
     // ── ILocalizationService ──────────────────────────────────────────────────
 
     public SupportedLanguage CurrentSupportedLanguage
@@ -134,7 +136,7 @@ public sealed class LocalizationService(
 
 
     /// <inheritdoc/>
-    public void SetLanguage(SupportedLanguage supportedLanguage)
+    public void SetLanguage(SupportedLanguage? supportedLanguage)
     {
         ArgumentNullException.ThrowIfNull(supportedLanguage);
 
@@ -187,6 +189,7 @@ public sealed class LocalizationService(
         _localization = FrozenDictionary<string, IReadOnlyDictionary<string, string>>.Empty;
         _itemSearchIndex = FrozenDictionary<string, SearchEntry[]>.Empty;
         _marketSearchIndex = FrozenDictionary<string, SearchEntry[]>.Empty;
+        _destinyboardSearchIndex = FrozenDictionary<string, SearchEntry[]>.Empty;
         _availableLanguages = Array.Empty<SupportedLanguage>();
         return Task.CompletedTask;
     }
@@ -328,7 +331,13 @@ public sealed class LocalizationService(
     // ── Helper ────────────────────────────────────────────────────────────────
 
     private FrozenDictionary<string, SearchEntry[]> SelectIndex(SearchDomain domain)
-        => domain == SearchDomain.Items ? _itemSearchIndex : _marketSearchIndex;
+        => domain switch
+        {
+            SearchDomain.Items        => _itemSearchIndex,
+            SearchDomain.Market       => _marketSearchIndex,
+            SearchDomain.Destinyboard => _destinyboardSearchIndex,
+            _                         => _marketSearchIndex
+        };
     
     // Configuración de dominios
     private sealed record SearchCategory(

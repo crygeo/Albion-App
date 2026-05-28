@@ -30,8 +30,8 @@
                    HorizontalAlignment="Center"
                    Margin="0 0 0 14"/>
 
-        <!-- Cards -->
-        <ItemsControl ItemsSource="{Binding Cards}">
+        <!-- Cards — max 5 per row: 5 × (196 width + 12 margin) = 1040 px -->
+        <ItemsControl ItemsSource="{Binding Cards}" Width="1040" HorizontalAlignment="Left">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <WrapPanel Orientation="Horizontal"/>

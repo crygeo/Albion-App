@@ -10,6 +10,7 @@ namespace AlbionApp.Domain.Crafting;
 public sealed record CraftingCityOption(
     string ClusterId,
     string Name,
+    string ClusterType,
     decimal Bonus)
 {
     /// <summary>

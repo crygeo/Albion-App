@@ -276,6 +276,8 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
             CraftingCategory:           Attr(element, "craftingcategory"),
             NodeType:                   element.Name.LocalName,
             IsCraftable:                HasCraftingIngredients(element),
+            SlotType:                   ParseSlotType(Attr(element, "slottype")),
+            IsTwoHanded:                Attr(element, "twohanded") == "true",
             RawAttributes:              attrs);
     }
 
@@ -325,6 +327,8 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
             CraftingCategory:           Attr(baseElement, "craftingcategory"),
             NodeType:                   baseElement.Name.LocalName,
             IsCraftable:                HasCraftingIngredients(enchElement),
+            SlotType:                   ParseSlotType(Attr(baseElement, "slottype")),
+            IsTwoHanded:                Attr(baseElement, "twohanded") == "true",
             RawAttributes:              merged);
     }
 
@@ -405,6 +409,21 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
 
     private static string? Attr(XElement? element, string name)
         => (string?)element?.Attribute(name);
+
+    private static SlotType ParseSlotType(string? raw) => raw switch
+    {
+        "head"     => SlotType.Head,
+        "armor"    => SlotType.Armor,
+        "shoes"    => SlotType.Shoes,
+        "cape"     => SlotType.Cape,
+        "bag"      => SlotType.Bag,
+        "mainhand" => SlotType.MainHand,
+        "offhand"  => SlotType.OffHand,
+        "potion"   => SlotType.Potion,
+        "food"     => SlotType.Food,
+        "mount"    => SlotType.Mount,
+        _          => SlotType.None,
+    };
 
     private static int? ParseInt(string? value)
         => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var r)

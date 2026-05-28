@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: transparent; font-size: 12px; padding: 12px; color: #1a1a2e; }
+
+/* ── Tabs ── */
+.tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+.tab {
+  padding: 5px 14px; border-radius: 20px; cursor: pointer; font-size: 11px; font-weight: 600;
+  border: 1.5px solid #ddd; background: #f5f5f5; color: #555; transition: all .15s;
+}
+.tab.active { background: #3949AB; color: #fff; border-color: #3949AB; }
+.tab:hover:not(.active) { background: #e8eaf6; border-color: #9fa8da; }
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Shared ── */
+.section-title {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+  color: #888; margin: 14px 0 6px;
+}
+.badge {
+  display: inline-block; font-size: 8px; font-weight: 700; padding: 1px 5px;
+  border-radius: 3px; margin-left: 4px; vertical-align: middle;
+}
+.badge-new  { background: #3949AB; color: #fff; }
+.badge-v1   { background: #C62828; color: #fff; }
+.badge-ext  { background: #388E3C; color: #fff; }
+.badge-nuget{ background: #7B1FA2; color: #fff; }
+
+/* ── PANEL 1: Arquitectura ── */
+.arch-grid { display: flex; flex-direction: column; gap: 6px; }
+.arch-row  { display: flex; gap: 6px; align-items: stretch; }
+.arch-layer {
+  flex: 1; border-radius: 8px; overflow: hidden;
+  border: 1.5px solid rgba(0,0,0,0.08);
+  display: flex; flex-direction: column;
+}
+.arch-layer-header {
+  padding: 5px 10px; font-size: 10px; font-weight: 800; letter-spacing: 0.06em;
+  text-transform: uppercase; color: #fff;
+}
+.arch-layer-body { padding: 8px 10px; flex: 1; }
+.arch-item { font-size: 11px; padding: 2px 0; display: flex; align-items: center; gap: 4px; }
+.arch-item-name { font-weight: 600; }
+.arch-item-desc { color: #666; font-size: 10px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* Layer colors */
+.l-ui    .arch-layer-header { background: #5C6BC0; }
+.l-ui    .arch-layer-body   { background: #EDE7F6; }
+.l-app   .arch-layer-header { background: #F57C00; }
+.l-app   .arch-layer-body   { background: #FFF3E0; }
+.l-infra .arch-layer-header { background: #0097A7; }
+.l-infra .arch-layer-body   { background: #E0F7FA; }
+.l-dom   .arch-layer-header { background: #388E3C; }
+.l-dom   .arch-layer-body   { background: #E8F5E9; }
+.l-libs  .arch-layer-header { background: #795548; }
+.l-libs  .arch-layer-body   { background: #EFEBE9; }
+
+.col-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing:.04em; margin-bottom: 4px; }
+.arrow-row { display: flex; justify-content: center; align-items: center; gap: 8px; color: #aaa; font-size: 13px; padding: 1px; }
+
+/* ── PANEL 2: Proyectos & Deps ── */
+.dep-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.dep-card { border-radius: 8px; border: 1.5px solid rgba(0,0,0,0.08); overflow: hidden; }
+.dep-card-header { padding: 7px 10px; font-size: 11px; font-weight: 700; color: #fff; }
+.dep-card-body { padding: 8px 10px; background: #fff; }
+.dep-ref { font-size: 10px; padding: 2px 0; display: flex; align-items: center; gap: 5px; }
+.dep-ref-label { font-weight: 600; }
+.dep-ref-type { font-size: 9px; padding: 1px 4px; border-radius: 3px; font-weight: 600; }
+.ref-proj  { background: #E8F5E9; color: #388E3C; }
+.ref-nuget { background: #EDE7F6; color: #5C6BC0; }
+.ref-lib   { background: #E0F7FA; color: #0097A7; }
+
+/* ── PANEL 3: Flujo de Datos ── */
+.flow-container { display: flex; flex-direction: column; gap: 6px; }
+.flow-step {
+  display: flex; align-items: stretch; gap: 0; border-radius: 8px; overflow: hidden;
+  border: 1.5px solid rgba(0,0,0,0.06);
+}
+.flow-num {
+  width: 32px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 900; color: #fff;
+}
+.flow-body { padding: 8px 12px; flex: 1; }
+.flow-title { font-weight: 700; font-size: 11px; margin-bottom: 3px; }
+.flow-desc { font-size: 10px; color: #555; line-height: 1.5; }
+.flow-code { font-family: monospace; font-size: 9px; background: rgba(0,0,0,0.05); padding: 2px 5px; border-radius: 3px; margin-top: 3px; display: inline-block; }
+.flow-section { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing:.06em; margin: 10px 0 4px; }
+
+/* ── PANEL 4: Servicios & Interfaces ── */
+.svc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; }
+.svc-card { border-radius: 8px; border: 1.5px solid rgba(0,0,0,0.08); padding: 10px; background: #fff; }
+.svc-iface  { font-size: 10px; font-weight: 800; color: #388E3C; margin-bottom: 3px; }
+.svc-impl   { font-size: 11px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
+.svc-method { font-size: 9px; font-family: monospace; padding: 1px 0; color: #555; }
+.svc-note   { font-size: 9px; color: #888; margin-top: 4px; line-height: 1.4; }
+.svc-header { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #fff; padding: 3px 8px; border-radius: 4px 4px 0 0; margin: -10px -10px 8px; }
+
+/* ── PANEL 5: Objetivos ── */
+.obj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.obj-card { border-radius: 8px; padding: 10px 12px; border: 1.5px solid rgba(0,0,0,0.06); }
+.obj-title { font-weight: 700; font-size: 12px; margin-bottom: 6px; }
+.obj-item { font-size: 10px; padding: 2px 0; display: flex; gap: 6px; line-height: 1.4; }
+.obj-item::before { content: "·"; flex-shrink: 0; font-weight: 900; }
+.done { color: #388E3C; }
+.todo { color: #F57C00; }
+
+@media (max-width: 500px) {
+  .obj-grid { grid-template-columns: 1fr; }
+  .dep-grid { grid-template-columns: 1fr; }
+  .svc-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('arch')">Arquitectura</div>
+  <div class="tab" onclick="show('deps')">Proyectos & Deps</div>
+  <div class="tab" onclick="show('flow')">Flujo de Datos</div>
+  <div class="tab" onclick="show('services')">Servicios & Interfaces</div>
+  <div class="tab" onclick="show('goals')">Objetivos / v1.0</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PANEL 1 — ARQUITECTURA
+══════════════════════════════════════════════════════════ -->
+<div id="panel-arch" class="panel active">
+  <div class="arch-grid">
+
+    <!-- UI Layer -->
+    <div class="arch-row">
+      <div class="arch-layer l-ui" style="max-width:100%">
+        <div class="arch-layer-header">Presentación — MainApp (WPF · net9.0-windows) <span class="badge badge-v1">v1.0.0</span></div>
+        <div class="arch-layer-body" style="display:grid; grid-template-columns:repeat(7,1fr); gap:8px">
+
+          <div>
+            <div class="col-label" style="color:#5C6BC0">0Config/</div>
+            <div class="arch-item"><div class="dot" style="background:#5C6BC0"></div><span class="arch-item-name">ConfiguracionSvm</span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">ConfiguracionS.xaml</span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">DiscordConfigVm</span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">DiscordConfigDialogV</span></div>
+          </div>
+
+          <div>
+            <div class="col-label" style="color:#5C6BC0">2Player/</div>
+            <div class="arch-item"><div class="dot" style="background:#5C6BC0"></div><span class="arch-item-name">PlayerVm</span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">DestinyBoardVm</span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">AchievementVmFactory</span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">PlayerV.xaml</span></div>
+          </div>
+
+          <div>
+            <div class="col-label" style="color:#5C6BC0">3Builds/</div>
+            <div class="arch-item"><div class="dot" style="background:#5C6BC0"></div><span class="arch-item-name">BuildsVm</span></div>
+            <div class="arch-item"><div class="dot" style="background:#5C6BC0"></div><span class="arch-item-name">BuildEditorVm</span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">BuildsV.xaml</span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">BuildEditorDialogV</span></div>
+          </div>
+
+          <div>
+            <div class="col-label" style="color:#5C6BC0">4Groups/</div>
+            <div class="arch-item"><div class="dot" style="background:#5C6BC0"></div><span class="arch-item-name">GroupsVm</span></div>
+            <div class="arch-item"><div class="dot" style="background:#5C6BC0"></div><span class="arch-item-name">GroupEditorVm</span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">GroupsV.xaml</span></div>
+            <div class="arch-item" style="margin-top:4px"><div class="dot" style="background:#C62828"></div><span class="arch-item-name" style="color:#C62828">Export/ <span class="badge badge-v1">NEW</span></span></div>
+            <div class="arch-item"><div class="dot" style="background:#e57373"></div><span class="arch-item-name">BuildGroupExportV</span></div>
+            <div class="arch-item"><div class="dot" style="background:#e57373"></div><span class="arch-item-name">ExportDialogV/Vm</span></div>
+            <div class="arch-item"><div class="dot" style="background:#e57373"></div><span class="arch-item-name">ExportSlotV</span></div>
+          </div>
+
+          <div>
+            <div class="col-label" style="color:#5C6BC0">5Events/</div>
+            <div class="arch-item"><div class="dot" style="background:#5C6BC0"></div><span class="arch-item-name">EventsVm</span></div>
+            <div class="arch-item"><div class="dot" style="background:#5C6BC0"></div><span class="arch-item-name">EventEditorVm</span></div>
+            <div class="arch-item"><div class="dot" style="background:#5C6BC0"></div><span class="arch-item-name">EventHistoryVm</span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">EventsV.xaml</span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">ActivateEventDialog</span></div>
+          </div>
+
+          <div>
+            <div class="col-label" style="color:#5C6BC0">Components/</div>
+            <div class="arch-item"><div class="dot" style="background:#5C6BC0"></div><span class="arch-item-name">MarketVm</span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">MarketV.xaml</span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">ItemBaseVmFactory</span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">DestinyBoardVm</span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">AchievementVm</span></div>
+          </div>
+
+          <div>
+            <div class="col-label" style="color:#5C6BC0">Infrastructure/ (app)</div>
+            <div class="arch-item"><div class="dot" style="background:#5C6BC0"></div><span class="arch-item-name">UpdateCheckService <span class="badge badge-v1">NEW</span></span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">ClipboardService</span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">ItemSearchDialogService</span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">WorkspacePersistenceService</span></div>
+            <div style="margin-top:6px" class="col-label" style="color:#5C6BC0">Models/</div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">DialogDefaults</span></div>
+            <div class="arch-item"><div class="dot" style="background:#9fa8da"></div><span class="arch-item-name">ISectionIcons</span></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow-row">↓ usa contratos de ↓</div>
+
+    <!-- Application Layer -->
+    <div class="arch-row">
+      <div class="arch-layer l-app">
+        <div class="arch-layer-header">Application — AlbionApp.Application (net9.0)</div>
+        <div class="arch-layer-body" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px">
+          <div>
+            <div class="col-label" style="color:#F57C00">UseCases/Search/</div>
+            <div class="arch-item"><span class="arch-item-name">SearchItemsUseCase</span></div>
+            <div class="arch-item"><span class="arch-item-name">QueryParser</span><span class="arch-item-desc">&nbsp;tokens + tier/enchant</span></div>
+            <div class="arch-item"><span class="arch-item-name">SearchIndexExtensions</span><span class="arch-item-desc">&nbsp;FrozenDict</span></div>
+            <div class="arch-item"><span class="arch-item-name">TextNormalizer</span><span class="arch-item-desc">&nbsp;diacríticos</span></div>
+          </div>
+          <div>
+            <div class="col-label" style="color:#F57C00">UseCases/Player/</div>
+            <div class="arch-item"><span class="arch-item-name">ProcessPlayerUseCase</span></div>
+            <div class="arch-item"><span class="arch-item-name">AchievementHandler</span></div>
+            <div class="col-label" style="color:#F57C00;margin-top:8px">UseCases/Crafting/</div>
+            <div class="arch-item"><span class="arch-item-name">CalculateCraftingCostUseCase</span></div>
+            <div class="arch-item"><span class="arch-item-name">CraftingTreeBuilder</span></div>
+          </div>
+          <div>
+            <div class="col-label" style="color:#F57C00">Crafting/ (models)</div>
+            <div class="arch-item"><span class="arch-item-name">CraftingCalculatorService</span></div>
+            <div class="arch-item"><span class="arch-item-name">ReturnRateCalculator</span></div>
+            <div class="arch-item"><span class="arch-item-name">DefaultCityBonusProvider</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow-row">↓ implementa interfaces de ↓</div>
+
+    <!-- Infrastructure + Domain -->
+    <div class="arch-row" style="gap:6px">
+      <div class="arch-layer l-infra" style="flex:1.2">
+        <div class="arch-layer-header">Infrastructure — AlbionApp.Infrastructure (net9.0)</div>
+        <div class="arch-layer-body">
+          <div class="col-label" style="color:#0097A7">Services/</div>
+          <div class="arch-item"><span class="arch-item-name">LocalizationService</span><span class="arch-item-desc">&nbsp;→ ILocalizationService</span></div>
+          <div class="arch-item"><span class="arch-item-name">ItemDataService</span><span class="arch-item-desc">&nbsp;→ IItemDataService</span></div>
+          <div class="arch-item"><span class="arch-item-name">CategoryDataService</span><span class="arch-item-desc">&nbsp;→ ICategoryDataService</span></div>
+          <div class="arch-item"><span class="arch-item-name">AlbionImageService</span><span class="arch-item-desc">&nbsp;CDN + disco cache</span></div>
+          <div class="arch-item"><span class="arch-item-name">AchievementDataService</span></div>
+          <div class="arch-item"><span class="arch-item-name">CraftingLocationService</span></div>
+          <div class="col-label" style="color:#0097A7;margin-top:8px">Persistence/</div>
+          <div class="arch-item"><span class="arch-item-name">EventsDbContextFactory</span><span class="arch-item-desc">&nbsp;SQLite</span></div>
+        </div>
+      </div>
+
+      <div class="arch-layer l-dom" style="flex:2">
+        <div class="arch-layer-header">Domain — AlbionApp.Domain (net9.0)</div>
+        <div class="arch-layer-body" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px">
+          <div>
+            <div class="col-label" style="color:#388E3C">Interfaces/Services/</div>
+            <div class="arch-item"><span class="arch-item-name" style="color:#388E3C">ILocalizationService</span></div>
+            <div class="arch-item"><span class="arch-item-name" style="color:#388E3C">IItemDataService</span></div>
+            <div class="arch-item"><span class="arch-item-name" style="color:#388E3C">ICategoryDataService</span></div>
+            <div class="arch-item"><span class="arch-item-name" style="color:#388E3C">IItemImageService</span></div>
+          </div>
+          <div>
+            <div class="col-label" style="color:#388E3C">ItemSearch/</div>
+            <div class="arch-item"><span class="arch-item-name">ItemBase</span><span class="arch-item-desc">&nbsp;record</span></div>
+            <div class="arch-item"><span class="arch-item-name">Category</span><span class="arch-item-desc">&nbsp;record</span></div>
+            <div class="arch-item"><span class="arch-item-name">SearchEntry · SearchQuery</span></div>
+            <div class="col-label" style="color:#388E3C;margin-top:6px">Localization/</div>
+            <div class="arch-item"><span class="arch-item-name">SupportedLanguage</span></div>
+          </div>
+          <div>
+            <div class="col-label" style="color:#388E3C">Crafting/</div>
+            <div class="arch-item"><span class="arch-item-name">CraftingParameters</span></div>
+            <div class="arch-item"><span class="arch-item-name">CraftingResult</span></div>
+            <div class="arch-item"><span class="arch-item-name">CraftDecision</span></div>
+            <div class="arch-item"><span class="arch-item-name">CraftingCity (enum)</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow-row">↓ usa ↓</div>
+
+    <!-- LibSolutions -->
+    <div class="arch-row">
+      <div class="arch-layer l-libs" style="max-width:100%">
+        <div class="arch-layer-header">LibSolutions — Librerías de infraestructura compartida</div>
+        <div class="arch-layer-body" style="display:grid; grid-template-columns:repeat(6,1fr); gap:8px">
+          <div>
+            <div class="col-label" style="color:#795548">LibAlbionData</div>
+            <div class="arch-item"><span class="arch-item-name">AlbionData</span><span class="arch-item-desc">&nbsp;facade</span></div>
+            <div class="arch-item"><span class="arch-item-name">GameDataPath</span></div>
+            <div style="font-size:9px;color:#888;margin-top:3px">Lee XMLs del juego</div>
+          </div>
+          <div>
+            <div class="col-label" style="color:#795548">LibEvents</div>
+            <div class="arch-item"><span class="arch-item-name">Build · BuildGroup</span></div>
+            <div class="arch-item"><span class="arch-item-name">BuildGroupSlot</span></div>
+            <div class="arch-item"><span class="arch-item-name">EventTemplate</span></div>
+            <div class="arch-item"><span class="arch-item-name">BuildService</span></div>
+            <div class="arch-item"><span class="arch-item-name">DiscordBotService</span></div>
+            <div style="font-size:9px;color:#888;margin-top:3px">EF Core + SQLite</div>
+          </div>
+          <div>
+            <div class="col-label" style="color:#795548">LibServices</div>
+            <div class="arch-item"><span class="arch-item-name">ServiceBase</span></div>
+            <div class="arch-item"><span class="arch-item-name">PreloadService</span></div>
+            <div class="arch-item"><span class="arch-item-name">IService</span></div>
+            <div style="font-size:9px;color:#888;margin-top:3px">Off↔On↔Faulted</div>
+          </div>
+          <div>
+            <div class="col-label" style="color:#795548">LibNavegation</div>
+            <div class="arch-item"><span class="arch-item-name">INavHistory</span></div>
+            <div class="arch-item"><span class="arch-item-name">ISection</span></div>
+            <div style="font-size:9px;color:#888;margin-top:3px">Historial browser (XButtons)</div>
+            <div class="col-label" style="color:#795548;margin-top:6px">LibWpfControls</div>
+            <div class="arch-item"><span class="arch-item-name">EmojiPicker</span></div>
+            <div class="arch-item"><span class="arch-item-name">EmojiService</span></div>
+          </div>
+          <div>
+            <div class="col-label" style="color:#795548">LibAlbionProtocol</div>
+            <div class="arch-item"><span class="arch-item-name">AlbionParser</span></div>
+            <div class="arch-item"><span class="arch-item-name">Photon UDP parser</span></div>
+            <div class="col-label" style="color:#795548;margin-top:6px">LibAlbionRouting</div>
+            <div class="arch-item"><span class="arch-item-name">Event dispatcher</span></div>
+            <div class="arch-item"><span class="arch-item-name">Handler registries</span></div>
+          </div>
+          <div>
+            <div class="col-label" style="color:#795548">LibNetWork</div>
+            <div class="arch-item"><span class="arch-item-name">SharpPcap / Npcap</span></div>
+            <div class="arch-item"><span class="arch-item-name">NetworkManager</span></div>
+            <div style="font-size:9px;color:#888;margin-top:3px">Captura paquetes raw</div>
+            <div class="col-label" style="color:#795548;margin-top:6px">Utilidades</div>
+            <div class="arch-item"><span class="arch-item-name">DialogService</span></div>
+            <div class="arch-item"><span class="arch-item-name">IDialog</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PANEL 2 — PROYECTOS & DEPENDENCIAS
+══════════════════════════════════════════════════════════ -->
+<div id="panel-deps" class="panel">
+  <div class="dep-grid">
+
+    <div class="dep-card">
+      <div class="dep-card-header" style="background:#5C6BC0">MainApp — WPF Entry Point <span class="badge badge-v1">v1.0.0</span></div>
+      <div class="dep-card-body">
+        <div style="font-size:9px;color:#888;margin-bottom:6px">net9.0-windows · WinExe · UseWPF=true</div>
+        <div style="font-size:9px;font-weight:700;color:#555;margin-bottom:4px;text-transform:uppercase">Refs de proyecto</div>
+        <div class="dep-ref"><span class="dep-ref-label">AlbionApp.Application</span><span class="dep-ref-type ref-proj">proj</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">AlbionApp.Infrastructure</span><span class="dep-ref-type ref-proj">proj</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">LibNavegation</span><span class="dep-ref-type ref-lib">lib</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">LibAlbionProtocol</span><span class="dep-ref-type ref-lib">lib</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">LibAlbionRouting</span><span class="dep-ref-type ref-lib">lib</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">LibNetWork</span><span class="dep-ref-type ref-lib">lib</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">LibWpfControls</span><span class="dep-ref-type ref-lib">lib</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">LibServices</span><span class="dep-ref-type ref-lib">lib</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">Utilidades</span><span class="dep-ref-type ref-lib">lib</span></div>
+        <div style="font-size:9px;font-weight:700;color:#555;margin:8px 0 4px;text-transform:uppercase">NuGet</div>
+        <div class="dep-ref"><span class="dep-ref-label">CommunityToolkit.Mvvm</span><span class="dep-ref-type ref-nuget">8.4.2</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">MaterialDesignThemes</span><span class="dep-ref-type ref-nuget">5.3.2</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">MaterialDesignColors</span><span class="dep-ref-type ref-nuget">5.3.2</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">VirtualizingWrapPanel</span><span class="dep-ref-type ref-nuget">2.3.1</span></div>
+      </div>
+    </div>
+
+    <div class="dep-card">
+      <div class="dep-card-header" style="background:#0097A7">AlbionApp.Infrastructure</div>
+      <div class="dep-card-body">
+        <div style="font-size:9px;color:#888;margin-bottom:6px">net9.0 · library</div>
+        <div style="font-size:9px;font-weight:700;color:#555;margin-bottom:4px;text-transform:uppercase">Refs de proyecto</div>
+        <div class="dep-ref"><span class="dep-ref-label">AlbionApp.Application</span><span class="dep-ref-type ref-proj">proj</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">AlbionApp.Domain</span><span class="dep-ref-type ref-proj">proj</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">LibAlbionData</span><span class="dep-ref-type ref-lib">lib</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">LibServices</span><span class="dep-ref-type ref-lib">lib</span></div>
+        <div style="font-size:9px;font-weight:700;color:#555;margin:8px 0 4px;text-transform:uppercase">NuGet</div>
+        <div class="dep-ref" style="color:#888;font-size:10px;font-style:italic">sin NuGet directos</div>
+      </div>
+    </div>
+
+    <div class="dep-card">
+      <div class="dep-card-header" style="background:#F57C00">AlbionApp.Application</div>
+      <div class="dep-card-body">
+        <div style="font-size:9px;color:#888;margin-bottom:6px">net9.0 · library</div>
+        <div style="font-size:9px;font-weight:700;color:#555;margin-bottom:4px;text-transform:uppercase">Refs de proyecto</div>
+        <div class="dep-ref"><span class="dep-ref-label">AlbionApp.Domain</span><span class="dep-ref-type ref-proj">proj</span></div>
+        <div style="font-size:9px;font-weight:700;color:#555;margin:8px 0 4px;text-transform:uppercase">NuGet</div>
+        <div class="dep-ref" style="color:#888;font-size:10px;font-style:italic">sin NuGet directos</div>
+      </div>
+    </div>
+
+    <div class="dep-card">
+      <div class="dep-card-header" style="background:#388E3C">AlbionApp.Domain</div>
+      <div class="dep-card-body">
+        <div style="font-size:9px;color:#888;margin-bottom:6px">net9.0 · library · sin dependencias externas</div>
+        <div style="font-size:9px;font-weight:700;color:#555;margin-bottom:4px;text-transform:uppercase">Refs de proyecto</div>
+        <div class="dep-ref"><span class="dep-ref-label">LibAlbionData</span><span class="dep-ref-type ref-lib">lib</span><span style="font-size:9px;color:#888;margin-left:4px">(solo SupportedLanguage)</span></div>
+        <div style="font-size:9px;font-weight:700;color:#555;margin:8px 0 4px;text-transform:uppercase">NuGet</div>
+        <div class="dep-ref" style="color:#888;font-size:10px;font-style:italic">sin NuGet directos</div>
+      </div>
+    </div>
+
+    <div class="dep-card">
+      <div class="dep-card-header" style="background:#6D4C41">LibEvents</div>
+      <div class="dep-card-body">
+        <div style="font-size:9px;color:#888;margin-bottom:6px">net9.0 · library</div>
+        <div style="font-size:9px;font-weight:700;color:#555;margin-bottom:4px;text-transform:uppercase">Entities</div>
+        <div class="dep-ref"><span class="dep-ref-label">Build, BuildGroup, BuildGroupSlot</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">EventTemplate, ActivatedEvent</span></div>
+        <div style="font-size:9px;font-weight:700;color:#555;margin:8px 0 4px;text-transform:uppercase">Services</div>
+        <div class="dep-ref"><span class="dep-ref-label">BuildService — CRUD SQLite</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">DiscordBotService — bot Discord.Net</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">EventsDbContextFactory — EF Core</span></div>
+      </div>
+    </div>
+
+    <div class="dep-card">
+      <div class="dep-card-header" style="background:#795548">LibAlbionProtocol + Routing + NetWork</div>
+      <div class="dep-card-body">
+        <div style="font-size:9px;color:#888;margin-bottom:6px">net9.0 · pipeline de red</div>
+        <div class="dep-ref"><span class="dep-ref-label">LibNetWork → LibAlbionProtocol → LibAlbionRouting</span></div>
+        <div style="font-size:9px;color:#888;margin-top:6px">SharpPcap/Npcap → parse Photon UDP → dispatch de eventos al jugador</div>
+      </div>
+    </div>
+
+    <div class="dep-card">
+      <div class="dep-card-header" style="background:#795548">LibWpfControls</div>
+      <div class="dep-card-body">
+        <div style="font-size:9px;color:#888;margin-bottom:6px">net9.0-windows · WPF library</div>
+        <div class="dep-ref"><span class="dep-ref-label">EmojiPicker — selector de emoji</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">EmojiService — warmup de caches</span></div>
+        <div style="font-size:9px;color:#888;margin-top:6px">Usado en GroupEditorVm para asignar emoji a slots</div>
+      </div>
+    </div>
+
+    <div class="dep-card">
+      <div class="dep-card-header" style="background:#7B1FA2">Utilidades (InventarioSINC)</div>
+      <div class="dep-card-body">
+        <div style="font-size:9px;color:#888;margin-bottom:6px">net9.0-windows · WPF library</div>
+        <div class="dep-ref"><span class="dep-ref-label">MaterialDesignThemes</span><span class="dep-ref-type ref-nuget">5.2.x</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">CommunityToolkit.Mvvm</span><span class="dep-ref-type ref-nuget">8.4.0</span></div>
+        <div class="dep-ref"><span class="dep-ref-label">MongoDB.Driver</span><span class="dep-ref-type ref-nuget">3.2.1</span></div>
+        <div style="font-size:9px;color:#888;margin-top:6px">Provee DialogService, IDialog, SnackbarMessageQueue</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PANEL 3 — FLUJO DE DATOS
+══════════════════════════════════════════════════════════ -->
+<div id="panel-flow" class="panel">
+  <div class="flow-container">
+
+    <div class="flow-section" style="color:#795548">Startup — Carga y arranque</div>
+
+    <div class="flow-step">
+      <div class="flow-num" style="background:#795548">1</div>
+      <div class="flow-body" style="background:#EFEBE9">
+        <div class="flow-title">AlbionData.StartAsync() — LibAlbionData</div>
+        <div class="flow-desc">Localiza la instalación del juego. Descifra y cachea <b>items.bin</b> + <b>localizations.bin</b> como XDocument. Sin IO después de este paso.</div>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="flow-num" style="background:#0097A7">2</div>
+      <div class="flow-body" style="background:#E0F7FA">
+        <div class="flow-title">PreloadService → Localization → Items → Categories → Achievements → CraftingLocations</div>
+        <div class="flow-desc">Secuencial. Cada servicio reporta progreso 0-100 a la SplashWindow. FrozenDictionary construido una vez y reutilizado en toda la sesión.</div>
+        <span class="flow-code">LocalizationService → ItemDataService → CategoryDataService → AchievementDataService</span>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="flow-num" style="background:#6D4C41">3</div>
+      <div class="flow-body" style="background:#EFEBE9">
+        <div class="flow-title">EventsDbContextFactory.Create() → BuildService — SQLite (EF Core)</div>
+        <div class="flow-desc">Abre la base de datos SQLite local. Carga Builds, BuildGroups (con slots y Build navigation property incluida vía ThenInclude), EventTemplates.</div>
+        <span class="flow-code">BuildsVm.LoadAsync() · GroupsVm.LoadAsync() · EventsVm.LoadAsync()</span>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="flow-num" style="background:#5C6BC0">4</div>
+      <div class="flow-body" style="background:#EDE7F6">
+        <div class="flow-title">MainWindow.Show() → UpdateCheckService.CheckAsync() (fire-and-forget)</div>
+        <div class="flow-desc">Llama a la API GitHub Releases. Si hay versión nueva (tag_name > Assembly version), encola snackbar <i>"Nueva versión disponible: vX.Y.Z → VER"</i>. Timeout 5s, silencioso en fallo.</div>
+        <span class="flow-code">GET api.github.com/repos/crygeo/Albion-App/releases/latest</span>
+      </div>
+    </div>
+
+    <div class="flow-section" style="color:#5C6BC0">Runtime — Búsqueda de ítems (MarketVm)</div>
+
+    <div class="flow-step">
+      <div class="flow-num" style="background:#5C6BC0">5</div>
+      <div class="flow-body" style="background:#EDE7F6">
+        <div class="flow-title">Debounce 250ms → QueryParser.Parse(text) → SearchItemsUseCase</div>
+        <div class="flow-desc">Descompone input en tokens + tier + enchantment. Itera SearchEntry[] del idioma activo. Batch lookup FrozenDict. Post-filtro por rango de categoría (int compare), tier, enchantment. Take(300).</div>
+        <span class="flow-code">ItemBase.CategoryValue ∈ [AccumulatedValue, MaxDescendantValue]</span>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="flow-num" style="background:#5C6BC0">6</div>
+      <div class="flow-body" style="background:#EDE7F6">
+        <div class="flow-title">ItemBaseVmFactory → ImageService.GetImageBytesAsync() (fire-and-forget, semáforo 8)</div>
+        <div class="flow-desc">Proyecta ItemBase → ItemBaseVm. Carga de imagen en background con semáforo máx 8 paralelas. Caché en disco AppData. CDN: render.albiononline.com/v1/item/</div>
+      </div>
+    </div>
+
+    <div class="flow-section" style="color:#C62828">Runtime — Export de grupo como imagen</div>
+
+    <div class="flow-step">
+      <div class="flow-num" style="background:#C62828">7</div>
+      <div class="flow-body" style="background:#FFEBEE">
+        <div class="flow-title">GroupsVm.ExportImageCommand → BuildGroupImageExporter.RenderAsync(group)</div>
+        <div class="flow-desc">Carga imágenes de todos los slots del grupo (AlbionImageService). Construye BuildCardExportVm[] con BitmapImage? por slot. Máx 5 cards por fila (WrapPanel Width=1040).</div>
+        <span class="flow-code">BuildGroupExportVm { GroupName, Cards[] } → Dispatcher.InvokeAsync(RenderToImage)</span>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="flow-num" style="background:#C62828">8</div>
+      <div class="flow-body" style="background:#FFEBEE">
+        <div class="flow-title">RenderToImage() → RenderTargetBitmap (off-screen WPF)</div>
+        <div class="flow-desc">Construye BuildGroupExportV off-screen. Measure/Arrange → DesiredSize como dimensión final. DPI detectado de la ventana activa. RenderTargetBitmap.Render() → Freeze(). ExportDialogV muestra preview con botones Copiar/Guardar PNG.</div>
+        <span class="flow-code">Clipboard.SetImage() · SaveFileDialog + PngBitmapEncoder</span>
+      </div>
+    </div>
+
+    <div class="flow-section" style="color:#388E3C">Runtime — Red (LibNetWork)</div>
+
+    <div class="flow-step">
+      <div class="flow-num" style="background:#388E3C">9</div>
+      <div class="flow-body" style="background:#E8F5E9">
+        <div class="flow-title">SharpPcapPacketProvider → AlbionParser → Handler registries</div>
+        <div class="flow-desc">Captura paquetes UDP en background thread. AlbionParser decodifica Photon. Event handlers actualizan PlayerVm (JoinResponse) y DestinyBoardVm (AchievementHandler) vía ProcessPlayerUseCase.</div>
+        <span class="flow-code">NetworkManager.Start() — Task.Run, fire-and-forget, silencioso sin admin</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PANEL 4 — SERVICIOS & INTERFACES
+══════════════════════════════════════════════════════════ -->
+<div id="panel-services" class="panel">
+  <div class="svc-grid">
+
+    <div class="svc-card">
+      <div class="svc-header" style="background:#388E3C">Domain · Interfaces/Services/</div>
+      <div class="svc-iface">ILocalizationService</div>
+      <div class="svc-impl">LocalizationService</div>
+      <div class="svc-method">GetText(key) → string</div>
+      <div class="svc-method">SetLanguage(lang)</div>
+      <div class="svc-method">ItemSearchIndex → FrozenDict</div>
+      <div class="svc-method">LanguageChanged (event, replay)</div>
+      <div class="svc-note">Parsea TMX completo en startup. FrozenDict por idioma.</div>
+    </div>
+
+    <div class="svc-card">
+      <div class="svc-header" style="background:#388E3C">Domain · Interfaces/Services/</div>
+      <div class="svc-iface">IItemDataService</div>
+      <div class="svc-impl">ItemDataService</div>
+      <div class="svc-method">GetAll() → IReadOnlyList&lt;ItemBase&gt;</div>
+      <div class="svc-method">GetById(id) → ItemBase?</div>
+      <div class="svc-method">GetItemsByIds(ids) → IReadOnlyList</div>
+      <div class="svc-method">GetRecipes(id) → IRecipe[]</div>
+      <div class="svc-note">FrozenDict. ~20k ítems. Dos mecanismos de encantamiento.</div>
+    </div>
+
+    <div class="svc-card">
+      <div class="svc-header" style="background:#388E3C">Domain · Interfaces/Services/</div>
+      <div class="svc-iface">ICategoryDataService</div>
+      <div class="svc-impl">CategoryDataService</div>
+      <div class="svc-method">GetRawCategories() → IReadOnlyList&lt;Category&gt;</div>
+      <div class="svc-method">TreeChanged (event, replay)</div>
+      <div class="svc-note">Árbol con AccumulatedValue + MaxDescendantValue. Filtro por rango int.</div>
+    </div>
+
+    <div class="svc-card">
+      <div class="svc-header" style="background:#0097A7">Infrastructure</div>
+      <div class="svc-iface">AlbionImageService</div>
+      <div class="svc-impl">(no interfaz, concreto)</div>
+      <div class="svc-method">GetImageBytesAsync(id, ct) → byte[]?</div>
+      <div class="svc-note">Caché disco AppData. Semáforo 8 paralelas. CDN: render.albiononline.com/v1/item/</div>
+    </div>
+
+    <div class="svc-card">
+      <div class="svc-header" style="background:#6D4C41">LibEvents</div>
+      <div class="svc-iface">BuildService</div>
+      <div class="svc-impl">EF Core + SQLite</div>
+      <div class="svc-method">GetBuildsAsync() → List&lt;Build&gt;</div>
+      <div class="svc-method">GetGroupsAsync() → List&lt;BuildGroup&gt;</div>
+      <div class="svc-method">SaveBuildAsync(build)</div>
+      <div class="svc-method">DeleteBuildAsync(id)</div>
+      <div class="svc-note">Incluye nav props (.ThenInclude slot.Build). Migrations automáticas.</div>
+    </div>
+
+    <div class="svc-card">
+      <div class="svc-header" style="background:#6D4C41">LibEvents · Discord</div>
+      <div class="svc-iface">DiscordBotService</div>
+      <div class="svc-impl">Discord.Net wrapper</div>
+      <div class="svc-method">StartAsync(token)</div>
+      <div class="svc-method">PublishEventAsync(event)</div>
+      <div class="svc-method">StatusChanged (event)</div>
+      <div class="svc-method">InteractionMode enum</div>
+      <div class="svc-note">Auto-reconecta si hay token guardado. Modes: Buttons / Reactions.</div>
+    </div>
+
+    <div class="svc-card">
+      <div class="svc-header" style="background:#C62828">4Groups/Export/</div>
+      <div class="svc-iface">BuildGroupImageExporter</div>
+      <div class="svc-impl">(servicio de render)</div>
+      <div class="svc-method">RenderAsync(group, ct) → BitmapSource</div>
+      <div class="svc-note">Off-screen WPF + RenderTargetBitmap. Measure/DesiredSize. DPI de ventana activa. Máx 5 cards/fila.</div>
+    </div>
+
+    <div class="svc-card">
+      <div class="svc-header" style="background:#5C6BC0">MainApp · Infrastructure/ <span class="badge badge-v1">NEW</span></div>
+      <div class="svc-iface">UpdateCheckService</div>
+      <div class="svc-impl">(fire-and-forget)</div>
+      <div class="svc-method">CheckAsync(ct) → Task</div>
+      <div class="svc-note">GitHub API releases/latest. Compara Version vs assembly. Snackbar con acción "VER". Timeout 5s. Silencioso en fallo.</div>
+    </div>
+
+    <div class="svc-card">
+      <div class="svc-header" style="background:#7B1FA2">Utilidades · Dialogs</div>
+      <div class="svc-iface">DialogService (singleton)</div>
+      <div class="svc-impl">IDialog</div>
+      <div class="svc-method">MostrarDialogo&lt;TDialog&gt;(vm, ...)</div>
+      <div class="svc-method">CerrarSiEstaAbiertoYEsperar()</div>
+      <div class="svc-method">MensajeQueue — ISnackbarMessageQueue</div>
+      <div class="svc-note">Integrado con MaterialDesign DialogHost. Usado por Export, GroupEditor, BuildEditor, DiscordConfig.</div>
+    </div>
+
+    <div class="svc-card">
+      <div class="svc-header" style="background:#795548">LibServices</div>
+      <div class="svc-iface">ServiceBase (abstract)</div>
+      <div class="svc-impl">Todos los data services</div>
+      <div class="svc-method">StartAsync() / StopAsync()</div>
+      <div class="svc-method">SetProgress(0–100)</div>
+      <div class="svc-method">State: Off ↔ On ↔ Faulted</div>
+      <div class="svc-note">PreloadService arranca en secuencia: Loc → Items → Categories → Achievements → CraftingLocations.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PANEL 5 — OBJETIVOS / v1.0
+══════════════════════════════════════════════════════════ -->
+<div id="panel-goals" class="panel">
+  <div class="obj-grid">
+
+    <div class="obj-card" style="background:#E8F5E9; border-color:#A5D6A7">
+      <div class="obj-title" style="color:#2E7D32">✅ Implementado — v1.0.0</div>
+      <div class="obj-item done">Calculadora de crafteo con carrusel de recetas y workspace persistente</div>
+      <div class="obj-item done">Búsqueda de ítems por texto con debounce + filtros de categoría/tier</div>
+      <div class="obj-item done">Árbol de categorías jerárquico (4 niveles), filtro por rango int</div>
+      <div class="obj-item done">Localización dinámica multi-idioma (TMX) con LanguageChanged</div>
+      <div class="obj-item done">Imágenes de ítems con caché disco + CDN (semáforo 8 paralelas)</div>
+      <div class="obj-item done">Sistema de navegación con historial (mouse XButtons)</div>
+      <div class="obj-item done">Captura de red en tiempo real (SharpPcap → AlbionParser → handlers)</div>
+      <div class="obj-item done">Destiny Board — logros del jugador via protocolo de red</div>
+      <div class="obj-item done">Gestión de Builds (CRUD, SQLite, editor con selector de ítems)</div>
+      <div class="obj-item done">Gestión de Grupos de composición con slots ordenables y emoji</div>
+      <div class="obj-item done">Exportar grupos como imagen (copy/PNG, preview, máx 5 cards/fila)</div>
+      <div class="obj-item done">Eventos de guild con Discord Bot (publicar, clonar, historial)</div>
+      <div class="obj-item done">Discord Bot con modos Buttons/Reactions y auto-reconexión</div>
+      <div class="obj-item done">Confirmaciones antes de eliminar (dialogs para builds, grupos, eventos)</div>
+      <div class="obj-item done">Snackbars de feedback (guardar, eliminar, copiar imagen)</div>
+      <div class="obj-item done">Splash de arranque con progreso de carga</div>
+      <div class="obj-item done">Versión 1.0.0 visible en Config tab</div>
+      <div class="obj-item done">UpdateCheckService — notificación automática de nuevas versiones</div>
+    </div>
+
+    <div class="obj-card" style="background:#FFF3E0; border-color:#FFCC80">
+      <div class="obj-title" style="color:#E65100">🔜 Pendiente / Mejoras futuras</div>
+      <div class="obj-item todo">IMarketPriceService — precios reales de API Albion Data Project</div>
+      <div class="obj-item todo">Inventario real del jugador desde protocolo de red (Card 3)</div>
+      <div class="obj-item todo">CraftingCalculatorService integrado en CalculadoraSvm (Card 4)</div>
+      <div class="obj-item todo">DefaultCityBonusProvider → bonificaciones reales por ciudad</div>
+      <div class="obj-item todo">Auto-update con Velopack (vs notificación manual actual)</div>
+      <div class="obj-item todo">Exportar Builds individuales como imagen (no solo grupos)</div>
+      <div class="obj-item todo">Más secciones en sidebar (Mercado, Rutas, etc.)</div>
+    </div>
+
+    <div class="obj-card" style="background:#EDE7F6; border-color:#CE93D8">
+      <div class="obj-title" style="color:#6A1B9A">📦 NuGet activos</div>
+      <div class="obj-item">CommunityToolkit.Mvvm 8.4.2 — MVVM, RelayCommand, ObservableProperty</div>
+      <div class="obj-item">MaterialDesignThemes 5.3.2 (MDIX) — MD3, DialogHost, PackIcon, Snackbar</div>
+      <div class="obj-item">MaterialDesignColors 5.3.2 — paletas de colores MD3</div>
+      <div class="obj-item">VirtualizingWrapPanel 2.3.1 — WrapPanel con virtualización (Market)</div>
+      <div class="obj-item">MongoDB.Driver 3.2.1 — vía Utilidades (InventarioSINC)</div>
+    </div>
+
+    <div class="obj-card" style="background:#E0F7FA; border-color:#80DEEA">
+      <div class="obj-title" style="color:#00695C">🏗 Decisiones de arquitectura</div>
+      <div class="obj-item">Clean Architecture: Domain sin deps externas, Infrastructure al borde</div>
+      <div class="obj-item">FrozenDictionary: lock-free, O(1) lookup en listas de 20k ítems</div>
+      <div class="obj-item">MVVM puro: cero lógica en code-behind (solo pegamento WPF)</div>
+      <div class="obj-item">CategoryValue int: filtro por rango numérico, sin string comparison</div>
+      <div class="obj-item">ServiceBase: máquina de estados Off↔On con progreso 0-100</div>
+      <div class="obj-item">Off-screen render: DesiredSize > ActualWidth para WPF sin visual tree</div>
+      <div class="obj-item">Fire-and-forget con _ = Task: UpdateCheck, NetworkManager, ImageLoad</div>
+      <div class="obj-item">Composition root manual en App.xaml.cs — sin contenedor DI externo</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

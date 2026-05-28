@@ -64,6 +64,15 @@ public interface IItemBase
     bool IsCraftable { get; }
 
     /// <summary>
+    /// Slot de equipamiento del ítem según el XML del juego.
+    /// <see cref="SlotType.None"/> para ítems no equipables.
+    /// </summary>
+    SlotType SlotType { get; }
+
+    /// <summary>True si el ítem ocupa ambas manos (mainhand + offhand al mismo tiempo).</summary>
+    bool IsTwoHanded { get; }
+
+    /// <summary>
     /// Todos los atributos del elemento XML tal como aparecen en items.bin.
     /// Permite acceder a atributos específicos de un tipo de ítem
     /// (e.g., "itempower", "physicalarmor") sin necesidad de tipado fuerte en el dominio.

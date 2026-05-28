@@ -17,7 +17,10 @@
     -->
     <md:DialogHost Identifier="{x:Static def:DialogDefaults.Progress}">
         <md:DialogHost Identifier="{x:Static def:DialogDefaults.Main}">
-            <vm:MainV/>
+            <Grid>
+                <vm:MainV />
+                <md:Snackbar MessageQueue="{Binding MessageQueue}" />
+            </Grid>
         </md:DialogHost>
     </md:DialogHost>
 </Window>

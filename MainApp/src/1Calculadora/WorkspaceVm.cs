@@ -100,6 +100,7 @@ public sealed partial class WorkspaceVm : ObservableObject, ISectionIcons
         {
             var tab = CreateTab();
             tab.QuantityToCraft = tabState.Quantity;
+            tab.UseFocus        = tabState.UseFocus;
 
             if (tabState.ItemId is not null)
             {
@@ -126,6 +127,7 @@ public sealed partial class WorkspaceVm : ObservableObject, ISectionIcons
             {
                 ItemId   = t.SelectedItem?.ItemId,
                 Quantity = t.QuantityToCraft,
+                UseFocus = t.UseFocus,
                 Title    = t.TabTitle,
             }).ToList(),
         };

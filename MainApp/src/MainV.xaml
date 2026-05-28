@@ -31,7 +31,7 @@
         <!-- ══ SIDEBAR ══════════════════════════════════════════════════════════ -->
         <Border Grid.Column="0"
                 Width="{Binding SidebarWidth}"
-                BorderBrush="{DynamicResource MaterialDesign.Brush.Divider}"
+                BorderBrush="{DynamicResource MaterialDesign.Brush.Separator}"
                 BorderThickness="0 0 1 0"
                 Background="{DynamicResource MaterialDesign.Brush.Paper}">
             <Grid>
@@ -42,28 +42,51 @@
                     <RowDefinition Height="Auto" />  <!-- Configuración fija -->
                 </Grid.RowDefinitions>
 
-                <!-- ── Botón colapsar/expandir ───────────────────────────────── -->
+                    <!-- ── Botón colapsar/expandir  +  Reloj UTC ────────────────── -->
                 <Border Grid.Row="0"
-                        BorderBrush="{DynamicResource MaterialDesign.Brush.Divider}"
+                        BorderBrush="{DynamicResource MaterialDesign.Brush.Separator}"
                         BorderThickness="0 0 0 1"
                         Padding="4">
-                    <Button Command="{Binding ToggleSidebarCommand}"
-                            Style="{StaticResource MaterialDesignIconButton}"
-                            HorizontalAlignment="Right"
-                            ToolTip="Expandir/Colapsar sidebar">
-                        <md:PackIcon Width="20" Height="20">
-                            <md:PackIcon.Style>
-                                <Style TargetType="md:PackIcon">
-                                    <Setter Property="Kind" Value="ChevronLeft" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
-                                            <Setter Property="Kind" Value="ChevronRight" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </md:PackIcon.Style>
-                        </md:PackIcon>
-                    </Button>
+                    <DockPanel>
+
+                        <!-- Botón toggle (siempre visible, pegado a la derecha) -->
+                        <Button DockPanel.Dock="Right"
+                                Command="{Binding ToggleSidebarCommand}"
+                                Style="{StaticResource MaterialDesignIconButton}"
+                                ToolTip="Expandir/Colapsar sidebar">
+                            <md:PackIcon Width="20" Height="20">
+                                <md:PackIcon.Style>
+                                    <Style TargetType="md:PackIcon">
+                                        <Setter Property="Kind" Value="ChevronLeft" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                                <Setter Property="Kind" Value="ChevronRight" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </md:PackIcon.Style>
+                            </md:PackIcon>
+                        </Button>
+
+                        <!-- Reloj UTC (visible sólo cuando el sidebar está expandido) -->
+                        <StackPanel VerticalAlignment="Center"
+                                    Margin="6 0 0 0"
+                                    Visibility="{Binding IsSidebarExpanded,
+                                                 Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="{Binding UtcTime}"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource MaterialDesign.Brush.Primary}"
+                                       FontFamily="Consolas"
+                                       HorizontalAlignment="Center" />
+                            <TextBlock Text="UTC"
+                                       FontSize="9"
+                                       Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0 -1 0 0" />
+                        </StackPanel>
+
+                    </DockPanel>
                 </Border>
 
                 <!-- ── Búsqueda de secciones (sólo expandido) ───────────────── -->
@@ -103,7 +126,7 @@
 
                 <!-- ── Configuración (fija, no scrollable) ───────────────────── -->
                 <Border Grid.Row="3"
-                        BorderBrush="{DynamicResource MaterialDesign.Brush.Divider}"
+                        BorderBrush="{DynamicResource MaterialDesign.Brush.Separator}"
                         BorderThickness="0 1 0 0">
                     <Button Command="{Binding SelectConfigSectionCommand}">
                         <DockPanel Margin="4 0">

@@ -7,6 +7,7 @@ using Albion_App.Helpers;
 using AlbionApp.Application.Interfaces;
 using AlbionApp.Application.UseCases.SearchItems;
 using AlbionApp.Domain.Interfaces;
+using AlbionApp.Domain.ItemSearch;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -49,6 +50,56 @@ public sealed partial class MarketVm : ObservableObject
     private readonly IClipboardService _clipboardService;
 
     private CancellationTokenSource? _filterCts;
+
+    /// <summary>
+    /// Filtro de slot activo. Cuando está establecido, la búsqueda solo devuelve
+    /// ítems cuyo <c>SlotType</c> coincida ("head", "mainhand", "potion", …).
+    /// Se limpia al cerrar el diálogo de búsqueda.
+    /// </summary>
+    private SlotType? _slotTypeFilter;
+
+    /// <summary>
+    /// Establece (o limpia con <c>null</c>) el filtro de slot y relanza la búsqueda.
+    /// Llamado por <see cref="ItemSearchDialogService"/> antes y después de mostrar el diálogo.
+    /// </summary>
+    public void SetSlotTypeFilter(SlotType? filter)
+    {
+        _slotTypeFilter = filter;
+        TriggerSearch();
+    }
+
+    /// <summary>
+    /// Aplica filtros de nivel/encantamiento por defecto antes de abrir el diálogo de búsqueda.
+    /// Retorna los valores anteriores para restaurarlos al cerrar el diálogo.
+    /// </summary>
+    public (FilterOptionM PrevLevel, FilterOptionM PrevEnchantment) ApplyDefaultFilters(
+        int? tier, int? enchantment)
+    {
+        var prev = (SelectedLevel, SelectedEnchantment);
+
+        if (tier.HasValue)
+        {
+            var opt = LevelOptions.FirstOrDefault(o => o.Value == tier);
+            if (opt is not null) SelectedLevel = opt;
+        }
+
+        if (enchantment.HasValue)
+        {
+            var opt = EnchantmentOptions.FirstOrDefault(o => o.Value == enchantment);
+            if (opt is not null) SelectedEnchantment = opt;
+        }
+
+        return prev;
+    }
+
+    /// <summary>
+    /// Restaura los filtros de nivel/encantamiento previos al cerrar el diálogo de búsqueda.
+    /// </summary>
+    public void RestoreDefaultFilters(FilterOptionM prevLevel, FilterOptionM prevEnchantment)
+    {
+        SelectedLevel       = prevLevel;
+        SelectedEnchantment = prevEnchantment;
+    }
 
     // ── Árbol de categorías (estado UI) ───────────────────────────────────────
 
@@ -199,7 +250,8 @@ public sealed partial class MarketVm : ObservableObject
                 EnchantmentFilter: SelectedEnchantment.Value,
                 MinCategoryValue: SelectedCategory?.MinValue,
                 MaxCategoryValue: SelectedCategory?.MaxValue,
-                MaxResults: MaxDisplayedItems);
+                MaxResults: MaxDisplayedItems,
+                SlotTypeFilter: _slotTypeFilter);
 
             // Stream: el use case prepara y ordena en background, luego emite cada
             // hit a medida que se proyecta. Acumulamos en lotes pequeños y volcamos

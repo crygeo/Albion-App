@@ -1,5 +1,6 @@
 using Albion_App.Dialog;
 using Albion_App.Features.DataStatic;
+using AlbionApp.Domain.ItemSearch;
 using CommunityToolkit.Mvvm.Input;
 using Utilidades.Dialogs;
 using ItemBaseVm = Albion_App.Components.Item.ItemBaseVm;
@@ -21,8 +22,19 @@ public sealed class ItemSearchDialogService : IItemSearchService
     public ItemSearchDialogService(ItemSearchVM itemSearchVm)
         => _itemSearchVm = itemSearchVm;
 
-    public async Task<ItemBaseVm?> SearchAsync()
+    public async Task<ItemBaseVm?> SearchAsync(
+        SlotType? slotTypeFilter     = null,
+        int?      defaultTier        = null,
+        int?      defaultEnchantment = null)
     {
+        // Aplicar filtro de slot ANTES de mostrar el diálogo.
+        _itemSearchVm.Market.SetSlotTypeFilter(slotTypeFilter);
+
+        // Aplicar nivel/encantamiento por defecto y guardar los valores previos
+        // para restaurarlos al cerrar (no afectar otros usos del diálogo).
+        var (prevLevel, prevEnchant) =
+            _itemSearchVm.Market.ApplyDefaultFilters(defaultTier, defaultEnchantment);
+
         ItemBaseVm? selected = null;
 
         var dialog = new ItemSearchDialogV(_itemSearchVm)
@@ -37,6 +49,11 @@ public sealed class ItemSearchDialogService : IItemSearchService
         };
 
         await DialogService.Instance.MostrarDialogo(dialog);
+
+        // Limpiar filtro de slot y restaurar nivel/encantamiento al cerrar.
+        _itemSearchVm.Market.SetSlotTypeFilter(null);
+        _itemSearchVm.Market.RestoreDefaultFilters(prevLevel, prevEnchant);
+
         return selected;
     }
 

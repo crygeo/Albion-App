@@ -6,3 +6,15 @@ riderModule.iml
 .idea/
 .claude/
 graphify-out/
+docs/
+.vs/
+.claude/
+.codex/
+.git/
+.graphify_incremental.json
+.graphify_python
+AGENTS.md
+CLAUDE.md
+find_divider.py
+fix_divider.py
+global.json

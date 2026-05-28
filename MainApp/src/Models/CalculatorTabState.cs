@@ -12,6 +12,9 @@ public sealed class CalculatorTabState
     /// <summary>Cantidad a fabricar configurada por el usuario.</summary>
     public int Quantity { get; set; } = 1;
 
+    /// <summary>Si el jugador tenía "Usar Foco" activado.</summary>
+    public bool UseFocus { get; set; }
+
     /// <summary>
     /// Título visible en la pestaña.
     /// Se almacena para mostrarlo durante la restauración antes de que el ítem cargue.

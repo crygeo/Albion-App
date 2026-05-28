@@ -39,4 +39,12 @@ public sealed class MaterialResultM
 
     /// <summary>True si hay precio de mercado registrado para este ítem.</summary>
     public bool HasPrice => UnitPrice > 0;
+
+    /// <summary>
+    /// Ingredientes que sobran al finalizar todos los crafts
+    /// (owned + comprado − consumo neto). Cero cuando no hay excedente.
+    /// </summary>
+    public int Surplus { get; init; }
+
+    public bool HasSurplus => Surplus > 0;
 }

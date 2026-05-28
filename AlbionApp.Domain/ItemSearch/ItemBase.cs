@@ -24,7 +24,9 @@ public sealed record ItemBase(
     int     CategoryValue,
     string? CraftingCategory,
     string? NodeType,
-    bool    IsCraftable,
+    bool     IsCraftable,
+    SlotType SlotType,
+    bool     IsTwoHanded,
     IReadOnlyDictionary<string, string> RawAttributes)
     : IItemBase
 {

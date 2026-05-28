@@ -17,7 +17,7 @@
                 <Setter Property="Background"
                         Value="{DynamicResource MaterialDesign.Brush.CardBackground}" />
                 <Setter Property="BorderBrush"
-                        Value="{DynamicResource MaterialDesign.Brush.Divider}" />
+                        Value="{DynamicResource MaterialDesign.Brush.Separator}" />
                 <Setter Property="BorderThickness" Value="1" />
                 <Style.Triggers>
                     <DataTrigger
@@ -33,7 +33,7 @@
                                                                    RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
                         Value="True">
                         <Setter Property="Background"
-                                Value="{DynamicResource MaterialDesign.Brush.Divider}" />
+                                Value="{DynamicResource MaterialDesign.Brush.Separator}" />
                     </DataTrigger>
                 </Style.Triggers>
             </Style>

@@ -6,7 +6,11 @@ public sealed class PlayerAchievement
 {
     public int Index { get; init; }
     public string Id { get; init; } = null!;
-    public string? NameLocalization { get; init; }
+    public string? TitleLocalizationKey { get; init; }
+
+    /// <summary>Compatibilidad temporal: usar <see cref="TitleLocalizationKey"/>.</summary>
+    [Obsolete("Use TitleLocalizationKey.")]
+    public string? NameLocalization => TitleLocalizationKey;
 
     /// <summary>
     /// Nivel máximo, copiado del dominio en build time.

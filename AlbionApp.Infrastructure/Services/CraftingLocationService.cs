@@ -100,18 +100,25 @@ public sealed class CraftingLocationService : ServiceBase, ICraftingLocationServ
         foreach (var cluster in clusters)
             clusterById[cluster.ClusterId] = cluster;
 
-        // Las ciudades son exactamente los clusterids con entrada directa en craftingmodifiers
+        // Iterar sobre TODOS los clusters y usar GetModifiers para resolver el bonus.
+        // Esto incluye:
+        //   • Ciudades principales (ByClusterId) — Lymhurst, Caerleon, etc.
+        //   • Zonas de Outlands (ByGroup via continent+biome+quality)
+        // Clusters sin bonus (RED, YELLOW, ROADS sin entrada, islas…) quedan excluidos.
         var cities = new List<CraftingCityData>();
 
-        foreach (var (clusterId, location) in modifiers.ByClusterId)
+        foreach (var cluster in clusters)
         {
-            // Ignorar el clusterid "0000" u otros que no corresponden a ciudades reales
-            if (!clusterById.TryGetValue(clusterId, out var cluster))
-                continue;
+            var location = modifiers.GetModifiers(cluster);
+            if (location is null) continue;
+
+            // Excluir clusters de debug o sin nombre útil
+            if (string.IsNullOrWhiteSpace(cluster.DisplayName)) continue;
 
             cities.Add(new CraftingCityData(
                 ClusterId:     cluster.ClusterId,
                 Name:          ResolveName(cluster),
+                ClusterType:   cluster.Type,
                 RefiningBonus: location.RefiningBonus,
                 CraftingBonus: location.CraftingBonus,
                 Modifiers:     location.Modifiers
@@ -119,8 +126,10 @@ public sealed class CraftingLocationService : ServiceBase, ICraftingLocationServ
                     .ToList()));
         }
 
-        // Ordenar alfabéticamente para que el combobox sea predecible
-        _cities = [.. cities.OrderBy(c => c.Name)];
+        // Ordenar: ciudades conocidas primero (tienen clave de loca), luego el resto alfabético
+        _cities = [.. cities.OrderBy(c =>
+            ClusterLocaKeys.ContainsKey(c.ClusterId) ? 0 : 1)
+            .ThenBy(c => c.Name)];
 
         SetProgress(100);
         return Task.CompletedTask;

@@ -38,6 +38,12 @@ public interface ILocalizationService
     FrozenDictionary<string, SearchEntry[]> ItemSearchIndex { get; }
 
     /// <summary>
+    /// Índice de búsqueda del dominio Destiny Board/title achievements.
+    /// Claves con prefijo <c>@DESTINYBOARD_TITLE_</c>.
+    /// </summary>
+    FrozenDictionary<string, SearchEntry[]> DestinyboardSearchIndex { get; }
+
+    /// <summary>
     /// Notifica que el idioma activo cambió.
     /// Los VMs suscritos deben refrescar sus propiedades localizadas.
     /// </summary>
