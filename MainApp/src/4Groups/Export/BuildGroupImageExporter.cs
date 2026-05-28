@@ -29,6 +29,7 @@ public sealed class BuildGroupImageExporter
         foreach (var slot in group.Slots.OrderBy(s => s.SortOrder))
         {
             var build = slot.Build;
+            if (build is null) continue;
             var label = string.IsNullOrWhiteSpace(slot.Emoji)
                 ? build.Name
                 : $"{slot.Emoji}  {build.Name}";
@@ -74,16 +75,16 @@ public sealed class BuildGroupImageExporter
         control.Arrange(new Rect(control.DesiredSize));
         control.UpdateLayout();
 
-        var dpi    = VisualTreeHelper.GetDpi(Application.Current.MainWindow);
-        var width  = (int)Math.Ceiling(control.ActualWidth);
-        var height = (int)Math.Ceiling(control.ActualHeight);
+        // DesiredSize is reliable off-screen; ActualWidth/Height may remain 0.
+        var width  = (int)Math.Ceiling(Math.Max(control.DesiredSize.Width,  1));
+        var height = (int)Math.Ceiling(Math.Max(control.DesiredSize.Height, 1));
 
-        var rtb = new RenderTargetBitmap(
-            width, height,
-            dpi.PixelsPerInchX,
-            dpi.PixelsPerInchY,
-            PixelFormats.Pbgra32);
+        // Get screen DPI; fall back to 96 if MainWindow has no PresentationSource yet.
+        var source = PresentationSource.FromVisual(Application.Current.MainWindow);
+        var dpiX   = source?.CompositionTarget?.TransformToDevice.M11 * 96.0 ?? 96.0;
+        var dpiY   = source?.CompositionTarget?.TransformToDevice.M22 * 96.0 ?? 96.0;
 
+        var rtb = new RenderTargetBitmap(width, height, dpiX, dpiY, PixelFormats.Pbgra32);
         rtb.Render(control);
         rtb.Freeze();
         return rtb;
