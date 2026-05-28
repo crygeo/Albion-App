@@ -52,9 +52,11 @@
                         </TextBlock>
                     </StackPanel>
 
-                    <!-- Badge ciudad + badge retorno -->
+                    <!-- Badges: ciudad · retorno · hideout · foco -->
                     <StackPanel Grid.Column="2" VerticalAlignment="Center"
                                 HorizontalAlignment="Right">
+
+                        <!-- Ciudad -->
                         <Border CornerRadius="4"
                                 Background="#22000000"
                                 Padding="8 3" Margin="0 0 0 4"
@@ -68,9 +70,11 @@
                                            FontSize="11" FontWeight="SemiBold" Foreground="White"/>
                             </StackPanel>
                         </Border>
+
+                        <!-- Retorno -->
                         <Border CornerRadius="4"
                                 Background="#22000000"
-                                Padding="8 3"
+                                Padding="8 3" Margin="0 0 0 4"
                                 HorizontalAlignment="Right"
                                 Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}">
                             <StackPanel Orientation="Horizontal">
@@ -81,6 +85,41 @@
                                            FontSize="11" FontWeight="SemiBold" Foreground="White"/>
                             </StackPanel>
                         </Border>
+
+                        <!-- Hideout -->
+                        <Border CornerRadius="4"
+                                Background="#1A6B3A"
+                                Padding="8 3" Margin="0 0 0 4"
+                                HorizontalAlignment="Right"
+                                Visibility="{Binding HasHideoutBadge, Converter={StaticResource BoolToVis}}">
+                            <StackPanel Orientation="Horizontal">
+                                <md:PackIcon Kind="HomeAlert" Width="12" Height="12"
+                                             Foreground="White"
+                                             VerticalAlignment="Center" Margin="0 0 5 0"/>
+                                <TextBlock Text="{Binding HideoutBonusLabel}"
+                                           FontSize="11" FontWeight="SemiBold" Foreground="White"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Foco -->
+                        <Border CornerRadius="4"
+                                Background="#22000000"
+                                Padding="8 3"
+                                HorizontalAlignment="Right"
+                                Visibility="{Binding HasFocusCost, Converter={StaticResource BoolToVis}}">
+                            <StackPanel Orientation="Horizontal">
+                                <md:PackIcon Kind="FocusAuto" Width="12" Height="12"
+                                             Foreground="White"
+                                             VerticalAlignment="Center" Margin="0 0 5 0"/>
+                                <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="White">
+                                    <Run Text="{Binding FocusPerCraftLabel, Mode=OneWay}"/>
+                                    <Run Text="/craft · "/>
+                                    <Run Text="{Binding TotalFocusCostLabel, Mode=OneWay}"/>
+                                    <Run Text=" total"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
                     </StackPanel>
                 </Grid>
             </Border>
@@ -102,7 +141,7 @@
                                     Background="#252B38">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="46"/>   <!-- Ícono -->
+                                        <ColumnDefinition Width="60"/>   <!-- Ícono -->
                                         <ColumnDefinition Width="*"/>    <!-- Nombre + loc -->
                                         <ColumnDefinition Width="75"/>   <!-- Qty -->
                                         <ColumnDefinition Width="95"/>   <!-- Total -->
