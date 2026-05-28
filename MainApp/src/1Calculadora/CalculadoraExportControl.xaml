@@ -181,9 +181,9 @@
                         <TextBlock FontSize="10" Foreground="#4A6080"
                                    Margin="0 2 0 0"
                                    Visibility="{Binding HasSelectedCity, Converter={StaticResource BoolToVis}}">
-                            <Run Text="{Binding SelectedCityOption.DisplayText}"/>
+                            <Run Text="{Binding SelectedCityOption.DisplayText, Mode=OneWay}"/>
                             <Run Text=" · "/>
-                            <Run Text="{Binding ReturnRateLabel}"/>
+                            <Run Text="{Binding ReturnRateLabel, Mode=OneWay}"/>
                             <Run Text=" retorno"/>
                         </TextBlock>
                     </StackPanel>
