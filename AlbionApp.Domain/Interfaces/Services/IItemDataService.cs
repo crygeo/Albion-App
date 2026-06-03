@@ -1,7 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
+using AlbionApp.Domain.Crafting;
 using AlbionApp.Domain.ItemSearch;
 
-namespace AlbionApp.Domain.Interfaces;
+namespace AlbionApp.Domain.Interfaces.Services;
 
 /// <summary>
 /// Contrato del catálogo de ítems de Albion Online.
@@ -50,9 +51,25 @@ public interface IItemDataService
     IReadOnlyList<ItemBase> GetItemsByBaseIds(IReadOnlyList<string> baseItemIds);
 
     /// <summary>
+    /// Resuelve el índice posicional que envía la red (CharacterEquipmentChanged,
+    /// HealthUpdate, etc.) al <see cref="ItemBase"/> correspondiente.
+    /// El índice es 1-based, orden XML, excluyendo &lt;shopcategories&gt;,
+    /// variantes de encantamiento incluidas en la secuencia.
+    /// Retorna <c>null</c> si el índice es 0, negativo o no existe.
+    /// </summary>
+    ItemBase? GetByIndex(int index);
+
+    /// <summary>
     /// Retorna las recetas de crafteo del ítem indicado.
     /// Array vacío si el ítem no es crafteable o no existe en catálogo.
     /// Nunca retorna null.
     /// </summary>
     IRecipe[] GetRecipes(string itemId);
+
+    /// <summary>
+    /// Retorna el libro de laborer que se llena al craftear el ítem indicado,
+    /// o null si el ítem no aparece en ningún craftitemfame journal.
+    /// Acepta IDs con encantamiento (@N) — los normaliza automáticamente.
+    /// </summary>
+    JournalItem? GetJournalForItem(string itemId);
 }

@@ -10,6 +10,8 @@ using AlbionApp.Application.UseCases.Player;
 using AlbionApp.Domain.Crafting;
 using AlbionApp.Domain.Interfaces;
 using AlbionApp.Domain.Interfaces.Services;
+using AlbionApp.Domain.ItemSearch;
+using LibServices.AppConfig;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MaterialDesignThemes.Wpf;
@@ -46,12 +48,16 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     private readonly ILocalizationService          _localization;
     private readonly ICraftingLocationService      _craftingLocations;
     private readonly CalculateCraftingCostUseCase  _calculateCrafting;
+    private readonly AppConfigService              _appConfig;
 
     // Bonuses raw del ítem: fuente para achievement focus y return rate.
     private IReadOnlyList<AggregatedBonus> _rawItemBonuses = [];
 
     // CancellationTokenSource para imágenes de ingredientes en vuelo.
     private CancellationTokenSource? _ingredientCts;
+
+    // Recetas raw del ítem seleccionado — para cálculo de fama e índice por RecipeIndex.
+    private IRecipe[] _rawRecipes = [];
 
     // ═══════════════════════════════════════════════════════════════════════════
     // NAVEGACIÓN (sidebar)
@@ -206,6 +212,23 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     public ObservableCollection<IngredientInventoryM> IngredientInventory { get; } = [];
     public bool HasIngredientInventory => IngredientInventory.Count > 0;
 
+    /// <summary>Fila del ítem a craftear (precio de venta).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasCraftItemRow))]
+    [NotifyPropertyChangedFor(nameof(ProfitLoss))]
+    [NotifyPropertyChangedFor(nameof(IsProfitable))]
+    [NotifyPropertyChangedFor(nameof(CraftedItemTotalValue))]
+    private CraftItemRowM? _craftItemRow;
+
+    public bool HasCraftItemRow => CraftItemRow is not null;
+
+    /// <summary>Fila del libro de laborer (si el ítem genera fama para libro).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasJournal))]
+    private JournalRowM? _journalRow;
+
+    public bool HasJournal => JournalRow is not null;
+
     // ═══════════════════════════════════════════════════════════════════════════
     // CARD 4 — Resultados
     // ═══════════════════════════════════════════════════════════════════════════
@@ -247,6 +270,42 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     public string FocusPerCraftLabel  => FocusPerCraft  is int f ? f.ToString("N0") : "—";
     public string TotalFocusCostLabel => TotalFocusCost is int t ? t.ToString("N0") : "—";
 
+    // ── Sobrantes (materiales retornados) ─────────────────────────────────────
+
+    [ObservableProperty] private decimal _totalReturnedValue;
+
+    // ── Fama ─────────────────────────────────────────────────────────────────
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasFame))]
+    private double _totalFameBase;
+
+    [ObservableProperty] private double _totalFamePremium;
+
+    public bool HasFame => TotalFameBase > 0;
+
+    // ── Rentabilidad ─────────────────────────────────────────────────────────
+
+    /// <summary>Valor total de los ítems crafteados = precio × cantidad.</summary>
+    public decimal CraftedItemTotalValue =>
+        (CraftItemRow?.UnitPrice ?? 0m) * QuantityToCraft;
+
+    /// <summary>
+    /// Inversión total = costo BRUTO de materiales + libros vacíos comprados.
+    /// </summary>
+    public decimal TotalInvestment => TotalCost + TotalReturnedValue + (JournalRow?.TotalEmptyValue ?? 0m);
+
+    /// <summary>
+    /// Lo que gano = venta de ítems + materiales retornados + libros llenos vendidos.
+    /// </summary>
+    public decimal TotalGain =>
+        CraftedItemTotalValue + TotalReturnedValue + (JournalRow?.TotalFullValue ?? 0m);
+
+    /// <summary>Ganancia neta = lo que gano − lo que invertí (en bruto).</summary>
+    public decimal ProfitLoss => TotalGain - TotalInvestment;
+
+    public bool IsProfitable => ProfitLoss > 0;
+
     // ═══════════════════════════════════════════════════════════════════════════
     // CONSTRUCTOR
     // ═══════════════════════════════════════════════════════════════════════════
@@ -257,7 +316,8 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         ProcessPlayerUseCase          processPlayer,
         ILocalizationService          localization,
         ICraftingLocationService      craftingLocations,
-        CalculateCraftingCostUseCase  calculateCrafting)
+        CalculateCraftingCostUseCase  calculateCrafting,
+        AppConfigService              appConfig)
     {
         _itemSearch        = itemSearch;
         _itemDataService   = itemDataService;
@@ -265,11 +325,9 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         _localization      = localization;
         _craftingLocations = craftingLocations;
         _calculateCrafting = calculateCrafting;
+        _appConfig         = appConfig;
 
-        SelectedJournalBonus = JournalBonusOptions[0];
-        ResetCiudades();
-
-        // Suscripciones a colecciones: un handler por colección, nombre explícito.
+        // Suscripciones a colecciones
         RecipeOptions.CollectionChanged      += OnRecipeCollectionChanged;
         IngredientInventory.CollectionChanged += OnIngredientCollectionChanged;
         MaterialResults.CollectionChanged    += (_, _) =>
@@ -278,6 +336,9 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
             OnPropertyChanged(nameof(HasHideoutBadge));
             ExportarPngCommand.NotifyCanExecuteChanged();
         };
+
+        LoadSettings();
+        ResetCiudades();
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -314,6 +375,7 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
 
         SelectedItem = null;
         _rawItemBonuses = [];
+        _rawRecipes = [];
         ItemBonuses = [];
 
         ClearCalculationState();
@@ -323,7 +385,12 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         RecipeIndex = 0;
         IngredientInventory.Clear();
         MaterialResults.Clear();
+        CraftItemRow = null;
+        JournalRow = null;
         TotalCost = 0;
+        TotalReturnedValue = 0;
+        TotalFameBase = 0;
+        TotalFamePremium = 0;
     }
 
     /// <summary>Navega a la receta anterior (wrap-around).</summary>
@@ -363,24 +430,49 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     /// <summary>Cuando cambia la cantidad objetivo, reconstruye el inventario y recalcula.</summary>
     partial void OnQuantityToCraftChanged(int value) => RebuildIngredientInventory();
 
-    /// <summary>Cuando cambia la ciudad, recalcula.</summary>
-    partial void OnSelectedCityOptionChanged(CraftingCityOption? value) => Recalculate();
+    /// <summary>Cuando cambia la ciudad, recalcula y guarda.</summary>
+    partial void OnSelectedCityOptionChanged(CraftingCityOption? value) { Recalculate(); SaveSettings(); }
 
-    /// <summary>Cuando cambia el bono de diario, recalcula.</summary>
-    partial void OnSelectedJournalBonusChanged(JournalBonusOptionM? value) => Recalculate();
+    /// <summary>Cuando cambia el bono de diario, recalcula y guarda.</summary>
+    partial void OnSelectedJournalBonusChanged(JournalBonusOptionM? value) { Recalculate(); SaveSettings(); }
 
-    /// <summary>Cuando cambia el nivel del hideout, recalcula.</summary>
-    partial void OnSelectedHideoutLevelChanged(HideoutPowerlevel value) => Recalculate();
+    /// <summary>Cuando cambia el nivel del hideout, recalcula y guarda.</summary>
+    partial void OnSelectedHideoutLevelChanged(HideoutPowerlevel value) { Recalculate(); SaveSettings(); }
 
-    /// <summary>Cuando cambia el modo generalista/especialista, recalcula.</summary>
-    partial void OnUseSpecialistBonusChanged(bool value) => Recalculate();
+    /// <summary>Cuando cambia el modo generalista/especialista, recalcula y guarda.</summary>
+    partial void OnUseSpecialistBonusChanged(bool value) { Recalculate(); SaveSettings(); }
 
-    /// <summary>Cuando cambia el uso de foco, notifica HasFocusCost y recalcula.</summary>
+    /// <summary>Cuando cambia el uso de foco, notifica HasFocusCost, recalcula y guarda.</summary>
     partial void OnUseFocusChanged(bool value)
     {
         OnPropertyChanged(nameof(HasFocusCost));
         Recalculate();
+        SaveSettings();
     }
+
+    /// <summary>Cuando cambia premium, re-notifica fama y guarda.</summary>
+    partial void OnUsePremiumChanged(bool value)
+    {
+        OnPropertyChanged(nameof(TotalFamePremium));
+        SaveSettings();
+    }
+
+    /// <summary>Cuando cambia el precio del ítem crafteado, re-notifica rentabilidad.</summary>
+    partial void OnCraftItemRowChanged(CraftItemRowM? value)
+    {
+        if (value is not null)
+            value.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(CraftItemRowM.UnitPrice))
+                {
+                    OnPropertyChanged(nameof(CraftedItemTotalValue));
+                    OnPropertyChanged(nameof(TotalGain));
+                    OnPropertyChanged(nameof(ProfitLoss));
+                    OnPropertyChanged(nameof(IsProfitable));
+                }
+            };
+    }
+
 
     // ═══════════════════════════════════════════════════════════════════════════
     // FLUJO DE SELECCIÓN DE ÍTEM
@@ -413,6 +505,7 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         RecipeIndex = 0;
 
         var rawRecipes = _itemDataService.GetRecipes(itemVm.ItemId);
+        _rawRecipes = rawRecipes;
         if (rawRecipes.Length == 0) return;
 
         _ingredientCts = new CancellationTokenSource();
@@ -484,8 +577,12 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
             .ThenBy(o => o.Name)
             .ToList();
 
-        // Auto-selecciona la ciudad con mayor bonus para este ítem
-        SelectedCityOption = AvailableCities.FirstOrDefault();
+        // Restaurar ciudad guardada si existe, si no la de mayor bonus
+        SelectedCityOption = (_pendingCityClusterId is not null
+            ? AvailableCities.FirstOrDefault(c => c.ClusterId == _pendingCityClusterId)
+            : null) ?? AvailableCities.FirstOrDefault();
+
+        _pendingCityClusterId = null;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -498,14 +595,16 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     /// </summary>
     private void RebuildIngredientInventory()
     {
-        var previousStock = IngredientInventory
-            .ToDictionary(i => i.ItemId, i => (i.OwnedCount, i.UnitPrice));
+        var previousPrices = IngredientInventory
+            .ToDictionary(i => i.ItemId, i => i.UnitPrice);
 
         IngredientInventory.Clear();
 
         if (CurrentRecipe is null) return;
 
         int qty = Math.Max(1, QuantityToCraft);
+
+        var savedPrices = _appConfig.Calculator.IngredientPrices;
 
         foreach (var ingredient in CurrentRecipe.Ingredients)
         {
@@ -515,16 +614,119 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
                 RequiredCount = ingredient.Count * qty
             };
 
-            if (previousStock.TryGetValue(ingredient.ItemId, out var prev))
+            // Prioridad: precio editado en esta sesión > precio guardado en disco
+            if (previousPrices.TryGetValue(ingredient.ItemId, out var sessionPrice))
+                row.UnitPrice = sessionPrice;
+            else if (savedPrices.TryGetValue(ingredient.ItemId, out var persistedPrice))
+                row.UnitPrice = persistedPrice;
+
+            // Guardar en disco cuando el usuario edite el precio
+            row.PropertyChanged += (_, e) =>
             {
-                row.OwnedCount = prev.OwnedCount;
-                row.UnitPrice  = prev.UnitPrice;
-            }
+                if (e.PropertyName == nameof(IngredientInventoryM.UnitPrice))
+                    SaveIngredientPrice(row.ItemId, row.UnitPrice);
+            };
 
             IngredientInventory.Add(row);
         }
 
+        // CraftItemRow: precio de sesión → precio guardado → 0
+        if (SelectedItem is not null)
+        {
+            var prevCraftPrice = CraftItemRow?.UnitPrice
+                ?? _appConfig.Calculator.CraftItemPrices.GetValueOrDefault(SelectedItem.ItemId);
+
+            var ct = _ingredientCts?.Token ?? CancellationToken.None;
+            var craftRow = new CraftItemRowM
+            {
+                Item      = BuildIngredientVm(SelectedItem.ItemId, ct),
+                UnitPrice = prevCraftPrice
+            };
+
+            craftRow.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(CraftItemRowM.UnitPrice))
+                    SaveCraftItemPrice(SelectedItem.ItemId, craftRow.UnitPrice);
+            };
+
+            CraftItemRow = craftRow;
+        }
+
+        // JournalRow: calcular libro y fama base
+        RebuildJournalRow();
+
         Recalculate();
+    }
+
+    private void RebuildJournalRow()
+    {
+        if (SelectedItem is null || _rawRecipes.Length == 0)
+        {
+            JournalRow = null;
+            return;
+        }
+
+        var journal = _itemDataService.GetJournalForItem(SelectedItem.ItemId);
+        if (journal is null)
+        {
+            JournalRow = null;
+            return;
+        }
+
+        var recipeIndex  = Math.Min(RecipeIndex, _rawRecipes.Length - 1);
+        var rawRecipe    = _rawRecipes[recipeIndex];
+        var itemBase     = _itemDataService.GetById(SelectedItem.ItemId);
+        var isRefining   = itemBase?.RawAttributes
+                               .TryGetValue("shopsubcategory1", out var sub) == true
+                           && sub == "refinedresources";
+
+        double fameBase;
+        if (isRefining && itemBase?.Tier is int tier)
+        {
+            fameBase = FameCalculator.CalculateRefiningFame(tier, itemBase.EnchantmentLevel, premium: false);
+        }
+        else
+        {
+            var artifactType = FameCalculator.ResolveArtifactType(rawRecipe.Ingredients, _itemDataService);
+            fameBase = FameCalculator.CalculateCraftFame(rawRecipe.Ingredients, artifactType, premium: false);
+        }
+
+        int cycles         = rawRecipe.AmountCrafted > 1
+                                 ? (int)Math.Ceiling((double)QuantityToCraft / rawRecipe.AmountCrafted)
+                                 : QuantityToCraft;
+        double totalFame   = fameBase * cycles;
+        int booksNeeded    = (int)Math.Ceiling(totalFame / journal.MaxFame);
+        int booksCompleted = (int)Math.Floor(totalFame / journal.MaxFame);
+
+        var savedJournal = _appConfig.Calculator.JournalPrices.GetValueOrDefault(journal.UniqueName);
+        var prevFull  = JournalRow?.FullPrice  ?? savedJournal?.FullPrice  ?? 0m;
+        var prevEmpty = JournalRow?.EmptyPrice ?? savedJournal?.EmptyPrice ?? 0m;
+
+        var ct = _ingredientCts?.Token ?? CancellationToken.None;
+        var journalRow = new JournalRowM
+        {
+            Journal        = journal,
+            JournalVm      = BuildIngredientVm(journal.UniqueName, ct),
+            BooksNeeded    = booksNeeded,
+            BooksCompleted = booksCompleted,
+            FullPrice      = prevFull,
+            EmptyPrice     = prevEmpty
+        };
+
+        journalRow.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(JournalRowM.FullPrice) or nameof(JournalRowM.EmptyPrice))
+                SaveJournalPrices(journal.UniqueName, journalRow.FullPrice, journalRow.EmptyPrice);
+        };
+
+        JournalRow = journalRow;
+
+        // Fama total
+        TotalFameBase    = fameBase * cycles;
+        TotalFamePremium = FameCalculator.CalculateCraftFame(
+            rawRecipe.Ingredients,
+            FameCalculator.ResolveArtifactType(rawRecipe.Ingredients, _itemDataService),
+            premium: true) * cycles;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -576,7 +778,7 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
                                          : 0m,
             AchievementBonuses = _rawItemBonuses,
             OwnedStock         = IngredientInventory
-                .Select(i => new IngredientStock(i.ItemId, i.OwnedCount, i.UnitPrice))
+                .Select(i => new IngredientStock(i.ItemId, 0, i.UnitPrice))
                 .ToList()
         };
     }
@@ -603,15 +805,23 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
 
             MaterialResults.Add(new MaterialResultM
             {
-                Item        = ingredientVm.Item,
-                NetQuantity = line.NetToBuy,
-                Surplus     = line.Surplus,
-                BuyLocation = line.BuyLocation,
-                UnitPrice   = line.UnitPrice
+                Item             = ingredientVm.Item,
+                GrossQuantity    = line.GrossQuantity,
+                NetQuantity      = line.NetToBuy,
+                ReturnedQuantity = line.ReturnedQuantity,
+                BuyLocation      = line.BuyLocation,
+                UnitPrice        = line.UnitPrice
             });
         }
 
-        TotalCost = result.TotalCost;
+        TotalCost          = result.TotalCost;
+        TotalReturnedValue = result.Lines.Sum(l => l.ReturnedValue);
+
+        OnPropertyChanged(nameof(CraftedItemTotalValue));
+        OnPropertyChanged(nameof(TotalInvestment));
+        OnPropertyChanged(nameof(TotalGain));
+        OnPropertyChanged(nameof(ProfitLoss));
+        OnPropertyChanged(nameof(IsProfitable));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -677,11 +887,10 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
                 item.PropertyChanged -= OnIngredientPropertyChanged;
     }
 
-    /// <summary>Recalcula cuando el usuario edita OwnedCount o UnitPrice.</summary>
+    /// <summary>Recalcula cuando el usuario edita UnitPrice de un ingrediente.</summary>
     private void OnIngredientPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(IngredientInventoryM.OwnedCount)
-                           or nameof(IngredientInventoryM.UnitPrice))
+        if (e.PropertyName is nameof(IngredientInventoryM.UnitPrice))
             Recalculate();
     }
 
@@ -692,6 +901,68 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     /// <summary>Delega la construcción del VM de ingrediente en el servicio de búsqueda.</summary>
     private ItemBaseVm BuildIngredientVm(string itemId, CancellationToken ct)
         => _itemSearch.BuildItemVm(itemId, ct);
+
+    // ── Persistencia de settings ──────────────────────────────────────────────
+
+    private void LoadSettings()
+    {
+        var s = _appConfig.Calculator;
+
+        UsePremium         = s.UsePremium;
+        UseFocus           = s.UseFocus;
+        UseSpecialistBonus = s.UseSpecialistBonus;
+
+        var journalOpt = JournalBonusOptions.FirstOrDefault(o => o.Value == s.JournalBonusValue)
+                         ?? JournalBonusOptions[0];
+        SelectedJournalBonus = journalOpt;
+
+        var hideout = HideoutPowerlevel.ForLevel(Math.Clamp(s.HideoutLevel, 1, 9));
+        SelectedHideoutLevel = hideout;
+
+        // La ciudad se restaura después de conocer el ítem (en UpdateCitiesForItem),
+        // pero guardamos el clusterId para recuperarlo cuando se carguen las ciudades.
+        _pendingCityClusterId = s.LastCityClusterId;
+    }
+
+    /// <summary>Persiste todos los settings de la calculadora.</summary>
+    private void SaveSettings()
+    {
+        var s = _appConfig.Calculator;
+
+        s.UsePremium         = UsePremium;
+        s.UseFocus           = UseFocus;
+        s.UseSpecialistBonus = UseSpecialistBonus;
+        s.HideoutLevel       = SelectedHideoutLevel.Level;
+        s.JournalBonusValue  = SelectedJournalBonus?.Value ?? 0m;
+        s.LastCityClusterId  = SelectedCityOption?.ClusterId;
+
+        _appConfig.SaveCalculator();
+    }
+
+    private void SaveIngredientPrice(string itemId, decimal price)
+    {
+        _appConfig.Calculator.IngredientPrices[itemId] = price;
+        _appConfig.SaveCalculator();
+    }
+
+    private void SaveCraftItemPrice(string itemId, decimal price)
+    {
+        _appConfig.Calculator.CraftItemPrices[itemId] = price;
+        _appConfig.SaveCalculator();
+    }
+
+    private void SaveJournalPrices(string journalName, decimal full, decimal empty)
+    {
+        _appConfig.Calculator.JournalPrices[journalName] = new JournalPricePair
+        {
+            FullPrice  = full,
+            EmptyPrice = empty
+        };
+        _appConfig.SaveCalculator();
+    }
+
+    /// <summary>ClusterId de la ciudad a restaurar una vez que se carguen las ciudades.</summary>
+    private string? _pendingCityClusterId;
 
     private void CancelIngredientImageLoads()
     {

@@ -5,7 +5,7 @@ using Albion_App.Features.DataStatic;
 using Albion_App.Models;
 using AlbionApp.Infrastructure.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
-using LibAlbionProtocol.PacketModels;
+using LibEvents.Entities;
 using CommunityToolkit.Mvvm.Input;
 using LibServices.PlayerState;
 using MaterialDesignThemes.Wpf;
@@ -83,12 +83,12 @@ public partial class PlayerVm : ObservableObject, ISectionIcons
 
     // ── Update desde JoinHandler (hilo de red → UI thread) ───────────────────
 
-    public void UpdateFromJoin(JoinModel model)
+    public void UpdateFromJoin(Player player)
     {
         Application.Current.Dispatcher.InvokeAsync(() =>
         {
-            PlayerName = model.PlayerName;
-            GuildName  = model.GuildName;
+            PlayerName = player.Username;
+            GuildName  = player.GuildName;
         });
     }
 

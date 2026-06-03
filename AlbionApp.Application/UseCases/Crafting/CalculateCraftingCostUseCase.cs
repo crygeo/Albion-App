@@ -159,30 +159,14 @@ public sealed class CalculateCraftingCostUseCase
             int gross    = ingredient.Count * qty;
             int returned = ingredient.ParticipatesInReturn ? (int)Math.Floor(gross * rrr) : 0;
             int net      = gross - returned;
-            int owned    = stock?.OwnedCount ?? 0;
-
-            // Cantidad amortizada a largo plazo
-            int calcNet  = Math.Max(0, net - owned);
-
-            // Mínimo físico: necesitas ingredient.Count para INICIAR al menos 1 batch.
-            // El retorno llega DESPUÉS del craft, no antes.
-            int minToBuy = Math.Max(0, ingredient.Count - owned);
-
-            // Cap: nunca superar el bruto disponible.
-            int netToBuy = Math.Min(
-                Math.Max(calcNet, minToBuy),
-                Math.Max(0, gross - owned));
-
-            // Sobra: lo que queda en mano al finalizar todos los crafts
-            // = lo que tenías (owned + comprado) − lo que realmente se consumió (net)
-            int surplus = Math.Max(0, owned + netToBuy - net);
 
             lines.Add(new MaterialCostLine(
-                ItemId:      ingredient.ItemId,
-                NetToBuy:    netToBuy,
-                Surplus:     surplus,
-                BuyLocation: request.City!.Name,
-                UnitPrice:   stock?.UnitPrice ?? 0m));
+                ItemId:           ingredient.ItemId,
+                GrossQuantity:    gross,
+                NetToBuy:         net,
+                ReturnedQuantity: returned,
+                BuyLocation:      request.City!.Name,
+                UnitPrice:        stock?.UnitPrice ?? 0m));
         }
 
         return lines;

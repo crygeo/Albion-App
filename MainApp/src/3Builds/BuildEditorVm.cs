@@ -2,6 +2,7 @@ using Albion_App.Components.Item;
 using Albion_App.Infrastructure;
 using AlbionApp.Application.UseCases.SearchItems;
 using AlbionApp.Domain.Interfaces;
+using AlbionApp.Domain.Interfaces.Services;
 using AlbionApp.Domain.ItemSearch;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;

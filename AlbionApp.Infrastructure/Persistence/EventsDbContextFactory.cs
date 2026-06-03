@@ -119,6 +119,33 @@ public static class EventsDbContextFactory
         if (ColumnExists(conn, "Builds", "Emoji"))
             db.Database.ExecuteSqlRaw("ALTER TABLE Builds DROP COLUMN Emoji");
 
+        // v9: tablas de snapshots de combate DPS por ronda InProgress
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS EventCombatSnapshots (
+                Id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                EventId   INTEGER NOT NULL,
+                StartedAt TEXT    NOT NULL,
+                TakenAt   TEXT    NOT NULL,
+                FOREIGN KEY (EventId) REFERENCES GuildEvents(Id) ON DELETE CASCADE
+            )
+            """);
+
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS EventCombatSnapshotEntries (
+                Id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                SnapshotId        INTEGER NOT NULL,
+                Username          TEXT    NOT NULL,
+                Damage            INTEGER NOT NULL DEFAULT 0,
+                Heal              INTEGER NOT NULL DEFAULT 0,
+                TakenDamage       INTEGER NOT NULL DEFAULT 0,
+                Overhealed        REAL    NOT NULL DEFAULT 0,
+                Dps               REAL    NOT NULL DEFAULT 0,
+                Hps               REAL    NOT NULL DEFAULT 0,
+                CombatTimeSeconds REAL    NOT NULL DEFAULT 0,
+                FOREIGN KEY (SnapshotId) REFERENCES EventCombatSnapshots(Id) ON DELETE CASCADE
+            )
+            """);
+
         // v7: state machine — remap Status int values and add timer/snapshot columns
         // Guard: only remap if InProgressStartedAt does not yet exist (first run of v7).
         if (!ColumnExists(conn, "GuildEvents", "InProgressStartedAt"))

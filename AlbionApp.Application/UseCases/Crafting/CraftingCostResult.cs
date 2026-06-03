@@ -44,10 +44,12 @@ public sealed record CraftingCostResult
 /// </summary>
 public sealed record MaterialCostLine(
     string  ItemId,
+    int     GrossQuantity,
     int     NetToBuy,
-    int     Surplus,
+    int     ReturnedQuantity,
     string  BuyLocation,
     decimal UnitPrice)
 {
-    public decimal TotalCost => NetToBuy * UnitPrice;
+    public decimal TotalCost     => NetToBuy * UnitPrice;
+    public decimal ReturnedValue => ReturnedQuantity * UnitPrice;
 }

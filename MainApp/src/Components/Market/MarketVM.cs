@@ -206,6 +206,15 @@ public sealed partial class MarketVm : ObservableObject
 
         _clipboardService.SetText(item.DisplayName);
     }
+
+    [RelayCommand]
+    private void CopyItemId(ItemBaseVm item)
+    {
+        if (string.IsNullOrWhiteSpace(item.ItemId))
+            return;
+
+        _clipboardService.SetText(item.ItemId);
+    }
     // ── Reacciones a cambios de filtro ────────────────────────────────────────
 
     partial void OnSearchTextChanged(string value) => TriggerSearch();

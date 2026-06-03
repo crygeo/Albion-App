@@ -546,7 +546,13 @@
                                     CommandParameter="{Binding SelectedEvent}"
                                     Content="Finalizar InProgress"
                                     Style="{StaticResource MaterialDesignRaisedButton}"
-                                    Background="#6A1B9A" BorderBrush="#6A1B9A"/>
+                                    Background="#6A1B9A" BorderBrush="#6A1B9A"
+                                    Margin="0 0 8 0"/>
+                            <Button Command="{Binding OpenDpsMeterCommand}"
+                                    Content="Ver Daño"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Foreground="#EF5350" BorderBrush="#EF5350"
+                                    Visibility="{Binding ShowDpsMeterButton, Converter={StaticResource BoolToVis}}"/>
                         </StackPanel>
 
                         <!-- ── Acciones: Paused ───────────────────────────────── -->
@@ -562,7 +568,13 @@
                                     CommandParameter="{Binding SelectedEvent}"
                                     Content="Finalizar InProgress"
                                     Style="{StaticResource MaterialDesignRaisedButton}"
-                                    Background="#6A1B9A" BorderBrush="#6A1B9A"/>
+                                    Background="#6A1B9A" BorderBrush="#6A1B9A"
+                                    Margin="0 0 8 0"/>
+                            <Button Command="{Binding OpenDpsMeterCommand}"
+                                    Content="Ver Daño"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Foreground="#EF5350" BorderBrush="#EF5350"
+                                    Visibility="{Binding ShowDpsMeterButton, Converter={StaticResource BoolToVis}}"/>
                         </StackPanel>
 
                         <!-- ── Acciones: Finished ─────────────────────────────── -->

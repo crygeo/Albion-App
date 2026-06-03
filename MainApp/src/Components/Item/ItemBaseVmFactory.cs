@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Albion_App.Interfaces;
 using AlbionApp.Application.UseCases.SearchItems;
 using AlbionApp.Domain.Interfaces;
+using AlbionApp.Domain.Interfaces.Services;
 using AlbionApp.Domain.ItemSearch;
 
 namespace Albion_App.Components.Item;

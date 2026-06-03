@@ -5,6 +5,7 @@ using Albion_App._3Builds;
 using Albion_App._4Groups;
 using Albion_App._4Groups.Export;
 using Albion_App._5Events;
+using Albion_App._6Damage;
 using Albion_App.Components.Achievement;
 using Albion_App.Components.Destinyboard;
 using Albion_App.Components.Item;
@@ -25,6 +26,9 @@ using Albion_App._0Config;
 using LibEvents.Discord;
 using LibEvents.Services;
 using Utilidades.Dialogs;
+using AlbionApp.Infrastructure.Services;
+using LibAlbionGame.Combat;
+using LibAlbionGame.Trackers;
 using LibNetWork.Interfaces;
 using LibNetWork.Models;
 using LibNetWork.Networking;
@@ -153,7 +157,11 @@ public partial class App : Application
 
         var eventEditorVm   = new EventEditorVm(buildService);
         var eventHistoryVm  = new EventHistoryVm(buildService);
-        var eventsVm        = new EventsVm(buildService, eventEditorVm, discordBot, config, eventHistoryVm);
+        var combatSession   = new CombatSession();
+        var itemResolver    = new ItemIndexResolverAdapter(itemDataService);
+        var partyTracker    = new PartyTracker(combatSession);
+        var dpsMeterVm      = new DpsMeterVm(combatSession, partyTracker.Party);
+        var eventsVm        = new EventsVm(buildService, eventEditorVm, discordBot, config, eventHistoryVm, combatSession, dpsMeterVm);
         await eventsVm.LoadAsync();
 
         // Reconectar Discord automáticamente si hay token guardado
@@ -175,7 +183,8 @@ public partial class App : Application
             processPlayerUseCase,
             localizationService,
             craftingLocationService,
-            calculateCraftingUseCase);
+            calculateCraftingUseCase,
+            config);
 
         var workspace = new WorkspaceVm(
             TabFactory,
@@ -184,21 +193,30 @@ public partial class App : Application
 
         await workspace.InitializeAsync();
 
-        // ── ViewModel principal ───────────────────────────────────────────────
-        var mainVm = new MainVm(configuracion, [player, workspace, buildsVm, groupsVm, eventsVm]);
-
         // ── Stack de red + debug packet logger ───────────────────────────────
-        var albionParser = new AlbionParser();
-        var eventHandler = new GenericEventHandler();
-        var requestHandler = new GenericRequestHandler();
+        var albionParser    = new AlbionParser();
+        var eventHandler    = new GenericEventHandler();
+        var requestHandler  = new GenericRequestHandler();
         var responseHandler = new GenericResponseHandler();
+
+        // ── Sección Damage ────────────────────────────────────────────────────
+        var damageVm = new DamageVm(combatSession, partyTracker, buildService, dpsMeterVm);
+
+        // Conectar ciclo de vida del evento con DamageVm
+        eventsVm.ActiveEventChanged += id => damageVm.SetActiveEvent(id);
+
+        // ── ViewModel principal ───────────────────────────────────────────────
+        // Damage va después de Player (índice 1)
+        var mainVm = new MainVm(configuracion, [player, damageVm, workspace, buildsVm, groupsVm, eventsVm]);
 
         new EventHandlerRegistry()
             .Add(new AchievementHandler(processPlayerUseCase, achievementService, playerState))
+            .Add(new PartyEventHandler(partyTracker, itemResolver))
+            .Add(new CombatEventHandler(combatSession))
             .RegisterAll(eventHandler);
 
         new ResponseHandlerRegistry()
-            .Add(new JoinHandler(player))
+            .Add(new PartyResponseHandler(partyTracker, player))
             .RegisterAll(responseHandler);
 
         new RequestHandlerRegistry()

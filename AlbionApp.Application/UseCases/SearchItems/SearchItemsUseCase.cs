@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using AlbionApp.Application.Search;
 using AlbionApp.Domain.Interfaces;
+using AlbionApp.Domain.Interfaces.Services;
 using AlbionApp.Domain.ItemSearch;
 using AlbionApp.Domain.Search;
 

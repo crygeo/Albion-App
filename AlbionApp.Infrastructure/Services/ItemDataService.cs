@@ -2,7 +2,9 @@ using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Xml.Linq;
+using AlbionApp.Domain.Crafting;
 using AlbionApp.Domain.Interfaces;
+using AlbionApp.Domain.Interfaces.Services;
 using AlbionApp.Domain.ItemSearch;
 using LibAlbionData;
 using LibAlbionData.Core;
@@ -40,6 +42,17 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
 
     private volatile FrozenDictionary<string, IRecipe[]> _recipes
         = FrozenDictionary<string, IRecipe[]>.Empty;
+
+    private volatile FrozenDictionary<string, JournalItem> _journalByItemId
+        = FrozenDictionary<string, JournalItem>.Empty;
+
+    /// <summary>
+    /// Índice posicional: int index (1-based, orden del XML, sin shopcategories,
+    /// variantes @N incluidas en la secuencia) → ItemBase.
+    /// Permite resolver el equipamiento live que llega de la red como int.
+    /// </summary>
+    private volatile FrozenDictionary<int, ItemBase> _byIndex
+        = FrozenDictionary<int, ItemBase>.Empty;
 
     public override string ServiceName => "ItemDataService";
 
@@ -79,6 +92,18 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
     {
         EnsureOn();
         return _items.TryGetValue(itemId, out item);
+    }
+
+    /// <summary>
+    /// Resuelve el índice posicional que manda la red (CharacterEquipmentChanged,
+    /// HealthUpdate, etc.) al <see cref="ItemBase"/> correspondiente.
+    /// Retorna <c>null</c> si el índice no existe (0, fuera de rango, slot vacío).
+    /// </summary>
+    public ItemBase? GetByIndex(int index)
+    {
+        if (index <= 0) return null;
+        EnsureOn();
+        return _byIndex.GetValueOrDefault(index);
     }
 
     /// <summary>
@@ -141,6 +166,18 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
         return _recipes.GetValueOrDefault(itemId) ?? [];
     }
 
+    /// <summary>
+    /// Retorna el libro de laborer que se llena al craftear el ítem indicado,
+    /// o null si el ítem no aparece en ningún craftitemfame journal.
+    /// Acepta IDs con encantamiento (@N) — los normaliza automáticamente.
+    /// </summary>
+    public JournalItem? GetJournalForItem(string itemId)
+    {
+        EnsureOn();
+        var baseId = StripEnchantmentSuffix(itemId);
+        return _journalByItemId.GetValueOrDefault(baseId);
+    }
+
     // ── AlbionServiceBase ─────────────────────────────────────────────────────
 
     protected override Task OnStartAsync(CancellationToken ct)
@@ -148,9 +185,11 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
 
     protected override Task OnStopAsync(CancellationToken ct)
     {
-        _items    = FrozenDictionary<string, ItemBase>.Empty;
-        _byBaseId = FrozenDictionary<string, ItemBase[]>.Empty;
-        _recipes  = FrozenDictionary<string, IRecipe[]>.Empty;
+        _items           = FrozenDictionary<string, ItemBase>.Empty;
+        _byBaseId        = FrozenDictionary<string, ItemBase[]>.Empty;
+        _recipes         = FrozenDictionary<string, IRecipe[]>.Empty;
+        _byIndex         = FrozenDictionary<int, ItemBase>.Empty;
+        _journalByItemId = FrozenDictionary<string, JournalItem>.Empty;
         return Task.CompletedTask;
     }
 
@@ -183,9 +222,13 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
                                  StringComparer.OrdinalIgnoreCase);
         var recipesBuilder = new Dictionary<string, IRecipe[]>(elements.Count * 2,
                                  StringComparer.OrdinalIgnoreCase);
+        // Índice posicional: 1-based, mismo orden que el XML.
+        // Cada elemento base + sus variantes @N consumen posiciones consecutivas.
+        var indexBuilder   = new Dictionary<int, ItemBase>(elements.Count * 2);
 
-        int total = elements.Count;
-        int step  = Math.Max(1, total / 80);
+        int total   = elements.Count;
+        int step    = Math.Max(1, total / 80);
+        int itemIdx = 0; // se incrementa antes de asignar → primer ítem = 1
 
         for (int i = 0; i < total; i++)
         {
@@ -197,10 +240,12 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
 
             // ── Ítem base ────────────────────────────────────────────────────
             var baseItem = ParseElement(element, uniqueName, enchantmentLevel: 0, categoryIndex);
+            itemIdx++;
             if (baseItem is not null)
             {
                 itemsBuilder[uniqueName]   = baseItem;
                 recipesBuilder[uniqueName] = ParseRecipes(element, baseItem);
+                indexBuilder[itemIdx]      = baseItem;
             }
 
             // ── Variantes de encantamiento ───────────────────────────────────
@@ -214,10 +259,12 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
 
                     var enchItemId = $"{uniqueName}@{lvl}";
                     var enchItem   = ParseEnchantmentElement(element, enchEl, enchItemId, uniqueName, lvl, categoryIndex);
+                    itemIdx++;
                     if (enchItem is null) continue;
 
                     itemsBuilder[enchItemId]   = enchItem;
                     recipesBuilder[enchItemId] = ParseRecipes(enchEl, enchItem);
+                    indexBuilder[itemIdx]      = enchItem;
                 }
             }
 
@@ -228,12 +275,17 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
         SetProgress(90);
         _items   = itemsBuilder  .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
         _recipes = recipesBuilder.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+        _byIndex = indexBuilder  .ToFrozenDictionary();
 
         // Índice BaseItemId → variantes (base + encantamientos @N).
         // Permite expandir resultados de búsqueda de texto sin escanear los ~20k ítems.
         _byBaseId = itemsBuilder.Values
             .GroupBy(i => i.BaseItemId, StringComparer.OrdinalIgnoreCase)
             .ToFrozenDictionary(g => g.Key, g => g.ToArray(), StringComparer.OrdinalIgnoreCase);
+
+        // Índice inverso: baseItemId → JournalItem
+        // Construido desde los <journalitem> del mismo XDocument.
+        _journalByItemId = ParseJournals(doc);
 
         SetProgress(100);
     }
@@ -432,6 +484,61 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
     private static decimal? ParseDecimal(string? value)
         => decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var r)
             ? r : null;
+
+    // ── Parseo de journals ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Recorre todos los &lt;journalitem&gt; del documento y construye el índice inverso
+    /// baseItemId → JournalItem a partir de los &lt;validitem&gt; de cada journal.
+    /// </summary>
+    private static FrozenDictionary<string, JournalItem> ParseJournals(XDocument doc)
+    {
+        var index = new Dictionary<string, JournalItem>(512, StringComparer.OrdinalIgnoreCase);
+
+        var journalElements = doc.Root?
+            .Descendants("journalitem")
+            ?? Enumerable.Empty<XElement>();
+
+        foreach (var journalEl in journalElements)
+        {
+            var uniqueName = Attr(journalEl, "uniquename");
+            if (string.IsNullOrWhiteSpace(uniqueName)) continue;
+
+            var tier    = ParseInt(Attr(journalEl, "tier")) ?? 0;
+            var maxFame = ParseDouble(Attr(journalEl, "maxfame")) ?? 0;
+            if (maxFame <= 0) continue;
+
+            var journal = new JournalItem(uniqueName, tier, maxFame);
+
+            var validItems = journalEl
+                .Descendants("craftitemfame")
+                .SelectMany(e => e.Elements("validitem"))
+                .Select(e => Attr(e, "id"))
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Cast<string>();
+
+            foreach (var itemId in validItems)
+                index.TryAdd(itemId, journal);
+        }
+
+        return index.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Elimina el sufijo de encantamiento @N de un ItemId.
+    /// "T8_2H_GLAIVE@1" → "T8_2H_GLAIVE". Sin sufijo retorna el mismo string.
+    /// </summary>
+    private static string StripEnchantmentSuffix(string itemId)
+    {
+        var at = itemId.LastIndexOf('@');
+        return at >= 0 ? itemId[..at] : itemId;
+    }
+
+    private static double? ParseDouble(string? value)
+        => double.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var r)
+            ? r : null;
+
+    // ── EnsureOn ──────────────────────────────────────────────────────────────
 
     private void EnsureOn()
     {

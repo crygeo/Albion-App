@@ -3,6 +3,7 @@ using Albion_App.Features.DataStatic;
 using Albion_App.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LibAlbionGame.Combat;
 using LibEvents.Discord;
 using LibEvents.Entities;
 using LibEvents.Services;
@@ -33,6 +34,13 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     private readonly BuildService      _buildService;
     private readonly DiscordBotService _discordBot;
     private readonly AppConfigService  _appConfig;
+    private readonly CombatSession?    _combatSession;
+
+    /// <summary>
+    /// Se dispara cuando cambia el evento activo.
+    /// null = ningún evento InProgress/Paused.
+    /// </summary>
+    public event Action<int?>? ActiveEventChanged;
 
     // ── ISectionIcons ─────────────────────────────────────────────────────────
 
@@ -67,6 +75,7 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     [NotifyPropertyChangedFor(nameof(Participants))]
     [NotifyPropertyChangedFor(nameof(ParticipationSummary))]
     [NotifyPropertyChangedFor(nameof(IsPublished))]
+    [NotifyPropertyChangedFor(nameof(ShowDpsMeterButton))]
     private GuildEvent? _selectedEvent;
 
     public bool DetailIsActive   => SelectedEvent?.Status is EventStatus.Preparation
@@ -145,6 +154,10 @@ public partial class EventsVm : ObservableObject, ISectionIcons
 
     public EventEditorVm     Editor     { get; }
     public EventHistoryVm    History    { get; }
+    public DpsMeterVm?       DpsMeter   { get; }
+
+    /// <summary>true cuando hay combate activo — muestra el botón "Ver Daño".</summary>
+    public bool ShowDpsMeterButton => DpsMeter is not null && (IsRunning || IsPaused);
 
     // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -153,13 +166,17 @@ public partial class EventsVm : ObservableObject, ISectionIcons
         EventEditorVm     editor,
         DiscordBotService discordBot,
         AppConfigService  appConfig,
-        EventHistoryVm    history)
+        EventHistoryVm    history,
+        CombatSession?    combatSession = null,
+        DpsMeterVm?       dpsMeter      = null)
     {
-        _buildService = buildService;
-        _discordBot   = discordBot;
-        _appConfig    = appConfig;
-        Editor        = editor;
-        History       = history;
+        _buildService    = buildService;
+        _discordBot      = discordBot;
+        _appConfig       = appConfig;
+        _combatSession   = combatSession;
+        Editor           = editor;
+        History          = history;
+        DpsMeter         = dpsMeter;   // instancia compartida desde App.xaml.cs
 
         Editor.Saved += OnEditorSaved;
         _discordBot.ParticipationChanged += OnParticipationChanged;
@@ -269,6 +286,18 @@ public partial class EventsVm : ObservableObject, ISectionIcons
         await DialogService.Instance.MostrarDialogo(dialog);
     }
 
+    [RelayCommand]
+    private async Task OpenDpsMeter()
+    {
+        if (DpsMeter is null) return;
+        var dialog = new DpsMeterDialogV(DpsMeter)
+        {
+            DialogOpenIdentifier = DialogDefaults.Main,
+            DialogNameIdentifier = DialogDefaults.DpsMeter,
+        };
+        await DialogService.Instance.MostrarDialogo(dialog);
+    }
+
     // ── Comandos: activación ──────────────────────────────────────────────────
 
     [RelayCommand]
@@ -360,9 +389,15 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     [RelayCommand]
     private async Task ClosePreparation(GuildEvent ev)
     {
+        // InProgress comienza → resetear DPS y arrancar captura
+        _combatSession?.Start();
+        DpsMeter?.StartRefresh();
+        ActiveEventChanged?.Invoke(ev.Id);
+
         await _buildService.ClosePreparationAsync(ev.Id);
         await LoadAsync();
         SelectedEvent = ActiveEvents.FirstOrDefault(e => e.Id == ev.Id);
+        OnPropertyChanged(nameof(ShowDpsMeterButton));
 
         if (SelectedEvent is not null && SelectedEvent.IsPublished && _discordBot.IsConnected)
             await _discordBot.UpdateEmbedToRunningAsync(SelectedEvent);
@@ -372,27 +407,40 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     private async Task PauseEvent(GuildEvent ev)
     {
         StopElapsedTimer();
+        _combatSession?.Pause();
+        DpsMeter?.StopRefresh();
+
         await _buildService.PauseEventAsync(ev.Id);
         await LoadAsync();
         SelectedEvent = ActiveEvents.FirstOrDefault(e => e.Id == ev.Id);
+        OnPropertyChanged(nameof(ShowDpsMeterButton));
     }
 
     [RelayCommand]
     private async Task ResumeEvent(GuildEvent ev)
     {
+        _combatSession?.Resume();
+        DpsMeter?.StartRefresh();
+
         await _buildService.ResumeEventAsync(ev.Id);
         await LoadAsync();
         SelectedEvent = ActiveEvents.FirstOrDefault(e => e.Id == ev.Id);
         StartElapsedTimer();
+        OnPropertyChanged(nameof(ShowDpsMeterButton));
     }
 
     [RelayCommand]
     private async Task EndInProgress(GuildEvent ev)
     {
         StopElapsedTimer();
+        _combatSession?.Pause();
+        DpsMeter?.StopRefresh();   // congela el display con datos finales
+        ActiveEventChanged?.Invoke(null);
+
         await _buildService.EndInProgressAsync(ev.Id);
         await LoadAsync();
         SelectedEvent = ActiveEvents.FirstOrDefault(e => e.Id == ev.Id);
+        OnPropertyChanged(nameof(ShowDpsMeterButton));
 
         if (SelectedEvent is not null && SelectedEvent.IsPublished && _discordBot.IsConnected)
             await _discordBot.UpdateEmbedToFinishedAsync(SelectedEvent);

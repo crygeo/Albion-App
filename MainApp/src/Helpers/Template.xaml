@@ -7,6 +7,7 @@
                     xmlns:grp="clr-namespace:Albion_App._4Groups"
                     xmlns:evt="clr-namespace:Albion_App._5Events"
                     xmlns:hlp="clr-namespace:Albion_App.Helpers"
+                    xmlns:dmg="clr-namespace:Albion_App._6Damage"
                     >
 
     <!-- Converters globales disponibles en toda la aplicación -->
@@ -42,6 +43,10 @@
 
     <DataTemplate DataType="{x:Type evt:EventsVm}">
         <evt:EventsV/>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type dmg:DamageVm}">
+        <dmg:DamageV/>
     </DataTemplate>
 
 </ResourceDictionary>

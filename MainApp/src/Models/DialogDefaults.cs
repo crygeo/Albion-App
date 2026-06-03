@@ -15,4 +15,5 @@ public static class DialogDefaults
     public const string EventHistory  = "dialogEventHistory";
     public const string Confirm       = "dialogConfirm";
     public const string Export        = "dialogExport";
+    public const string DpsMeter      = "dialogDpsMeter";
 }

@@ -4,6 +4,7 @@ using AlbionApp.Domain.ItemSearch;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Albion_App.Infrastructure;
+using AlbionApp.Domain.Interfaces.Services;
 
 namespace Albion_App._3Builds;
 
