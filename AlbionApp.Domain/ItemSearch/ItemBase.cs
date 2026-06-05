@@ -34,4 +34,16 @@ public sealed record ItemBase(
     public string TierLabel => Tier.HasValue
         ? EnchantmentLevel > 0 ? $"T{Tier}.{EnchantmentLevel}" : $"T{Tier}"
         : string.Empty;
+
+    /// <summary>
+    /// ID del ítem en el formato que acepta la API de Albion Online Data Project.
+    /// Si el ítem tiene encantamiento y su ItemId no contiene ya '@', agrega '@{N}'.
+    /// Ejemplos:
+    ///   T7_PLANKS_LEVEL3  (EnchantmentLevel=3) → T7_PLANKS_LEVEL3@3
+    ///   T4_MAIN_SWORD@1   (ya tiene @)          → T4_MAIN_SWORD@1
+    ///   T7_PLANKS         (sin encantamiento)   → T7_PLANKS
+    /// </summary>
+    public string ApiItemId => EnchantmentLevel > 0 && !ItemId.Contains('@')
+        ? $"{ItemId}@{EnchantmentLevel}"
+        : ItemId;
 }

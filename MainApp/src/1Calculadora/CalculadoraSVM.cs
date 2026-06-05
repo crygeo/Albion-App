@@ -11,8 +11,12 @@ using AlbionApp.Domain.Crafting;
 using AlbionApp.Domain.Interfaces;
 using AlbionApp.Domain.Interfaces.Services;
 using AlbionApp.Domain.ItemSearch;
+using AlbionApp.Domain.Market;
 using LibServices.AppConfig;
+using LibServices.Persistence;
 using CommunityToolkit.Mvvm.ComponentModel;
+using MaterialDesignThemes.Wpf;
+using Utilidades.Dialogs;
 using CommunityToolkit.Mvvm.Input;
 using MaterialDesignThemes.Wpf;
 using ItemBaseVm = Albion_App.Components.Item.ItemBaseVm;
@@ -49,6 +53,8 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     private readonly ICraftingLocationService      _craftingLocations;
     private readonly CalculateCraftingCostUseCase  _calculateCrafting;
     private readonly AppConfigService              _appConfig;
+    private readonly IPersistenceStore             _store;
+    private readonly IPriceService                 _priceService;
 
     // Bonuses raw del ítem: fuente para achievement focus y return rate.
     private IReadOnlyList<AggregatedBonus> _rawItemBonuses = [];
@@ -58,6 +64,13 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
 
     // Recetas raw del ítem seleccionado — para cálculo de fama e índice por RecipeIndex.
     private IRecipe[] _rawRecipes = [];
+
+    /// <summary>
+    /// Cuando es true, los OnXxxChanged no escriben al store de persistencia.
+    /// Se activa durante la restauración del workspace para evitar que una pestaña
+    /// sobreescriba los valores de otra.
+    /// </summary>
+    private bool _suppressSave;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // NAVEGACIÓN (sidebar)
@@ -152,6 +165,7 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HideoutFocusSaving))]
     [NotifyPropertyChangedFor(nameof(HideoutBonusLabel))]
+    [Persist(DefaultValue = false)]
     private bool _useSpecialistBonus;
 
     /// <summary>
@@ -198,8 +212,13 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     ];
 
     [ObservableProperty] private JournalBonusOptionM? _selectedJournalBonus;
-    [ObservableProperty] private bool _usePremium;
-    [ObservableProperty] private bool _useFocus;
+
+    [ObservableProperty][Persist(DefaultValue = false)]
+    private bool _usePremium;
+
+    [ObservableProperty][Persist(DefaultValue = false)]
+    private bool _useFocus;
+
 
     // ═══════════════════════════════════════════════════════════════════════════
     // CARD 3 — Cantidades e inventario
@@ -291,9 +310,10 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         (CraftItemRow?.UnitPrice ?? 0m) * QuantityToCraft;
 
     /// <summary>
-    /// Inversión total = costo BRUTO de materiales + libros vacíos comprados.
+    /// Inversión total = capital inicial mínimo de materiales + libros vacíos.
+    /// TotalCost ya refleja el mínimo a comprar (no el bruto).
     /// </summary>
-    public decimal TotalInvestment => TotalCost + TotalReturnedValue + (JournalRow?.TotalEmptyValue ?? 0m);
+    public decimal TotalInvestment => TotalCost + (JournalRow?.TotalEmptyValue ?? 0m);
 
     /// <summary>
     /// Lo que gano = venta de ítems + materiales retornados + libros llenos vendidos.
@@ -317,7 +337,9 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         ILocalizationService          localization,
         ICraftingLocationService      craftingLocations,
         CalculateCraftingCostUseCase  calculateCrafting,
-        AppConfigService              appConfig)
+        AppConfigService              appConfig,
+        IPersistenceStore             store,
+        IPriceService                 priceService)
     {
         _itemSearch        = itemSearch;
         _itemDataService   = itemDataService;
@@ -326,6 +348,8 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         _craftingLocations = craftingLocations;
         _calculateCrafting = calculateCrafting;
         _appConfig         = appConfig;
+        _store             = store;
+        _priceService      = priceService;
 
         // Suscripciones a colecciones
         RecipeOptions.CollectionChanged      += OnRecipeCollectionChanged;
@@ -338,7 +362,6 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         };
 
         LoadSettings();
-        ResetCiudades();
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -430,31 +453,42 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     /// <summary>Cuando cambia la cantidad objetivo, reconstruye el inventario y recalcula.</summary>
     partial void OnQuantityToCraftChanged(int value) => RebuildIngredientInventory();
 
-    /// <summary>Cuando cambia la ciudad, recalcula y guarda.</summary>
-    partial void OnSelectedCityOptionChanged(CraftingCityOption? value) { Recalculate(); SaveSettings(); }
+    /// <summary>Ciudad — per-tab, guarda en store solo si no estamos restaurando.</summary>
+    partial void OnSelectedCityOptionChanged(CraftingCityOption? value)
+    {
+        if (!_suppressSave) _store.Set("city_cluster_id", value?.ClusterId);
+        Recalculate();
+    }
 
-    /// <summary>Cuando cambia el bono de diario, recalcula y guarda.</summary>
-    partial void OnSelectedJournalBonusChanged(JournalBonusOptionM? value) { Recalculate(); SaveSettings(); }
+    /// <summary>Bono de diario — per-tab.</summary>
+    partial void OnSelectedJournalBonusChanged(JournalBonusOptionM? value)
+    {
+        if (!_suppressSave) _store.Set("journal_bonus", value?.Value ?? 0m);
+        Recalculate();
+    }
 
-    /// <summary>Cuando cambia el nivel del hideout, recalcula y guarda.</summary>
-    partial void OnSelectedHideoutLevelChanged(HideoutPowerlevel value) { Recalculate(); SaveSettings(); }
+    /// <summary>Nivel de hideout — per-tab.</summary>
+    partial void OnSelectedHideoutLevelChanged(HideoutPowerlevel value)
+    {
+        if (!_suppressSave) _store.Set("hideout_level", value.Level);
+        Recalculate();
+    }
 
-    /// <summary>Cuando cambia el modo generalista/especialista, recalcula y guarda.</summary>
-    partial void OnUseSpecialistBonusChanged(bool value) { Recalculate(); SaveSettings(); }
+    /// <summary>Especialista — per-tab, no persiste al store global.</summary>
+    partial void OnUseSpecialistBonusChanged(bool value) => Recalculate();
 
-    /// <summary>Cuando cambia el uso de foco, notifica HasFocusCost, recalcula y guarda.</summary>
+    /// <summary>Foco — per-tab, no persiste al store global.</summary>
     partial void OnUseFocusChanged(bool value)
     {
         OnPropertyChanged(nameof(HasFocusCost));
         Recalculate();
-        SaveSettings();
     }
 
-    /// <summary>Cuando cambia premium, re-notifica fama y guarda.</summary>
+    /// <summary>Premium — GLOBAL, persiste al store compartido.</summary>
     partial void OnUsePremiumChanged(bool value)
     {
         OnPropertyChanged(nameof(TotalFamePremium));
-        SaveSettings();
+        if (!_suppressSave) SaveSettings(); // UsePremium → store global
     }
 
     /// <summary>Cuando cambia el precio del ítem crafteado, re-notifica rentabilidad.</summary>
@@ -620,7 +654,12 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
             else if (savedPrices.TryGetValue(ingredient.ItemId, out var persistedPrice))
                 row.UnitPrice = persistedPrice;
 
-            // Guardar en disco cuando el usuario edite el precio
+            var ingApiId  = _itemDataService.GetById(ingredient.ItemId)?.ApiItemId ?? ingredient.ItemId;
+            var ingName   = ingredient.Item.DisplayName;
+
+            row.OnAutoPrice       = () => AutoPriceAsync(ingApiId, p => row.UnitPrice = p);
+            row.OnOpenPriceDialog = () => OpenPriceDialogAsync(ingApiId, ingName, p => row.UnitPrice = p);
+
             row.PropertyChanged += (_, e) =>
             {
                 if (e.PropertyName == nameof(IngredientInventoryM.UnitPrice))
@@ -636,12 +675,18 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
             var prevCraftPrice = CraftItemRow?.UnitPrice
                 ?? _appConfig.Calculator.CraftItemPrices.GetValueOrDefault(SelectedItem.ItemId);
 
-            var ct = _ingredientCts?.Token ?? CancellationToken.None;
+            var ct          = _ingredientCts?.Token ?? CancellationToken.None;
+            var apiItemId   = _itemDataService.GetById(SelectedItem.ItemId)?.ApiItemId ?? SelectedItem.ItemId;
+            var displayName = SelectedItem.DisplayName;
+
             var craftRow = new CraftItemRowM
             {
                 Item      = BuildIngredientVm(SelectedItem.ItemId, ct),
                 UnitPrice = prevCraftPrice
             };
+
+            craftRow.OnAutoPrice       = () => AutoPriceAsync(apiItemId, p => craftRow.UnitPrice = p);
+            craftRow.OnOpenPriceDialog = () => OpenPriceDialogAsync(apiItemId, displayName, p => craftRow.UnitPrice = p);
 
             craftRow.PropertyChanged += (_, e) =>
             {
@@ -663,23 +708,18 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         if (SelectedItem is null || _rawRecipes.Length == 0)
         {
             JournalRow = null;
+            TotalFameBase = TotalFamePremium = 0;
             return;
         }
 
-        var journal = _itemDataService.GetJournalForItem(SelectedItem.ItemId);
-        if (journal is null)
-        {
-            JournalRow = null;
-            return;
-        }
+        var recipeIndex = Math.Min(RecipeIndex, _rawRecipes.Length - 1);
+        var rawRecipe   = _rawRecipes[recipeIndex];
+        var itemBase    = _itemDataService.GetById(SelectedItem.ItemId);
+        var isRefining  = itemBase?.RawAttributes
+                              .TryGetValue("shopsubcategory1", out var sub) == true
+                          && sub == "refinedresources";
 
-        var recipeIndex  = Math.Min(RecipeIndex, _rawRecipes.Length - 1);
-        var rawRecipe    = _rawRecipes[recipeIndex];
-        var itemBase     = _itemDataService.GetById(SelectedItem.ItemId);
-        var isRefining   = itemBase?.RawAttributes
-                               .TryGetValue("shopsubcategory1", out var sub) == true
-                           && sub == "refinedresources";
-
+        // ── Fama: se calcula siempre, tenga o no libro ───────────────────────
         double fameBase;
         if (isRefining && itemBase?.Tier is int tier)
         {
@@ -691,9 +731,24 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
             fameBase = FameCalculator.CalculateCraftFame(rawRecipe.Ingredients, artifactType, premium: false);
         }
 
-        int cycles         = rawRecipe.AmountCrafted > 1
-                                 ? (int)Math.Ceiling((double)QuantityToCraft / rawRecipe.AmountCrafted)
-                                 : QuantityToCraft;
+        int cycles = rawRecipe.AmountCrafted > 1
+            ? (int)Math.Ceiling((double)QuantityToCraft / rawRecipe.AmountCrafted)
+            : QuantityToCraft;
+
+        TotalFameBase    = fameBase * cycles;
+        TotalFamePremium = FameCalculator.CalculateCraftFame(
+            rawRecipe.Ingredients,
+            FameCalculator.ResolveArtifactType(rawRecipe.Ingredients, _itemDataService),
+            premium: true) * cycles;
+
+        // ── Libro: solo si el ítem tiene journal asociado ────────────────────
+        var journal = _itemDataService.GetJournalForItem(SelectedItem.ItemId);
+        if (journal is null)
+        {
+            JournalRow = null;
+            return;
+        }
+
         double totalFame   = fameBase * cycles;
         int booksNeeded    = (int)Math.Ceiling(totalFame / journal.MaxFame);
         int booksCompleted = (int)Math.Floor(totalFame / journal.MaxFame);
@@ -713,6 +768,23 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
             EmptyPrice     = prevEmpty
         };
 
+        var journalApiId = _itemDataService.GetById(journal.UniqueName)?.ApiItemId ?? journal.UniqueName;
+        var journalName  = journalRow.DisplayName;
+
+        // Auto precio: Sell → FullPrice (vendes el libro lleno), Buy → EmptyPrice (compras el libro vacío)
+        journalRow.OnAutoPrice = async () =>
+        {
+            var q = new PriceQuery(journalApiId, CurrentServer, SelectedCities, SelectedTimeScale);
+            var r = await _priceService.GetPricesAsync(q);
+            if (!r.Success || r.Prices.Count == 0) return;
+            journalRow.FullPrice  = r.Prices[0].AvgPrice;
+            journalRow.EmptyPrice = r.Prices[0].MinPrice;
+        };
+
+        journalRow.OnOpenPriceDialog = () => OpenPriceDialogAsync(
+            journalApiId, journalName,
+            p => journalRow.FullPrice = p);   // doble clic en Venta → precio lleno
+
         journalRow.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName is nameof(JournalRowM.FullPrice) or nameof(JournalRowM.EmptyPrice))
@@ -720,13 +792,6 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         };
 
         JournalRow = journalRow;
-
-        // Fama total
-        TotalFameBase    = fameBase * cycles;
-        TotalFamePremium = FameCalculator.CalculateCraftFame(
-            rawRecipe.Ingredients,
-            FameCalculator.ResolveArtifactType(rawRecipe.Ingredients, _itemDataService),
-            premium: true) * cycles;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -902,42 +967,108 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     private ItemBaseVm BuildIngredientVm(string itemId, CancellationToken ct)
         => _itemSearch.BuildItemVm(itemId, ct);
 
+    // ── Precio automático y diálogo ───────────────────────────────────────────
+
+    private AlbionServer          CurrentServer    => AlbionServer.FromName(_appConfig.ServerName);
+    private IReadOnlyList<string> SelectedCities   => _appConfig.MarketPrice.SelectedCities.ToList();
+    private PriceTimeScale        SelectedTimeScale => PriceTimeScale.FromLabel(_appConfig.MarketPrice.TimeScaleLabel);
+
+    /// <summary>
+    /// Busca el precio promedio histórico (anti-outlier) y lo aplica al campo de precio.
+    /// </summary>
+    private async Task AutoPriceAsync(string apiItemId, Action<decimal> applyPrice)
+    {
+        var query  = new PriceQuery(apiItemId, CurrentServer, SelectedCities, SelectedTimeScale);
+        var result = await _priceService.GetPricesAsync(query);
+        if (!result.Success || result.Prices.Count == 0) return;
+        applyPrice(result.Prices[0].AvgPrice);
+    }
+
+    /// <summary>
+    /// Abre el diálogo de selección de precios con los precios actuales de mercado.
+    /// Double-click en Venta o Compra aplica el precio al campo correspondiente.
+    /// </summary>
+    private async Task OpenPriceDialogAsync(
+        string         apiItemId,
+        string         displayName,
+        Action<decimal> applyPrice)
+    {
+        var dialogVm = new PriceSelectionDialogVm
+        {
+            ItemDisplayName = displayName,
+            IsLoading       = true,
+        };
+        var dialog = new PriceSelectionDialogV(dialogVm);
+
+        // Conectar cierre del diálogo
+        dialogVm.CloseDialog = () =>
+            DialogService.Instance.CerrarSiEstaAbiertoYEsperar(dialog);
+
+        // Abrir el diálogo y cargar datos en paralelo
+        var showTask = DialogService.Instance.MostrarDialogo(dialog);
+
+        var result = await _priceService.GetCurrentPricesAsync(
+            apiItemId, CurrentServer, SelectedCities);
+
+        dialogVm.IsLoading = false;
+
+        if (!result.Success)
+            dialogVm.Error = result.Error;
+        else
+            dialogVm.Prices = result.Prices;
+
+        await showTask;
+
+        if (dialogVm.SelectedPrice.HasValue)
+            applyPrice(dialogVm.SelectedPrice.Value);
+    }
+
     // ── Persistencia de settings ──────────────────────────────────────────────
 
     private void LoadSettings()
     {
-        var s = _appConfig.Calculator;
+        // Solo cargamos lo GLOBAL: UsePremium (cuenta de jugador, igual para todas las pestañas).
+        // El resto (UseFocus, UseSpecialistBonus, HideoutLevel, JournalBonus, CityClusterId)
+        // son per-tab y se restauran vía RestoreTabState desde workspace.json.
+        LoadPersistedProperties(_store);
 
-        UsePremium         = s.UsePremium;
-        UseFocus           = s.UseFocus;
-        UseSpecialistBonus = s.UseSpecialistBonus;
-
-        var journalOpt = JournalBonusOptions.FirstOrDefault(o => o.Value == s.JournalBonusValue)
-                         ?? JournalBonusOptions[0];
-        SelectedJournalBonus = journalOpt;
-
-        var hideout = HideoutPowerlevel.ForLevel(Math.Clamp(s.HideoutLevel, 1, 9));
-        SelectedHideoutLevel = hideout;
-
-        // La ciudad se restaura después de conocer el ítem (en UpdateCitiesForItem),
-        // pero guardamos el clusterId para recuperarlo cuando se carguen las ciudades.
-        _pendingCityClusterId = s.LastCityClusterId;
+        // Valores por defecto para una pestaña nueva (sin estado guardado en workspace.json)
+        SelectedJournalBonus = JournalBonusOptions[0];
+        ResetCiudades();
     }
 
-    /// <summary>Persiste todos los settings de la calculadora.</summary>
-    private void SaveSettings()
+    /// <summary>
+    /// Restaura el estado per-tab desde workspace.json.
+    /// Usa _suppressSave para que los OnXxxChanged no escriban al store compartido
+    /// mientras se restauran los valores — evita que una pestaña sobreescriba a otra.
+    /// </summary>
+    public void RestoreTabState(Models.CalculatorTabState state)
     {
-        var s = _appConfig.Calculator;
+        _suppressSave = true;
+        try
+        {
+            QuantityToCraft    = state.Quantity;
+            UseFocus           = state.UseFocus;
+            UseSpecialistBonus = state.UseSpecialistBonus;
+            SelectedHideoutLevel = HideoutPowerlevel.ForLevel(Math.Clamp(state.HideoutLevel, 1, 9));
 
-        s.UsePremium         = UsePremium;
-        s.UseFocus           = UseFocus;
-        s.UseSpecialistBonus = UseSpecialistBonus;
-        s.HideoutLevel       = SelectedHideoutLevel.Level;
-        s.JournalBonusValue  = SelectedJournalBonus?.Value ?? 0m;
-        s.LastCityClusterId  = SelectedCityOption?.ClusterId;
+            var journalOpt = JournalBonusOptions.FirstOrDefault(o => o.Value == state.JournalBonusValue)
+                             ?? JournalBonusOptions[0];
+            SelectedJournalBonus = journalOpt;
 
-        _appConfig.SaveCalculator();
+            _pendingCityClusterId = state.CityClusterId;
+        }
+        finally
+        {
+            _suppressSave = false;
+        }
     }
+
+    /// <summary>
+    /// Persiste las propiedades simples marcadas con [Persist].
+    /// Las propiedades complejas se guardan directamente en sus OnXxxChanged.
+    /// </summary>
+    private void SaveSettings() => SavePersistedProperties(_store);
 
     private void SaveIngredientPrice(string itemId, decimal price)
     {

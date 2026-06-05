@@ -156,15 +156,50 @@ public sealed class CalculateCraftingCostUseCase
         {
             stockIndex.TryGetValue(ingredient.ItemId, out var stock);
 
-            int gross    = ingredient.Count * qty;
-            int returned = ingredient.ParticipatesInReturn ? (int)Math.Floor(gross * rrr) : 0;
-            int net      = gross - returned;
+            int perCycle = ingredient.Count;
+            int gross    = perCycle * qty;
+
+            // Consumo neto del lote principal + buffer del último ciclo.
+            // Se calculan POR SEPARADO y cada uno se redondea hacia arriba
+            // para evitar que la imprecisión decimal de rrr los fusione por debajo.
+            //
+            //   netConsumed = ceil(gross   × (1 − rrr))   → lo que se pierde definitivamente
+            //   lastBuffer  = ceil(perCycle × (1 − rrr))  → el exceso del último ciclo
+            //   minInitial  = netConsumed + lastBuffer
+            //
+            // Ejemplo: gross=5000, perCycle=5, rrr=0.578
+            //   netConsumed = ceil(5000 × 0.422) = ceil(2110.0) = 2110
+            //   lastBuffer  = ceil(5    × 0.422) = ceil(2.11)  = 3
+            //   minInitial  = 2113
+            decimal netFactor  = 1m - rrr;
+
+            // Para 1 solo ciclo no hay cadena de retornos: se necesita exactamente perCycle.
+            // El +buffer solo aplica cuando hay más de un ciclo.
+            int minInitial;
+            int lastBuffer;
+
+            if (!ingredient.ParticipatesInReturn || qty == 1)
+            {
+                minInitial = perCycle;
+                lastBuffer = ingredient.ParticipatesInReturn
+                    ? (int)Math.Floor(perCycle * rrr)   // sobrante = retorno del único ciclo
+                    : 0;
+            }
+            else
+            {
+                int netConsumed = (int)Math.Ceiling(gross    * netFactor);
+                lastBuffer  = (int)Math.Ceiling(perCycle * netFactor);
+                minInitial  = netConsumed + lastBuffer;
+            }
+
+            // El sobrante en inventario al terminar = el buffer del último ciclo.
+            int returnedTotal = ingredient.ParticipatesInReturn ? lastBuffer : 0;
 
             lines.Add(new MaterialCostLine(
                 ItemId:           ingredient.ItemId,
                 GrossQuantity:    gross,
-                NetToBuy:         net,
-                ReturnedQuantity: returned,
+                NetToBuy:         minInitial,
+                ReturnedQuantity: ingredient.ParticipatesInReturn ? returnedTotal : 0,
                 BuyLocation:      request.City!.Name,
                 UnitPrice:        stock?.UnitPrice ?? 0m));
         }

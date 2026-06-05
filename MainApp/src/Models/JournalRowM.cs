@@ -12,29 +12,31 @@ public sealed partial class JournalRowM : ObservableObject
     public ItemBaseVm? JournalVm { get; init; }
 
     public string DisplayName    => JournalVm?.DisplayName ?? Journal.UniqueName;
-    public int    BooksNeeded   { get; init; }
-    /// <summary>Libros completamente llenos (floor). Solo estos se pueden vender.</summary>
+    public int    BooksNeeded    { get; init; }
     public int    BooksCompleted { get; init; }
 
-    /// <summary>Precio de mercado del libro lleno.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(JournalIncome))]
     [NotifyPropertyChangedFor(nameof(TotalFullValue))]
     private decimal _fullPrice;
 
-    /// <summary>Precio de mercado del libro vacío.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(JournalIncome))]
     [NotifyPropertyChangedFor(nameof(TotalEmptyValue))]
     private decimal _emptyPrice;
 
-    /// <summary>Solo los libros completos generan ingreso al venderse.</summary>
-    public decimal TotalFullValue      => BooksCompleted * FullPrice;
-    /// <summary>Todos los libros necesarios se compran vacíos.</summary>
-    public decimal TotalEmptyValue     => BooksNeeded * EmptyPrice;
-    /// <summary>Ingreso neto = llenos vendidos − vacíos comprados.</summary>
-    public decimal JournalIncome       => TotalFullValue - TotalEmptyValue;
+    public decimal TotalFullValue  => BooksCompleted * FullPrice;
+    public decimal TotalEmptyValue => BooksNeeded    * EmptyPrice;
+    public decimal JournalIncome   => TotalFullValue - TotalEmptyValue;
+
+    // Delegates inyectados por CalculadoraSvm
+    // Para el libro: Auto asigna FullPrice con Sell y EmptyPrice con Buy del mismo ítem
+    public Func<Task>? OnAutoPrice      { get; set; }
+    public Func<Task>? OnOpenPriceDialog { get; set; }
 
     [RelayCommand]
-    private void AutoPrecio() { }
+    private Task AutoPrecio() => OnAutoPrice?.Invoke() ?? Task.CompletedTask;
+
+    [RelayCommand]
+    private Task OpenPriceDialog() => OnOpenPriceDialog?.Invoke() ?? Task.CompletedTask;
 }

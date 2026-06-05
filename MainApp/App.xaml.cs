@@ -176,6 +176,15 @@ public partial class App : Application
         var configuracion = new ConfiguracionSvm(localizationService, config, discordBot, discordConfigVm);
         var player        = new PlayerVm(destinyBoard, playerState);
 
+        // Servicio de precios de mercado
+        var priceService = new AlbionPriceService();
+
+        // Store de persistencia declarativa para la calculadora ([Persist])
+        var calcStorePath = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "AlbionApp", "calculator_settings.json");
+        var calcStore = new LibServices.Persistence.JsonPersistenceStore(calcStorePath);
+
         // Fábrica de pestañas: cada llamada crea un CalculadoraSvm independiente.
         CalculadoraSvm TabFactory() => new(
             itemSearchService,
@@ -184,7 +193,9 @@ public partial class App : Application
             localizationService,
             craftingLocationService,
             calculateCraftingUseCase,
-            config);
+            config,
+            calcStore,
+            priceService);
 
         var workspace = new WorkspaceVm(
             TabFactory,
@@ -269,11 +280,13 @@ public partial class App : Application
         _ = updateChecker.CheckAsync();
 
         // Guardar workspace y liberar recursos al cerrar la app.
-        window.Closed += async (_, _) =>
+        // NO usar async/await aquí: WPF destruye el Dispatcher antes de que las
+        // continuaciones puedan ejecutar → los awaits nunca completan.
+        window.Closed += (_, _) =>
         {
-            await workspace.SaveWorkspaceAsync();
+            workspace.SaveWorkspaceAsync().GetAwaiter().GetResult();
             networkManager.Stop();
-            await discordBot.DisposeAsync();
+            discordBot.DisposeAsync().AsTask().GetAwaiter().GetResult();
         };
     }
 

@@ -21,11 +21,15 @@ public sealed class WorkspacePersistenceService : IWorkspacePersistence
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
     };
 
-    public async Task SaveAsync(CalculatorWorkspaceState state)
+    public Task SaveAsync(CalculatorWorkspaceState state)
     {
+        // Síncrono intencionalmente: el handler de Window.Closed es async void y
+        // WPF destruye el Dispatcher al cerrarse la ventana principal antes de que
+        // cualquier await pueda completar su continuación.
         Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
         var json = JsonSerializer.Serialize(state, Opts);
-        await File.WriteAllTextAsync(FilePath, json).ConfigureAwait(false);
+        File.WriteAllText(FilePath, json);
+        return Task.CompletedTask;
     }
 
     public async Task<CalculatorWorkspaceState?> LoadAsync()

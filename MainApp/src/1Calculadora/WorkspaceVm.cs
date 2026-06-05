@@ -99,8 +99,7 @@ public sealed partial class WorkspaceVm : ObservableObject, ISectionIcons
         foreach (var tabState in state.Tabs)
         {
             var tab = CreateTab();
-            tab.QuantityToCraft = tabState.Quantity;
-            tab.UseFocus        = tabState.UseFocus;
+            tab.RestoreTabState(tabState); // restaura sin escribir al store compartido
 
             if (tabState.ItemId is not null)
             {
@@ -125,10 +124,14 @@ public sealed partial class WorkspaceVm : ObservableObject, ISectionIcons
                                : Math.Max(0, _tabs.IndexOf(SelectedTab)),
             Tabs = _tabs.Select(t => new CalculatorTabState
             {
-                ItemId   = t.SelectedItem?.ItemId,
-                Quantity = t.QuantityToCraft,
-                UseFocus = t.UseFocus,
-                Title    = t.TabTitle,
+                ItemId             = t.SelectedItem?.ItemId,
+                Quantity           = t.QuantityToCraft,
+                Title              = t.TabTitle,
+                UseFocus           = t.UseFocus,
+                UseSpecialistBonus = t.UseSpecialistBonus,
+                HideoutLevel       = t.SelectedHideoutLevel.Level,
+                JournalBonusValue  = t.SelectedJournalBonus?.Value ?? 0m,
+                CityClusterId      = t.SelectedCityOption?.ClusterId,
             }).ToList(),
         };
 

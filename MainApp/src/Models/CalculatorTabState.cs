@@ -2,22 +2,19 @@ namespace Albion_App.Models;
 
 /// <summary>
 /// Estado serializable de una pestaña individual del workspace.
-/// No contiene lógica de UI — es un DTO puro para persistencia.
+/// Contiene todos los ajustes específicos de esa pestaña — nada se comparte
+/// con otras pestañas a través de este objeto.
 /// </summary>
 public sealed class CalculatorTabState
 {
-    /// <summary>ID del ítem seleccionado (ej. "T6_CLOTH"). Null si la pestaña está vacía.</summary>
-    public string? ItemId { get; set; }
+    public string? ItemId   { get; set; }
+    public int     Quantity { get; set; } = 1;
+    public string  Title    { get; set; } = "Nueva pestaña";
 
-    /// <summary>Cantidad a fabricar configurada por el usuario.</summary>
-    public int Quantity { get; set; } = 1;
-
-    /// <summary>Si el jugador tenía "Usar Foco" activado.</summary>
-    public bool UseFocus { get; set; }
-
-    /// <summary>
-    /// Título visible en la pestaña.
-    /// Se almacena para mostrarlo durante la restauración antes de que el ítem cargue.
-    /// </summary>
-    public string Title { get; set; } = "Nueva pestaña";
+    // ── Ajustes per-tab (antes en calculator_settings.json, ahora per-pestaña) ──
+    public bool    UseFocus           { get; set; }
+    public bool    UseSpecialistBonus { get; set; }
+    public int     HideoutLevel       { get; set; } = 1;
+    public decimal JournalBonusValue  { get; set; } = 0m;
+    public string? CityClusterId      { get; set; }
 }

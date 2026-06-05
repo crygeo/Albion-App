@@ -3,6 +3,8 @@ using Albion_App.Features.DataStatic;
 using Albion_App.Models;
 using AlbionApp.Domain.Interfaces;
 using AlbionApp.Domain.Localization;
+using AlbionApp.Domain.Market;
+using LibServices.AppConfig;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LibEvents.Discord;
@@ -39,6 +41,18 @@ public sealed partial class ConfiguracionSvm : ObservableObject, ISectionIcons
     public string AppVersion { get; } =
         "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "—");
 
+    // ─── Servidor de mercado ──────────────────────────────────────────────────
+
+    [ObservableProperty] private AlbionServer _selectedServer = AlbionServer.America;
+    public IReadOnlyList<AlbionServer> AvailableServers => AlbionServer.All;
+
+    // ─── Configuración de precios ─────────────────────────────────────────────
+
+    public IReadOnlyList<MarketCityOptionVm> CityOptions { get; }
+
+    [ObservableProperty] private PriceTimeScale _selectedTimeScale = PriceTimeScale.Default;
+    public IReadOnlyList<PriceTimeScale> AvailableTimeScales => PriceTimeScale.All;
+
     // ─── Idioma ───────────────────────────────────────────────────────────────
 
     [ObservableProperty] private SupportedLanguage _selectedLanguage;
@@ -57,8 +71,28 @@ public sealed partial class ConfiguracionSvm : ObservableObject, ISectionIcons
         _discordBot       = discordBot;
         _discordConfigVm  = discordConfigVm;
 
-        _languageService.SetLanguage(SupportedLanguage.Find(appConfigService.Language));
         _selectedLanguage = _languageService.CurrentSupportedLanguage;
+        _languageService.SetLanguage(SupportedLanguage.Find(appConfigService.Language));
+
+        _selectedServer = AlbionServer.FromName(appConfigService.ServerName);
+
+        // Ciudades: construir opciones y restaurar selección guardada
+        var savedCities = appConfigService.MarketPrice.SelectedCities;
+        CityOptions = MarketCity.All.Select(city => new MarketCityOptionVm
+        {
+            City       = city,
+            IsSelected = savedCities.Contains(city.ApiLocation),
+        }).ToList();
+
+        foreach (var opt in CityOptions)
+            opt.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(MarketCityOptionVm.IsSelected))
+                    SaveCitySelection();
+            };
+
+        // TimeScale: restaurar selección guardada
+        _selectedTimeScale = PriceTimeScale.FromLabel(appConfigService.MarketPrice.TimeScaleLabel);
 
         _discordBot.StatusChanged += () =>
         {
@@ -71,6 +105,29 @@ public sealed partial class ConfiguracionSvm : ObservableObject, ISectionIcons
             OnPropertyChanged(nameof(DiscordGuildName));
             OnPropertyChanged(nameof(DiscordChannelName));
         };
+    }
+
+    // ─── Servidor ─────────────────────────────────────────────────────────────
+
+    partial void OnSelectedServerChanged(AlbionServer value)
+        => _appConfigService.SetServer(value.Name);
+
+    // ─── Precios ──────────────────────────────────────────────────────────────
+
+    partial void OnSelectedTimeScaleChanged(PriceTimeScale value)
+    {
+        _appConfigService.MarketPrice.TimeScaleLabel = value.Label;
+        _appConfigService.SaveMarketPrice();
+    }
+
+    private void SaveCitySelection()
+    {
+        _appConfigService.MarketPrice.SelectedCities =
+            CityOptions
+                .Where(o => o.IsSelected)
+                .Select(o => o.City.ApiLocation)
+                .ToHashSet();
+        _appConfigService.SaveMarketPrice();
     }
 
     // ─── Idioma ───────────────────────────────────────────────────────────────

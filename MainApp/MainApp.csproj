@@ -25,6 +25,12 @@
       <ProjectReference Include="..\..\..\source\repos\InventarioSINC\Utilidades\Utilidades.csproj" />
       <ProjectReference Include="..\..\LibSolutions\LibNavegation\LibNavegation.csproj" />
       <ProjectReference Include="..\..\LibSolutions\LibServices\LibServices.csproj" />
+      <!-- Persistencia declarativa con [Persist] -->
+      <ProjectReference Include="..\..\LibSolutions\LibServices.Persistence\LibServices.Persistence.csproj" />
+      <!-- El generator se compila como dependencia pero se registra manualmente como Analyzer -->
+      <ProjectReference Include="..\..\LibSolutions\LibServices.PersistenceGenerator\LibServices.PersistenceGenerator.csproj"
+                        ReferenceOutputAssembly="false"
+                        Private="false" />
       <ProjectReference Include="..\AlbionApp.Application\AlbionApp.Application.csproj" />
       <ProjectReference Include="..\AlbionApp.Infrastructure\AlbionApp.Infrastructure.csproj" />
       <!-- Librerías de infraestructura compartida (protocolo de red, routing, debug) -->
@@ -34,6 +40,11 @@
       <ProjectReference Include="..\..\LibSolutions\LibAlbionDebug\LibAlbionDebug.csproj" />
       <ProjectReference Include="..\..\LibSolutions\LibWpfControls\LibWpfControls.csproj" />
       <!-- LibAlbionData queda como transitiva via AlbionApp.Infrastructure -->
+    </ItemGroup>
+
+    <!-- Registrar el generator como analyzer una vez compilado -->
+    <ItemGroup>
+      <Analyzer Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\LibSolutions\LibServices.PersistenceGenerator\bin\$(Configuration)\netstandard2.0\LibServices.PersistenceGenerator.dll'))" />
     </ItemGroup>
 
     <ItemGroup>

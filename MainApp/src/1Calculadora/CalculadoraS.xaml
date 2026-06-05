@@ -602,6 +602,12 @@
                                     VerticalAlignment="Bottom" Margin="0 0 0 2">
                                 <md:PackIcon Kind="AutoFix" Width="15" Height="15" />
                             </Button>
+                            <Button Style="{StaticResource MaterialDesignIconButton}"
+                                    Command="{Binding CraftItemRow.OpenPriceDialogCommand}"
+                                    ToolTip="Ver precios por ciudad" Width="28" Height="28"
+                                    VerticalAlignment="Bottom" Margin="0 0 0 2">
+                                <md:PackIcon Kind="TableSearch" Width="15" Height="15" />
+                            </Button>
                         </StackPanel>
                     </Grid>
 
@@ -639,6 +645,12 @@
                                                 ToolTip="Auto Precio" Width="28" Height="28"
                                                 VerticalAlignment="Bottom" Margin="0 0 0 2">
                                             <md:PackIcon Kind="AutoFix" Width="15" Height="15" />
+                                        </Button>
+                                        <Button Style="{StaticResource MaterialDesignIconButton}"
+                                                Command="{Binding OpenPriceDialogCommand}"
+                                                ToolTip="Ver precios por ciudad" Width="28" Height="28"
+                                                VerticalAlignment="Bottom" Margin="0 0 0 2">
+                                            <md:PackIcon Kind="TableSearch" Width="15" Height="15" />
                                         </Button>
                                     </StackPanel>
                                 </Grid>
@@ -688,6 +700,12 @@
                                         ToolTip="Auto Precio" Width="28" Height="28"
                                         VerticalAlignment="Bottom" Margin="0 0 0 2">
                                     <md:PackIcon Kind="AutoFix" Width="15" Height="15" />
+                                </Button>
+                                <Button Style="{StaticResource MaterialDesignIconButton}"
+                                        Command="{Binding JournalRow.OpenPriceDialogCommand}"
+                                        ToolTip="Ver precios por ciudad" Width="28" Height="28"
+                                        VerticalAlignment="Bottom" Margin="0 0 0 2">
+                                    <md:PackIcon Kind="TableSearch" Width="15" Height="15" />
                                 </Button>
                             </StackPanel>
                         </Grid>
@@ -884,16 +902,6 @@
                                                        Margin="0 0 0 5" />
                                             <StackPanel Orientation="Horizontal">
 
-                                                <!-- Chip: Cantidad (bruto) -->
-                                                <Border CornerRadius="4" Padding="6 2" Margin="0 0 4 0"
-                                                        Background="{DynamicResource MaterialDesign.Brush.Separator}">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="📦 " FontSize="10" />
-                                                        <TextBlock FontSize="11" FontWeight="SemiBold"
-                                                                   Text="{Binding GrossQuantity, StringFormat=N0}" />
-                                                    </StackPanel>
-                                                </Border>
-
                                                 <!-- Chip: Retorna -->
                                                 <Border CornerRadius="4" Padding="6 2" Margin="0 0 4 0"
                                                         Background="#1A26C6DA"
@@ -907,13 +915,13 @@
                                                     </StackPanel>
                                                 </Border>
 
-                                                <!-- Chip: Utilizado (neto) -->
-                                                <Border CornerRadius="4" Padding="6 2"
-                                                        Background="#1AF44336">
+                                                <!-- Chip: A comprar (capital mínimo inicial) — más prominente -->
+                                                <Border CornerRadius="5" Padding="8 3"
+                                                        Background="#F44336">
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="✓ " FontSize="10" Foreground="#F44336" />
-                                                        <TextBlock FontSize="11" FontWeight="SemiBold"
-                                                                   Foreground="#F44336"
+                                                        <TextBlock Text="🛒 " FontSize="11" Foreground="White" />
+                                                        <TextBlock FontSize="12" FontWeight="Bold"
+                                                                   Foreground="White"
                                                                    Text="{Binding NetQuantity, StringFormat=N0}" />
                                                     </StackPanel>
                                                 </Border>
@@ -925,12 +933,12 @@
                                             </TextBlock>
                                         </StackPanel>
 
-                                        <!-- Total bruto -->
+                                        <!-- A comprar (capital mínimo) -->
                                         <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
-                                            <TextBlock Text="Total bruto" FontSize="10" Opacity="0.5" HorizontalAlignment="Right" />
+                                            <TextBlock Text="A comprar" FontSize="10" Opacity="0.5" HorizontalAlignment="Right" />
                                             <TextBlock FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Right"
                                                        Foreground="{DynamicResource MaterialDesign.Brush.Secondary}"
-                                                       Text="{Binding GrossTotalCost, StringFormat=N0}" />
+                                                       Text="{Binding TotalCost, StringFormat=N0}" />
                                         </StackPanel>
                                     </Grid>
                                 </Border>
@@ -997,7 +1005,7 @@
                     <!-- Costo total de materiales -->
                     <DockPanel Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}"
                                Margin="0 8 0 0">
-                        <TextBlock DockPanel.Dock="Left" Text="COSTO TOTAL DE MATERIALES"
+                        <TextBlock DockPanel.Dock="Left" Text="COMPRA MÍNIMA INICIAL"
                                    FontSize="11" FontWeight="SemiBold" Opacity="0.65"
                                    VerticalAlignment="Center" />
                         <TextBlock DockPanel.Dock="Right" FontSize="18" FontWeight="Bold"
@@ -1024,7 +1032,7 @@
                                            Foreground="#F44336" Margin="0 0 0 6" />
 
                                 <DockPanel Margin="0 2">
-                                    <TextBlock DockPanel.Dock="Left" Text="Materiales (bruto)"
+                                    <TextBlock DockPanel.Dock="Left" Text="Materiales (compra mínima)"
                                                FontSize="11" Opacity="0.75" VerticalAlignment="Center" />
                                     <TextBlock DockPanel.Dock="Right" FontSize="12" FontWeight="SemiBold"
                                                HorizontalAlignment="Right"
