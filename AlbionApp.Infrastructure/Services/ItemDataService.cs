@@ -68,18 +68,20 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
     }
 
     /// <summary>
-    /// Retorna los primeros <paramref name="count"/> ítems del catálogo.
-    /// Usado como vista por defecto cuando no hay query de texto — evita
-    /// iterar el catálogo completo (~20 k ítems) para mostrar solo 300.
-    ///
-    /// <para>El orden interno de <see cref="FrozenDictionary"/> no está garantizado;
-    /// el caller es responsable de ordenar el resultado si lo requiere.</para>
+    /// Retorna los primeros <paramref name="count"/> ítems en orden XML (por <see cref="ItemBase.Index"/>).
+    /// Usado como vista por defecto cuando no hay query de texto.
     /// </summary>
     public IReadOnlyList<ItemBase> GetFirst(int count)
     {
         EnsureOn();
-        // Take es lazy sobre IEnumerable<ItemBase> — solo recorre 'count' entradas.
-        return _items.Values.Take(count).ToList();
+        var result = new List<ItemBase>(count);
+        var index  = _byIndex;
+        for (int i = 1; result.Count < count && i <= index.Count; i++)
+        {
+            if (index.TryGetValue(i, out var item))
+                result.Add(item);
+        }
+        return result;
     }
 
     public ItemBase? GetById(string itemId)
@@ -239,8 +241,8 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
             if (string.IsNullOrWhiteSpace(uniqueName)) continue;
 
             // ── Ítem base ────────────────────────────────────────────────────
-            var baseItem = ParseElement(element, uniqueName, enchantmentLevel: 0, categoryIndex);
             itemIdx++;
+            var baseItem = ParseElement(element, uniqueName, enchantmentLevel: 0, categoryIndex, itemIdx);
             if (baseItem is not null)
             {
                 itemsBuilder[uniqueName]   = baseItem;
@@ -258,8 +260,8 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
                     if (lvl <= 0) continue;
 
                     var enchItemId = $"{uniqueName}@{lvl}";
-                    var enchItem   = ParseEnchantmentElement(element, enchEl, enchItemId, uniqueName, lvl, categoryIndex);
                     itemIdx++;
+                    var enchItem = ParseEnchantmentElement(element, enchEl, enchItemId, uniqueName, lvl, categoryIndex, itemIdx);
                     if (enchItem is null) continue;
 
                     itemsBuilder[enchItemId]   = enchItem;
@@ -296,7 +298,8 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
         XElement           element,
         string             uniqueName,
         int                enchantmentLevel,
-        CategoryValueIndex categoryIndex)
+        CategoryValueIndex categoryIndex,
+        int                index)
     {
         var attrs = ReadAttributes(element);
 
@@ -318,6 +321,7 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
             Attr(element, "shopsubcategory3"));
 
         return new ItemBase(
+            Index:                      index,
             ItemId:                     uniqueName,
             BaseItemId:                 baseItemId,
             NameLocalizationKey:        BuildNameKey(element, uniqueName),
@@ -353,7 +357,8 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
         string             itemId,
         string             baseUniqueName,
         int                enchantmentLevel,
-        CategoryValueIndex categoryIndex)
+        CategoryValueIndex categoryIndex,
+        int                index)
     {
         // Mergeamos los atributos: base primero, enchantment sobreescribe.
         var merged = ReadAttributes(baseElement)
@@ -369,6 +374,7 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
             Attr(baseElement, "shopsubcategory3"));
 
         return new ItemBase(
+            Index:                      index,
             ItemId:                     itemId,
             BaseItemId:                 baseUniqueName,
             NameLocalizationKey:        BuildNameKey(baseElement, baseUniqueName),
@@ -409,10 +415,14 @@ public sealed class ItemDataService : ServiceBase, IItemDataService
             if (ingredients.Count == 0) continue;
 
             recipes.Add(new Recipe(
-                AmountCrafted: ParseInt(Attr(req, "amountcrafted")) ?? 1,
-                CraftingFocus: ParseInt(Attr(req, "craftingfocus")),
-                Silver:        ParseDecimal(Attr(req, "silver")),
-                Ingredients:   ingredients));
+                AmountCrafted:   ParseInt(Attr(req, "amountcrafted")) ?? 1,
+                CraftingFocus:   ParseInt(Attr(req, "craftingfocus")),
+                Silver:          ParseDecimal(Attr(req, "silver")),
+                Ingredients:     ingredients,
+                IsTransmutation: string.Equals(
+                    Attr(req, "craftbuttonlocaoverride"),
+                    "@CRAFTBUILDING_ITEM_DETAILS_BUTTON_TRANSMUTE",
+                    StringComparison.OrdinalIgnoreCase)));
         }
 
         return recipes.Count > 0 ? [.. recipes] : [];

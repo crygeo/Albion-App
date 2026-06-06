@@ -34,6 +34,12 @@ public sealed record CraftingCostResult
     /// <summary>Costo total de todos los materiales.</summary>
     public decimal TotalCost { get; init; }
 
+    /// <summary>
+    /// Costo fijo en plata cobrado por la transmutación (Silver × Quantity).
+    /// 0 para recetas normales.
+    /// </summary>
+    public decimal TransmutationSilverCost { get; init; }
+
     /// <summary>Resultado vacío (sin receta o sin ciudad).</summary>
     public static readonly CraftingCostResult Empty = new();
 }

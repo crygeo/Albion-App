@@ -209,6 +209,7 @@
                                     <MenuItem Header="Copiar Imagen" Command="{Binding Data.CopyItemImageCommand, Source={StaticResource VmProxy}}" CommandParameter="{Binding}" />
                                     <MenuItem Header="Copiar Nombre" Command="{Binding Data.CopyItemNameCommand, Source={StaticResource VmProxy}}" CommandParameter="{Binding}" />
                                     <MenuItem Header="Copiar ID" Command="{Binding Data.CopyItemIdCommand, Source={StaticResource VmProxy}}" CommandParameter="{Binding}" />
+                                    <MenuItem Header="Copiar Index" Command="{Binding Data.CopyIndexCommand, Source={StaticResource VmProxy}}" CommandParameter="{Binding}" />
                                 </ContextMenu>
                             </comp:ItemBaseV.ContextMenu>
                         </comp:ItemBaseV>

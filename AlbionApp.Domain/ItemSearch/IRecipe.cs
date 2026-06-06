@@ -28,4 +28,10 @@ public interface IRecipe
     /// Nunca null; vacío si la receta no tiene ingredientes (e.g. recetas especiales).
     /// </summary>
     IReadOnlyList<IIngredient> Ingredients { get; }
+
+    /// <summary>
+    /// True cuando la receta es una transmutación (craftbuttonlocaoverride = TRANSMUTE).
+    /// Las recetas de transmutación solo cuestan plata — ciudad, bonus, premium y foco no aplican.
+    /// </summary>
+    bool IsTransmutation { get; }
 }

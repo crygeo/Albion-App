@@ -120,6 +120,8 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     [NotifyPropertyChangedFor(nameof(HasPreviousRecipe))]
     [NotifyPropertyChangedFor(nameof(HasNextRecipe))]
     [NotifyPropertyChangedFor(nameof(RecipeCarouselLabel))]
+    [NotifyPropertyChangedFor(nameof(IsTransmutation))]
+    [NotifyPropertyChangedFor(nameof(IsCraftingRecipe))]
     private int _recipeIndex;
 
     public bool      HasRecipes    => RecipeOptions.Count > 0;
@@ -127,7 +129,9 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     public bool      HasSelectedItemWithoutRecipe => HasSelectedItem && !HasRecipes;
     public bool      HasPreviousRecipe            => HasMultipleRecipes;
     public bool      HasNextRecipe                => HasMultipleRecipes;
-    public RecipeVm? CurrentRecipe  => RecipeOptions.Count > 0 ? RecipeOptions[RecipeIndex] : null;
+    public RecipeVm? CurrentRecipe    => RecipeOptions.Count > 0 ? RecipeOptions[RecipeIndex] : null;
+    public bool      IsTransmutation  => CurrentRecipe?.IsTransmutation ?? false;
+    public bool      IsCraftingRecipe => !IsTransmutation;
     public RecipeVm? PreviousRecipeM => RecipeOptions.Count > 1 ? RecipeOptions[RecipeIndex > 0 ? RecipeIndex - 1 : RecipeOptions.Count - 1] : null;
     public RecipeVm? NextRecipeM => RecipeOptions.Count > 1 ? RecipeOptions[RecipeIndex < RecipeOptions.Count - 1 ? RecipeIndex + 1 : 0] : null;
     public string RecipeCarouselLabel => RecipeOptions.Count > 0 ? $"Receta ({RecipeIndex + 1}/{RecipeOptions.Count})" : "—";
@@ -218,6 +222,14 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
 
     [ObservableProperty][Persist(DefaultValue = false)]
     private bool _useFocus;
+
+    /// <summary>
+    /// Plata por transmutación editable por el usuario.
+    /// Pre-rellena con <see cref="RecipeVm.Silver"/> al cambiar de receta,
+    /// pero el valor real lo da el juego, así que el usuario lo puede ajustar.
+    /// </summary>
+    [ObservableProperty]
+    private decimal _transmutationSilverPerUnit;
 
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -443,11 +455,12 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     // PARTIAL METHODS — árbol de dependencias declarativo
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Cuando RecipeIndex cambia, actualiza CanExecute de las flechas.</summary>
+    /// <summary>Cuando RecipeIndex cambia, actualiza CanExecute de las flechas y resetea el silver de transmutación.</summary>
     partial void OnRecipeIndexChanged(int value)
     {
         PreviousRecipeCommand.NotifyCanExecuteChanged();
         NextRecipeCommand.NotifyCanExecuteChanged();
+        TransmutationSilverPerUnit = CurrentRecipe?.Silver ?? 0m;
     }
 
     /// <summary>Cuando cambia la cantidad objetivo, reconstruye el inventario y recalcula.</summary>
@@ -478,6 +491,18 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     partial void OnUseSpecialistBonusChanged(bool value) => Recalculate();
 
     /// <summary>Foco — per-tab, no persiste al store global.</summary>
+    partial void OnTransmutationSilverPerUnitChanged(decimal value)
+    {
+        // No puede bajar del valor base del XML.
+        var minSilver = CurrentRecipe?.Silver ?? 0m;
+        if (value < minSilver)
+        {
+            TransmutationSilverPerUnit = minSilver; // dispara el setter de nuevo con el valor correcto
+            return;
+        }
+        Recalculate();
+    }
+
     partial void OnUseFocusChanged(bool value)
     {
         OnPropertyChanged(nameof(HasFocusCost));
@@ -537,6 +562,7 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         CancelIngredientImageLoads();
         RecipeOptions.Clear();
         RecipeIndex = 0;
+        TransmutationSilverPerUnit = 0; // reset siempre — OnRecipeIndexChanged no se dispara si RecipeIndex ya era 0
 
         var rawRecipes = _itemDataService.GetRecipes(itemVm.ItemId);
         _rawRecipes = rawRecipes;
@@ -559,17 +585,21 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
 
             RecipeOptions.Add(new RecipeVm
             {
-                Index         = i,
-                Label         = "Receta de Crafteo",
-                SubLabel      = raw.AmountCrafted > 1
-                                    ? $"×{raw.AmountCrafted} producidos por ciclo"
-                                    : "×1 producido por ciclo",
-                Ingredients   = ingredients,
-                AmountCrafted = raw.AmountCrafted,
-                CraftingFocus = raw.CraftingFocus,
-                Silver        = raw.Silver
+                Index           = i,
+                Label           = raw.IsTransmutation ? "Transmutación" : "Receta de Crafteo",
+                SubLabel        = raw.AmountCrafted > 1
+                                      ? $"×{raw.AmountCrafted} producidos por ciclo"
+                                      : "×1 producido por ciclo",
+                Ingredients     = ingredients,
+                AmountCrafted   = raw.AmountCrafted,
+                CraftingFocus   = raw.CraftingFocus,
+                Silver          = raw.Silver,
+                IsTransmutation = raw.IsTransmutation
             });
         }
+
+        // Pre-rellenar silver con la receta 0 (la activa al cargar).
+        TransmutationSilverPerUnit = CurrentRecipe?.Silver ?? 0m;
 
         // Reconstruir inventario al terminar (→ Recalculate al final)
         RebuildIngredientInventory();
@@ -714,6 +744,15 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
 
         var recipeIndex = Math.Min(RecipeIndex, _rawRecipes.Length - 1);
         var rawRecipe   = _rawRecipes[recipeIndex];
+
+        // Transmutación: sin fama, sin libro.
+        if (rawRecipe.IsTransmutation)
+        {
+            JournalRow    = null;
+            TotalFameBase = TotalFamePremium = 0;
+            return;
+        }
+
         var itemBase    = _itemDataService.GetById(SelectedItem.ItemId);
         var isRefining  = itemBase?.RawAttributes
                               .TryGetValue("shopsubcategory1", out var sub) == true
@@ -830,8 +869,9 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
 
         return new CraftingCostRequest
         {
-            Recipe             = CurrentRecipe!,
-            City               = city,
+            Recipe                     = CurrentRecipe!,
+            City                       = city,
+            TransmutationSilverPerUnit = IsTransmutation ? TransmutationSilverPerUnit : null,
             Quantity           = QuantityToCraft,
             CraftingCategory   = itemBase?.CraftingCategory,
             ItemValue          = itemValue,

@@ -27,6 +27,7 @@ namespace AlbionApp.Application.UseCases.SearchItems;
 /// tests de aserción exacta.</para>
 /// </summary>
 public sealed record ItemSearchHit(
+    int     Index,
     string  ItemId,
     string  BaseItemId,
     string? NameLocalizationKey,

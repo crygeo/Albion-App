@@ -59,6 +59,13 @@ public sealed record CraftingCostRequest
 
     /// <summary>Stock actual del jugador por ingrediente.</summary>
     public IReadOnlyList<IngredientStock> OwnedStock { get; init; } = [];
+
+    /// <summary>
+    /// Costo de plata por transmutación editado por el usuario.
+    /// Cuando está presente sobreescribe <see cref="IRecipe.Silver"/>.
+    /// Solo aplica cuando <see cref="IRecipe.IsTransmutation"/> es true.
+    /// </summary>
+    public decimal? TransmutationSilverPerUnit { get; init; }
 }
 
 /// <summary>Inventario del jugador para un ingrediente específico.</summary>

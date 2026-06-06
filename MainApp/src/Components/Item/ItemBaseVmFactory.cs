@@ -142,21 +142,23 @@ public sealed class ItemBaseVmFactory
 
     private static ItemSearchHit Project(ItemBase item)
         => new(
-            ItemId: item.ItemId,
-            BaseItemId: item.BaseItemId,
+            Index:               item.Index,
+            ItemId:              item.ItemId,
+            BaseItemId:          item.BaseItemId,
             NameLocalizationKey: item.NameLocalizationKey,
-            Tier: item.Tier,
-            EnchantmentLevel: item.EnchantmentLevel,
-            CategoryValue: item.CategoryValue,
-            TierLabel: item.TierLabel);
+            Tier:                item.Tier,
+            EnchantmentLevel:    item.EnchantmentLevel,
+            CategoryValue:       item.CategoryValue,
+            TierLabel:           item.TierLabel);
 
     private static ItemSearchHit Placeholder(string itemId)
         => new(
-            ItemId: itemId,
-            BaseItemId: itemId,
+            Index:               0,
+            ItemId:              itemId,
+            BaseItemId:          itemId,
             NameLocalizationKey: $"@ITEMS_{itemId}",
-            Tier: null,
-            EnchantmentLevel: 0,
-            CategoryValue: 0,
-            TierLabel: string.Empty);
+            Tier:                null,
+            EnchantmentLevel:    0,
+            CategoryValue:       0,
+            TierLabel:           string.Empty);
 }

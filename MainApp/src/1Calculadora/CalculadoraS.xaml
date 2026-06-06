@@ -397,9 +397,30 @@
 
                     <!-- ── Sección: Parámetros ─────────────────────────── -->
                     <TextBlock Style="{StaticResource CardSectionLabel}"
-                               Text="PARÁMETROS" />
+                               Text="PARÁMETROS"
+                               Visibility="{Binding IsCraftingRecipe, Converter={StaticResource BoolToVis}}" />
 
-                    <Grid>
+                    <!-- Costo de silver editable (solo transmutación) -->
+                    <StackPanel Visibility="{Binding IsTransmutation, Converter={StaticResource BoolToVis}}"
+                                Margin="0 0 0 8">
+                        <TextBlock Text="Plata por transmutación"
+                                   FontSize="11"
+                                   Opacity="0.65"
+                                   Margin="0 0 0 4" />
+                        <TextBox Text="{Binding TransmutationSilverPerUnit, UpdateSourceTrigger=PropertyChanged, StringFormat=N0}"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 md:HintAssist.Hint="0"
+                                 FontSize="12" />
+                        <TextBlock FontSize="10"
+                                   Opacity="0.45"
+                                   Margin="0 4 0 0">
+                            <Run Text="Base XML: " />
+                            <Run Text="{Binding CurrentRecipe.Silver, Mode=OneWay, StringFormat=N0}" />
+                            <Run Text=" — ajusta al precio real del juego." />
+                        </TextBlock>
+                    </StackPanel>
+
+                    <Grid Visibility="{Binding IsCraftingRecipe, Converter={StaticResource BoolToVis}}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="12" />
@@ -437,7 +458,8 @@
                     <!-- Checkboxes Premium / Foco -->
                     <StackPanel Orientation="Horizontal"
                                 Margin="0 12 0 0"
-                                VerticalAlignment="Center">
+                                VerticalAlignment="Center"
+                                Visibility="{Binding IsCraftingRecipe, Converter={StaticResource BoolToVis}}">
                         <CheckBox Content="Premium"
                                   IsChecked="{Binding UsePremium}"
                                   Margin="0 0 24 0"

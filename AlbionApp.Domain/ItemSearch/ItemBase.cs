@@ -15,6 +15,7 @@ namespace AlbionApp.Domain.ItemSearch;
 ///     (armadura, arma, monturas…) sin requerir herencia ni tipado complejo.
 /// </summary>
 public sealed record ItemBase(
+    int     Index,
     string  ItemId,
     string  BaseItemId,
     string? NameLocalizationKey,

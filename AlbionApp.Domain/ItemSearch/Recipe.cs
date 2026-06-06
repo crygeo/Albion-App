@@ -8,8 +8,9 @@ namespace AlbionApp.Domain.ItemSearch;
 /// necesidad de convertir.
 /// </summary>
 public sealed record Recipe(
-    int                            AmountCrafted,
-    int?                           CraftingFocus,
-    decimal?                       Silver,
-    IReadOnlyList<IIngredient> Ingredients)
+    int                        AmountCrafted,
+    int?                       CraftingFocus,
+    decimal?                   Silver,
+    IReadOnlyList<IIngredient> Ingredients,
+    bool                       IsTransmutation = false)
     : IRecipe;

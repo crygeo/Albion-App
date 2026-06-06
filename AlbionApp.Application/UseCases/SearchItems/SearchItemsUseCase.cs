@@ -159,7 +159,7 @@ public sealed class SearchItemsUseCase : ISearchItemsUseCase
         if (hasStructuralFilter)
             return _itemDataService.GetAll();
 
-        // Sin texto + sin filtros: vista por defecto. Limitar para no proyectar 20k VMs.
+        // Sin texto + sin filtros: vista por defecto. GetFirst devuelve en orden XML (Index).
         var limit = request.MaxResults > 0 ? request.MaxResults : DefaultEmptyQueryLimit;
         return _itemDataService.GetFirst(limit);
     }
@@ -168,6 +168,7 @@ public sealed class SearchItemsUseCase : ISearchItemsUseCase
 
     private static ItemSearchHit Project(ItemBase item)
         => new(
+            Index:               item.Index,
             ItemId:              item.ItemId,
             BaseItemId:          item.BaseItemId,
             NameLocalizationKey: item.NameLocalizationKey,

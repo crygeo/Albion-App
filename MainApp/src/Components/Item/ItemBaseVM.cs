@@ -69,7 +69,8 @@ public sealed partial class ItemBaseVm : ObservableObject, IDisposable
 
     // ── Acceso al hit subyacente (lectura) ────────────────────────────────────
 
-    public string ItemId => _hit.ItemId;
+    public int    Index      => _hit.Index;
+    public string ItemId    => _hit.ItemId;
     public string BaseItemId => _hit.BaseItemId;
     public int? Tier => _hit.Tier;
     public int EnchantmentLevel => _hit.EnchantmentLevel;

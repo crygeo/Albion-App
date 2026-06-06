@@ -31,6 +31,20 @@ public sealed class CalculateCraftingCostUseCase
     {
         var qty = Math.Max(1, request.Quantity);
 
+        // Transmutación: sin foco, sin RRR, sin ciudad — solo plata + ingredientes.
+        if (request.Recipe.IsTransmutation)
+        {
+            var silverPerUnit = request.TransmutationSilverPerUnit ?? request.Recipe.Silver ?? 0m;
+            var silverCost    = silverPerUnit * qty;
+            var lines      = BuildLines(request, rrr: 0m, qty);
+            return new CraftingCostResult
+            {
+                TransmutationSilverCost = silverCost,
+                Lines                   = lines,
+                TotalCost               = silverCost + lines.Sum(l => l.TotalCost)
+            };
+        }
+
         // 1. Foco ─────────────────────────────────────────────────────────────
         var focus = CalculateFocus(request, qty);
 
@@ -50,8 +64,8 @@ public sealed class CalculateCraftingCostUseCase
         var rrr = CalculateReturnRate(request);
 
         // 4. Materiales ────────────────────────────────────────────────────────
-        var lines     = BuildLines(request, rrr, qty);
-        var totalCost = lines.Sum(l => l.TotalCost);
+        var lines2     = BuildLines(request, rrr, qty);
+        var totalCost = lines2.Sum(l => l.TotalCost);
 
         return new CraftingCostResult
         {
@@ -59,7 +73,7 @@ public sealed class CalculateCraftingCostUseCase
             FocusPerCraft         = focus.PerCraft,
             TotalFocusCost        = focus.Total,
             FocusReductionPercent = focus.ReductionPercent,
-            Lines                 = lines,
+            Lines                 = lines2,
             TotalCost             = totalCost
         };
     }
@@ -173,17 +187,22 @@ public sealed class CalculateCraftingCostUseCase
             //   minInitial  = 2113
             decimal netFactor  = 1m - rrr;
 
-            // Para 1 solo ciclo no hay cadena de retornos: se necesita exactamente perCycle.
-            // El +buffer solo aplica cuando hay más de un ciclo.
             int minInitial;
             int lastBuffer;
 
-            if (!ingredient.ParticipatesInReturn || qty == 1)
+            if (!ingredient.ParticipatesInReturn)
             {
+                // Sin retorno (maxreturnamount="0"): consume exactamente perCycle × qty.
+                // No hay cadena de retornos ni buffer — cada ciclo consume lo suyo.
+                minInitial = gross;
+                lastBuffer = 0;
+            }
+            else if (qty == 1)
+            {
+                // Un solo ciclo con retorno: se necesita exactamente perCycle.
+                // El sobrante es el retorno de ese único ciclo.
                 minInitial = perCycle;
-                lastBuffer = ingredient.ParticipatesInReturn
-                    ? (int)Math.Floor(perCycle * rrr)   // sobrante = retorno del único ciclo
-                    : 0;
+                lastBuffer = (int)Math.Floor(perCycle * rrr);
             }
             else
             {

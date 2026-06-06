@@ -35,6 +35,9 @@ public sealed class RecipeVm : IRecipe
     // ── IRecipe ───────────────────────────────────────────────────────────────
 
     /// <inheritdoc/>
+    public bool IsTransmutation { get; init; }
+
+    /// <inheritdoc/>
     public int AmountCrafted { get; init; } = 1;
 
     /// <inheritdoc/>
