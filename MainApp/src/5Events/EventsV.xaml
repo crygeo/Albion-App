@@ -580,6 +580,12 @@
                         <!-- ── Acciones: Finished ─────────────────────────────── -->
                         <StackPanel Orientation="Horizontal" Margin="0 12 0 0"
                                     Visibility="{Binding IsFinished, Converter={StaticResource BoolToVis}}">
+                            <Button Command="{Binding OpenDamageReportCommand}"
+                                    CommandParameter="{Binding SelectedEvent}"
+                                    Content="Ver Daño"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Foreground="#EF5350" BorderBrush="#EF5350"
+                                    Margin="0 0 8 0"/>
                             <Button Command="{Binding CloseEventCommand}"
                                     CommandParameter="{Binding SelectedEvent}"
                                     Content="Cerrar evento"
