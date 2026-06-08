@@ -76,6 +76,8 @@ public partial class EventStatsVm : ObservableObject
         get
         {
             return _allEvents
+                // "Todos" aquí es más amplio que en Buckets (Closed+Cancelled): un evento en
+                // curso ya cuenta como "uso" de su composición, así que solo se excluyen los Draft.
                 .Where(e => OnlyCompleted ? e.Status == EventStatus.Closed
                                           : e.Status != EventStatus.Draft)
                 .Where(e => e.BuildGroup is not null)
