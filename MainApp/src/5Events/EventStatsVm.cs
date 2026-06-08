@@ -25,6 +25,8 @@ public partial class EventStatsVm : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Buckets))]
     [NotifyPropertyChangedFor(nameof(HasData))]
+    [NotifyPropertyChangedFor(nameof(MostUsedComposition))]
+    [NotifyPropertyChangedFor(nameof(HasMostUsedComposition))]
     private bool _onlyCompleted;
 
     public EventStatsVm(BuildService buildService) => _buildService = buildService;
@@ -69,9 +71,23 @@ public partial class EventStatsVm : ObservableObject
 
     public bool HasData => Buckets.Any(b => b.Count > 0);
 
-    public CompositionUsageVm? MostUsedComposition => null;
+    public CompositionUsageVm? MostUsedComposition
+    {
+        get
+        {
+            return _allEvents
+                .Where(e => OnlyCompleted ? e.Status == EventStatus.Closed
+                                          : e.Status != EventStatus.Draft)
+                .Where(e => e.BuildGroup is not null)
+                .GroupBy(e => e.BuildGroup!.Name)
+                .Select(g => new CompositionUsageVm(g.Key, g.Count()))
+                .OrderByDescending(c => c.UsageCount)
+                .ThenBy(c => c.Name)
+                .FirstOrDefault();
+        }
+    }
 
-    public bool HasMostUsedComposition => false;
+    public bool HasMostUsedComposition => MostUsedComposition is not null;
 
     // ── Agrupación por período ────────────────────────────────────────────────
 
