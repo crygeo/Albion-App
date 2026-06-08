@@ -12,6 +12,8 @@ public partial class EventHistoryVm : ObservableObject
     private readonly BuildService _buildService;
     private List<GuildEvent> _allHistory = [];
 
+    public EventDamageReportVm DamageReport { get; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(FilteredHistory))]
     private string _searchText = "";
@@ -30,7 +32,11 @@ public partial class EventHistoryVm : ObservableObject
     [NotifyPropertyChangedFor(nameof(CompositionDisplay))]
     private GuildEvent? _selectedHistoryEvent;
 
-    public EventHistoryVm(BuildService buildService) => _buildService = buildService;
+    public EventHistoryVm(BuildService buildService, EventDamageReportVm damageReport)
+    {
+        _buildService = buildService;
+        DamageReport  = damageReport;
+    }
 
     public async Task LoadAsync()
     {
@@ -56,6 +62,17 @@ public partial class EventHistoryVm : ObservableObject
 
     [RelayCommand]
     private void SelectHistoryEvent(GuildEvent ev) => SelectedHistoryEvent = ev;
+
+    [RelayCommand]
+    private async Task OpenDamageReport(GuildEvent ev)
+    {
+        await DamageReport.LoadAsync(ev);
+        await DialogService.Instance.MostrarDialogo<EventDamageReportDialogV>(
+            DamageReport,
+            "Reporte de daño",
+            DialogDefaults.EventHistory,
+            DialogDefaults.DamageReport);
+    }
 
     [RelayCommand]
     private async Task DeleteHistoryEvent(GuildEvent ev)

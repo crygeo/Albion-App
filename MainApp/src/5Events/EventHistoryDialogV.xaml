@@ -373,14 +373,21 @@
                                     </TextBlock.Style>
                                 </TextBlock>
 
-                                <!-- Eliminar -->
-                                <Button Command="{Binding DeleteHistoryEventCommand}"
-                                        CommandParameter="{Binding SelectedHistoryEvent}"
-                                        Content="Eliminar del historial"
-                                        Style="{StaticResource MaterialDesignOutlinedButton}"
-                                        Foreground="{DynamicResource MaterialDesign.Brush.Secondary}"
-                                        BorderBrush="{DynamicResource MaterialDesign.Brush.Secondary}"
-                                        Margin="0 24 0 0"/>
+                                <!-- Ver Daño / Eliminar -->
+                                <StackPanel Orientation="Horizontal" Margin="0 24 0 0">
+                                    <Button Command="{Binding OpenDamageReportCommand}"
+                                            CommandParameter="{Binding SelectedHistoryEvent}"
+                                            Content="Ver Daño"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                                            Foreground="#EF5350" BorderBrush="#EF5350"
+                                            Margin="0 0 8 0"/>
+                                    <Button Command="{Binding DeleteHistoryEventCommand}"
+                                            CommandParameter="{Binding SelectedHistoryEvent}"
+                                            Content="Eliminar del historial"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                                            Foreground="{DynamicResource MaterialDesign.Brush.Secondary}"
+                                            BorderBrush="{DynamicResource MaterialDesign.Brush.Secondary}"/>
+                                </StackPanel>
 
                             </StackPanel>
                         </ScrollViewer>

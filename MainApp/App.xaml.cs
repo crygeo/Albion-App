@@ -156,8 +156,8 @@ public partial class App : Application
         var discordConfigVm = new DiscordConfigVm(discordBot, config);
 
         var eventEditorVm       = new EventEditorVm(buildService);
-        var eventHistoryVm      = new EventHistoryVm(buildService);
         var eventDamageReportVm = new EventDamageReportVm(buildService);
+        var eventHistoryVm      = new EventHistoryVm(buildService, eventDamageReportVm);
         var combatSession       = new CombatSession();
         var itemResolver        = new ItemIndexResolverAdapter(itemDataService);
         var partyTracker        = new PartyTracker(combatSession);
