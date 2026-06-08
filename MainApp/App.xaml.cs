@@ -155,13 +155,14 @@ public partial class App : Application
         discordBot.ErrorOccurred += msg => DialogService.Instance.MensajeQueue.Enqueue(msg);
         var discordConfigVm = new DiscordConfigVm(discordBot, config);
 
-        var eventEditorVm   = new EventEditorVm(buildService);
-        var eventHistoryVm  = new EventHistoryVm(buildService);
-        var combatSession   = new CombatSession();
-        var itemResolver    = new ItemIndexResolverAdapter(itemDataService);
-        var partyTracker    = new PartyTracker(combatSession);
-        var dpsMeterVm      = new DpsMeterVm(combatSession, partyTracker.Party);
-        var eventsVm        = new EventsVm(buildService, eventEditorVm, discordBot, config, eventHistoryVm, combatSession, dpsMeterVm);
+        var eventEditorVm       = new EventEditorVm(buildService);
+        var eventHistoryVm      = new EventHistoryVm(buildService);
+        var eventDamageReportVm = new EventDamageReportVm(buildService);
+        var combatSession       = new CombatSession();
+        var itemResolver        = new ItemIndexResolverAdapter(itemDataService);
+        var partyTracker        = new PartyTracker(combatSession);
+        var dpsMeterVm          = new DpsMeterVm(combatSession, partyTracker.Party);
+        var eventsVm            = new EventsVm(buildService, eventEditorVm, discordBot, config, eventHistoryVm, eventDamageReportVm, combatSession, dpsMeterVm);
         await eventsVm.LoadAsync();
 
         // Reconectar Discord automáticamente si hay token guardado

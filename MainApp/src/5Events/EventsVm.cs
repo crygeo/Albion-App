@@ -152,23 +152,25 @@ public partial class EventsVm : ObservableObject, ISectionIcons
 
     // ── Editor de plantilla ───────────────────────────────────────────────────
 
-    public EventEditorVm     Editor     { get; }
-    public EventHistoryVm    History    { get; }
-    public DpsMeterVm?       DpsMeter   { get; }
+    public EventEditorVm        Editor       { get; }
+    public EventHistoryVm       History      { get; }
+    public DpsMeterVm?          DpsMeter     { get; }
+    public EventDamageReportVm  DamageReport { get; }
 
-    /// <summary>true cuando hay combate activo — muestra el botón "Ver Daño".</summary>
+    /// <summary>true cuando hay combate activo — muestra el botón "Ver Daño" del medidor en vivo.</summary>
     public bool ShowDpsMeterButton => DpsMeter is not null && (IsRunning || IsPaused);
 
     // ── Constructor ───────────────────────────────────────────────────────────
 
     public EventsVm(
-        BuildService      buildService,
-        EventEditorVm     editor,
-        DiscordBotService discordBot,
-        AppConfigService  appConfig,
-        EventHistoryVm    history,
-        CombatSession?    combatSession = null,
-        DpsMeterVm?       dpsMeter      = null)
+        BuildService         buildService,
+        EventEditorVm        editor,
+        DiscordBotService    discordBot,
+        AppConfigService     appConfig,
+        EventHistoryVm       history,
+        EventDamageReportVm  damageReport,
+        CombatSession?       combatSession = null,
+        DpsMeterVm?          dpsMeter      = null)
     {
         _buildService    = buildService;
         _discordBot      = discordBot;
@@ -176,7 +178,8 @@ public partial class EventsVm : ObservableObject, ISectionIcons
         _combatSession   = combatSession;
         Editor           = editor;
         History          = history;
-        DpsMeter         = dpsMeter;   // instancia compartida desde App.xaml.cs
+        DpsMeter         = dpsMeter;       // instancia compartida desde App.xaml.cs
+        DamageReport     = damageReport;   // instancia compartida desde App.xaml.cs
 
         Editor.Saved += OnEditorSaved;
         _discordBot.ParticipationChanged += OnParticipationChanged;
@@ -296,6 +299,17 @@ public partial class EventsVm : ObservableObject, ISectionIcons
             DialogNameIdentifier = DialogDefaults.DpsMeter,
         };
         await DialogService.Instance.MostrarDialogo(dialog);
+    }
+
+    [RelayCommand]
+    private async Task OpenDamageReport(GuildEvent ev)
+    {
+        await DamageReport.LoadAsync(ev);
+        await DialogService.Instance.MostrarDialogo<EventDamageReportDialogV>(
+            DamageReport,
+            "Reporte de daño",
+            DialogDefaults.Main,
+            DialogDefaults.DamageReport);
     }
 
     // ── Comandos: activación ──────────────────────────────────────────────────
