@@ -12,6 +12,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -74,8 +75,40 @@
                       DockPanel.Dock="Right"/>
         </DockPanel>
 
+        <!-- ── Composición más usada ─────────────────────────────────────── -->
+        <Border Grid.Row="1"
+                Margin="0 0 0 12" Padding="12 8"
+                Background="{DynamicResource MaterialDesign.Brush.Card.Background}"
+                BorderBrush="{DynamicResource MaterialDesign.Brush.Separator}"
+                BorderThickness="1" CornerRadius="6">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasMostUsedComposition}" Value="False">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <DockPanel>
+                <md:PackIcon Kind="Crown"
+                             Width="22" Height="22"
+                             Foreground="{DynamicResource MaterialDesign.Brush.Primary}"
+                             VerticalAlignment="Center"
+                             Margin="0 0 12 0"/>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Composición más usada" FontSize="11" Opacity="0.6"/>
+                    <TextBlock Text="{Binding MostUsedComposition.Name}" FontSize="15" FontWeight="Bold"/>
+                </StackPanel>
+                <TextBlock Text="{Binding MostUsedComposition.UsageDisplay}"
+                           DockPanel.Dock="Right"
+                           VerticalAlignment="Center"
+                           Opacity="0.7"/>
+            </DockPanel>
+        </Border>
+
         <!-- ── Estado vacío ──────────────────────────────────────────────── -->
-        <TextBlock Grid.Row="1"
+        <TextBlock Grid.Row="2"
                    Text="Sin eventos en el historial para este filtro"
                    FontSize="13"
                    HorizontalAlignment="Center"
@@ -94,7 +127,7 @@
         </TextBlock>
 
         <!-- ── Histograma ────────────────────────────────────────────────── -->
-        <ScrollViewer Grid.Row="1"
+        <ScrollViewer Grid.Row="2"
                       HorizontalScrollBarVisibility="Auto"
                       VerticalScrollBarVisibility="Disabled"
                       Visibility="{Binding HasData, Converter={StaticResource BoolToVis}}">
