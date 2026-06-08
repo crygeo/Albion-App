@@ -90,7 +90,7 @@
                     </Style.Triggers>
                 </Style>
             </Border.Style>
-            <DockPanel>
+            <DockPanel LastChildFill="False">
                 <md:PackIcon Kind="Crown"
                              Width="22" Height="22"
                              Foreground="{DynamicResource MaterialDesign.Brush.Primary}"
