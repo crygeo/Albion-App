@@ -158,11 +158,12 @@ public partial class App : Application
         var eventEditorVm       = new EventEditorVm(buildService);
         var eventDamageReportVm = new EventDamageReportVm(buildService);
         var eventHistoryVm      = new EventHistoryVm(buildService, eventDamageReportVm);
+        var eventStatsVm        = new EventStatsVm(buildService);
         var combatSession       = new CombatSession();
         var itemResolver        = new ItemIndexResolverAdapter(itemDataService);
         var partyTracker        = new PartyTracker(combatSession);
         var dpsMeterVm          = new DpsMeterVm(combatSession, partyTracker.Party);
-        var eventsVm            = new EventsVm(buildService, eventEditorVm, discordBot, config, eventHistoryVm, eventDamageReportVm, combatSession, dpsMeterVm);
+        var eventsVm            = new EventsVm(buildService, eventEditorVm, discordBot, config, eventHistoryVm, eventDamageReportVm, eventStatsVm, combatSession, dpsMeterVm);
         await eventsVm.LoadAsync();
 
         // Reconectar Discord automáticamente si hay token guardado

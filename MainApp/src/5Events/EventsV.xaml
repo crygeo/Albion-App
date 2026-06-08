@@ -51,6 +51,12 @@
                             ToolTip="Ver historial">
                         <md:PackIcon Kind="History" Width="18" Height="18"/>
                     </Button>
+                    <Button DockPanel.Dock="Right"
+                            Command="{Binding OpenStatsCommand}"
+                            Style="{StaticResource MaterialDesignIconButton}"
+                            ToolTip="Estadísticas de eventos">
+                        <md:PackIcon Kind="ChartHistogram" Width="18" Height="18"/>
+                    </Button>
                 </DockPanel>
             </Border>
 

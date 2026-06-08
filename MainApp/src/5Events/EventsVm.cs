@@ -156,6 +156,7 @@ public partial class EventsVm : ObservableObject, ISectionIcons
     public EventHistoryVm       History      { get; }
     public DpsMeterVm?          DpsMeter     { get; }
     public EventDamageReportVm  DamageReport { get; }
+    public EventStatsVm         Stats        { get; }
 
     /// <summary>true cuando hay combate activo — muestra el botón "Ver Daño" del medidor en vivo.</summary>
     public bool ShowDpsMeterButton => DpsMeter is not null && (IsRunning || IsPaused);
@@ -169,6 +170,7 @@ public partial class EventsVm : ObservableObject, ISectionIcons
         AppConfigService     appConfig,
         EventHistoryVm       history,
         EventDamageReportVm  damageReport,
+        EventStatsVm         eventStats,
         CombatSession?       combatSession = null,
         DpsMeterVm?          dpsMeter      = null)
     {
@@ -180,6 +182,7 @@ public partial class EventsVm : ObservableObject, ISectionIcons
         History          = history;
         DpsMeter         = dpsMeter;       // instancia compartida desde App.xaml.cs
         DamageReport     = damageReport;   // instancia compartida desde App.xaml.cs
+        Stats            = eventStats;     // instancia compartida desde App.xaml.cs
 
         Editor.Saved += OnEditorSaved;
         _discordBot.ParticipationChanged += OnParticipationChanged;
@@ -310,6 +313,17 @@ public partial class EventsVm : ObservableObject, ISectionIcons
             "Reporte de daño",
             DialogDefaults.Main,
             DialogDefaults.DamageReport);
+    }
+
+    [RelayCommand]
+    private async Task OpenStats()
+    {
+        await Stats.LoadAsync();
+        await DialogService.Instance.MostrarDialogo<EventStatsDialogV>(
+            Stats,
+            "Estadísticas de eventos",
+            DialogDefaults.Main,
+            DialogDefaults.EventStats);
     }
 
     // ── Comandos: activación ──────────────────────────────────────────────────

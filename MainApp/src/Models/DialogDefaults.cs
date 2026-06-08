@@ -18,4 +18,5 @@ public static class DialogDefaults
     public const string DpsMeter       = "dialogDpsMeter";
     public const string DamageReport   = "dialogDamageReport";
     public const string PriceSelection = "dialogPriceSelection";
+    public const string EventStats     = "dialogEventStats";
 }
