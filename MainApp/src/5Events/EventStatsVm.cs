@@ -15,7 +15,7 @@ public enum HistogramGranularity
 public partial class EventStatsVm : ObservableObject
 {
     private readonly BuildService _buildService;
-    private List<GuildEvent> _allHistory = [];
+    private List<GuildEvent> _allEvents = [];
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Buckets))]
@@ -31,9 +31,11 @@ public partial class EventStatsVm : ObservableObject
 
     public async Task LoadAsync()
     {
-        _allHistory = await _buildService.GetEventHistoryAsync();
+        _allEvents = await _buildService.GetEventsAsync();
         OnPropertyChanged(nameof(Buckets));
         OnPropertyChanged(nameof(HasData));
+        OnPropertyChanged(nameof(MostUsedComposition));
+        OnPropertyChanged(nameof(HasMostUsedComposition));
     }
 
     [RelayCommand]
@@ -43,7 +45,8 @@ public partial class EventStatsVm : ObservableObject
     {
         get
         {
-            var filtered = _allHistory
+            var filtered = _allEvents
+                .Where(e => e.Status == EventStatus.Closed || e.Status == EventStatus.Cancelled)
                 .Where(e => e.ScheduledAt.HasValue)
                 .Where(e => !OnlyCompleted || e.Status == EventStatus.Closed)
                 .ToList();
@@ -65,6 +68,10 @@ public partial class EventStatsVm : ObservableObject
     }
 
     public bool HasData => Buckets.Any(b => b.Count > 0);
+
+    public CompositionUsageVm? MostUsedComposition => null;
+
+    public bool HasMostUsedComposition => false;
 
     // ── Agrupación por período ────────────────────────────────────────────────
 
