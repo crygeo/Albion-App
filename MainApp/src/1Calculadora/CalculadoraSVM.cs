@@ -52,6 +52,7 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     private readonly ILocalizationService          _localization;
     private readonly ICraftingLocationService      _craftingLocations;
     private readonly CalculateCraftingCostUseCase  _calculateCrafting;
+    private readonly CalculateByQuantityUseCase    _calculateByQuantity;
     private readonly AppConfigService              _appConfig;
     private readonly IPersistenceStore             _store;
     private readonly IPriceService                 _priceService;
@@ -338,6 +339,13 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
 
     public bool IsProfitable => ProfitLoss > 0;
 
+    // ── Comparación con/sin foco ─────────────────────────────────────────────
+
+    [ObservableProperty] private decimal _roi;
+    [ObservableProperty] private decimal _margin;
+    [ObservableProperty] private decimal _profitLossNoFocus;
+    [ObservableProperty] private decimal _roiNoFocus;
+
     // ═══════════════════════════════════════════════════════════════════════════
     // CONSTRUCTOR
     // ═══════════════════════════════════════════════════════════════════════════
@@ -349,19 +357,21 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         ILocalizationService          localization,
         ICraftingLocationService      craftingLocations,
         CalculateCraftingCostUseCase  calculateCrafting,
+        CalculateByQuantityUseCase    calculateByQuantity,
         AppConfigService              appConfig,
         IPersistenceStore             store,
         IPriceService                 priceService)
     {
-        _itemSearch        = itemSearch;
-        _itemDataService   = itemDataService;
-        _processPlayer     = processPlayer;
-        _localization      = localization;
-        _craftingLocations = craftingLocations;
-        _calculateCrafting = calculateCrafting;
-        _appConfig         = appConfig;
-        _store             = store;
-        _priceService      = priceService;
+        _itemSearch          = itemSearch;
+        _itemDataService     = itemDataService;
+        _processPlayer       = processPlayer;
+        _localization        = localization;
+        _craftingLocations   = craftingLocations;
+        _calculateCrafting   = calculateCrafting;
+        _calculateByQuantity = calculateByQuantity;
+        _appConfig           = appConfig;
+        _store               = store;
+        _priceService        = priceService;
 
         // Suscripciones a colecciones
         RecipeOptions.CollectionChanged      += OnRecipeCollectionChanged;
@@ -426,6 +436,10 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         TotalReturnedValue = 0;
         TotalFameBase = 0;
         TotalFamePremium = 0;
+        Roi               = 0m;
+        Margin            = 0m;
+        ProfitLossNoFocus = 0m;
+        RoiNoFocus        = 0m;
     }
 
     /// <summary>Navega a la receta anterior (wrap-around).</summary>
@@ -850,10 +864,15 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
             ? null
             : _craftingLocations.Cities.FirstOrDefault(c => c.ClusterId == SelectedCityOption.ClusterId);
 
+        // Llamada existente — mantiene todo el comportamiento actual
         var request = BuildRequest(city);
         var result  = _calculateCrafting.Execute(request);
-
         ApplyResult(result);
+
+        // Nueva llamada — obtiene campos financieros adicionales
+        var qRequest = BuildQuantityRequest(city);
+        var qResult  = _calculateByQuantity.Execute(qRequest);
+        ApplyQuantityResult(qResult);
     }
 
     private CraftingCostRequest BuildRequest(CraftingCityData? city)
@@ -886,6 +905,42 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
                 .Select(i => new IngredientStock(i.ItemId, 0, i.UnitPrice))
                 .ToList()
         };
+    }
+
+    private QuantityRequest BuildQuantityRequest(CraftingCityData? city)
+    {
+        var itemBase = SelectedItem is null
+            ? null
+            : _itemDataService.GetById(SelectedItem.ItemId);
+
+        var itemValueStr = itemBase?.RawAttributes.GetValueOrDefault("itemvalue");
+        var itemValue    = int.TryParse(itemValueStr, out var iv) ? Math.Max(1, iv) : 1;
+
+        var isRefining = itemBase?.RawAttributes
+                             .TryGetValue("shopsubcategory1", out var sub) == true
+                         && sub == "refinedresources";
+
+        return new QuantityRequest(
+            Recipe:                     CurrentRecipe!,
+            Quantity:                   QuantityToCraft,
+            City:                       city,
+            CraftingCategory:           itemBase?.CraftingCategory,
+            ItemValue:                  itemValue,
+            UseFocus:                   UseFocus,
+            JournalBonus:               SelectedJournalBonus?.Value ?? 0m,
+            HideoutBonus:               CurrentHideoutBonus,
+            HideoutSpecialistBonus:     IsHideoutCity && UseSpecialistBonus
+                                            ? SelectedHideoutLevel.SpecialistBonus
+                                            : 0m,
+            AchievementBonuses:         _rawItemBonuses,
+            Stock:                      IngredientInventory
+                                            .Select(i => new IngredientStock(i.ItemId, 0, i.UnitPrice))
+                                            .ToList(),
+            TransmutationSilverPerUnit: IsTransmutation ? TransmutationSilverPerUnit : null,
+            SalePrice:                  CraftItemRow?.UnitPrice ?? 0m,
+            IsRefining:                 isRefining,
+            ItemTier:                   itemBase?.Tier,
+            EnchantmentLevel:           itemBase?.EnchantmentLevel ?? 0);
     }
 
     private void ApplyResult(CraftingCostResult result)
@@ -927,6 +982,14 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         OnPropertyChanged(nameof(TotalGain));
         OnPropertyChanged(nameof(ProfitLoss));
         OnPropertyChanged(nameof(IsProfitable));
+    }
+
+    private void ApplyQuantityResult(QuantityResult result)
+    {
+        Roi               = result.Roi;
+        Margin            = result.Margin;
+        ProfitLossNoFocus = result.ProfitLossNoFocus;
+        RoiNoFocus        = result.RoiNoFocus;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

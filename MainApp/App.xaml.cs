@@ -136,7 +136,8 @@ public partial class App : Application
         var marketVm = new MarketVm(searchItemsUseCase, localizationService, categoryDataService, itemVmFactory, clipboardService);
         var itemSearchVm = new ItemSearchVM(marketVm);
         var itemSearchService = new ItemSearchDialogService(itemSearchVm);
-        var calculateCraftingUseCase = new CalculateCraftingCostUseCase();
+        var calculateCraftingUseCase  = new CalculateCraftingCostUseCase();
+        var calculateByQuantityUseCase = new CalculateByQuantityUseCase(itemDataService);
         var destinyBoard = new DestinyBoardVm(processPlayerUseCase, archievemenVmFactory, playerState);
 
         // ── Builds / Groups / Events (persistencia SQLite) ────────────────────
@@ -195,6 +196,7 @@ public partial class App : Application
             localizationService,
             craftingLocationService,
             calculateCraftingUseCase,
+            calculateByQuantityUseCase,
             config,
             calcStore,
             priceService);
