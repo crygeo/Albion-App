@@ -17,4 +17,5 @@ public sealed class CalculatorTabState
     public int     HideoutLevel       { get; set; } = 1;
     public decimal JournalBonusValue  { get; set; } = 0m;
     public string? CityClusterId      { get; set; }
+    public Albion_App._1Calculadora.CalcMode ActiveMode { get; set; } = Albion_App._1Calculadora.CalcMode.Quantity;
 }
