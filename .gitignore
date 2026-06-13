@@ -26,7 +26,8 @@ riderModule.iml
 graphify-out/
 .graphify_incremental.json
 .graphify_python
-docs/
+docs/*
+!docs/superpowers/
 
 # ── Scripts y archivos de desarrollo local ────────────────────────────────────
 AGENTS.md
