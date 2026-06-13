@@ -57,6 +57,8 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
     private readonly IPersistenceStore             _store;
     private readonly IPriceService                 _priceService;
 
+    public StickyResultsBarVm StickyBar { get; } = new();
+
     // Bonuses raw del ítem: fuente para achievement focus y return rate.
     private IReadOnlyList<AggregatedBonus> _rawItemBonuses = [];
 
@@ -440,6 +442,7 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         Margin            = 0m;
         ProfitLossNoFocus = 0m;
         RoiNoFocus        = 0m;
+        StickyBar.Reset();
     }
 
     /// <summary>Navega a la receta anterior (wrap-around).</summary>
@@ -990,6 +993,7 @@ public sealed partial class CalculadoraSvm : ObservableObject, ISectionIcons
         Margin            = result.Margin;
         ProfitLossNoFocus = result.ProfitLossNoFocus;
         RoiNoFocus        = result.RoiNoFocus;
+        StickyBar.UpdateFromQuantityResult(result, QuantityToCraft);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

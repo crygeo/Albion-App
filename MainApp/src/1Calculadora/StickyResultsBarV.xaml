@@ -1,0 +1,112 @@
+<UserControl x:Class="Albion_App._1Calculadora.StickyResultsBarV"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:local="clr-namespace:Albion_App._1Calculadora"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=local:StickyResultsBarVm}">
+
+    <md:Card UniformCornerRadius="0"
+             Padding="12 8"
+             Margin="0"
+             Background="{DynamicResource MaterialDesign.Brush.Primary}"
+             md:ElevationAssist.Elevation="Dp2">
+
+        <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+
+            <!-- Métrica 1: Ganancia neta -->
+            <StackPanel Orientation="Vertical" Margin="16 0">
+                <TextBlock Text="Ganancia neta"
+                           FontSize="10" Opacity="0.75"
+                           Foreground="{DynamicResource MaterialDesign.Brush.PrimaryForeground}" />
+                <TextBlock FontSize="15" FontWeight="SemiBold"
+                           Foreground="{DynamicResource MaterialDesign.Brush.PrimaryForeground}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="{Binding ProfitLoss, StringFormat={}{0:N0} ₪}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasData}" Value="False">
+                                    <Setter Property="Text" Value="—" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}"
+                       Width="1" Height="32" Margin="4 0" />
+
+            <!-- Métrica 2: ROI -->
+            <StackPanel Orientation="Vertical" Margin="16 0">
+                <TextBlock Text="ROI"
+                           FontSize="10" Opacity="0.75"
+                           Foreground="{DynamicResource MaterialDesign.Brush.PrimaryForeground}" />
+                <TextBlock FontSize="15" FontWeight="SemiBold"
+                           Foreground="{DynamicResource MaterialDesign.Brush.PrimaryForeground}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="{Binding Roi, StringFormat={}{0:P1}}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasData}" Value="False">
+                                    <Setter Property="Text" Value="—" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}"
+                       Width="1" Height="32" Margin="4 0" />
+
+            <!-- Métrica 3: Cantidad -->
+            <StackPanel Orientation="Vertical" Margin="16 0">
+                <TextBlock Text="Cantidad"
+                           FontSize="10" Opacity="0.75"
+                           Foreground="{DynamicResource MaterialDesign.Brush.PrimaryForeground}" />
+                <TextBlock FontSize="15" FontWeight="SemiBold"
+                           Foreground="{DynamicResource MaterialDesign.Brush.PrimaryForeground}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="{Binding QuantityLabel}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasData}" Value="False">
+                                    <Setter Property="Text" Value="—" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}"
+                       Width="1" Height="32" Margin="4 0" />
+
+            <!-- Métrica 4: Fama base -->
+            <StackPanel Orientation="Vertical" Margin="16 0">
+                <TextBlock Text="Fama base"
+                           FontSize="10" Opacity="0.75"
+                           Foreground="{DynamicResource MaterialDesign.Brush.PrimaryForeground}" />
+                <TextBlock FontSize="15" FontWeight="SemiBold"
+                           Foreground="{DynamicResource MaterialDesign.Brush.PrimaryForeground}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="{Binding FameBase, StringFormat={}{0:N0}}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasData}" Value="False">
+                                    <Setter Property="Text" Value="—" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+
+        </StackPanel>
+    </md:Card>
+</UserControl>

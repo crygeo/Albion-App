@@ -61,9 +61,21 @@
     </UserControl.Resources>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
-         PÁGINA PRINCIPAL — ScrollViewer con las 4 cards
+         PÁGINA PRINCIPAL — Grid con barra sticky + ScrollViewer con las 4 cards
     ═══════════════════════════════════════════════════════════════════════════ -->
-    <ScrollViewer VerticalScrollBarVisibility="Auto"
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />  <!-- Barra sticky -->
+            <RowDefinition Height="*" />     <!-- Contenido scrollable -->
+        </Grid.RowDefinitions>
+
+        <!-- ═══ BARRA STICKY DE RESULTADOS ═══════════════════════════════════════ -->
+        <cal:StickyResultsBarV Grid.Row="0"
+                               DataContext="{Binding StickyBar}" />
+
+        <!-- ═══ CONTENIDO PRINCIPAL ══════════════════════════════════════════════ -->
+    <ScrollViewer Grid.Row="1"
+                  VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled">
 
         <StackPanel Margin="18 16 18 24">
@@ -1232,4 +1244,5 @@
 
         </StackPanel>
     </ScrollViewer>
+    </Grid>
 </UserControl>
