@@ -100,11 +100,11 @@
                         <!-- Botón borrar (visible solo cuando hay ítem) -->
                         <Button DockPanel.Dock="Right"
                                 Style="{StaticResource MaterialDesignIconButton}"
-                                Command="{Binding LimpiarItemCommand}"
+                                Command="{Binding SharedState.LimpiarItemCommand}"
                                 ToolTip="Borrar ítem seleccionado"
                                 Width="28" Height="28"
                                 HorizontalAlignment="Right"
-                                Visibility="{Binding HasSelectedItem, Converter={StaticResource BoolToVis}}">
+                                Visibility="{Binding SharedState.HasSelectedItem, Converter={StaticResource BoolToVis}}">
                             <md:PackIcon Kind="Close" Width="16" Height="16"
                                          Foreground="{DynamicResource MaterialDesign.Brush.BodyLight}" />
                         </Button>
@@ -131,10 +131,10 @@
                             <!-- Grid para superponer imagen y placeholder -->
                             <Grid>
                                 <!-- Imagen del ítem (con selección) -->
-                                <Image Source="{Binding SelectedItem.Image}"
+                                <Image Source="{Binding SharedState.SelectedItem.Image}"
                                        Stretch="Uniform"
                                        RenderOptions.BitmapScalingMode="HighQuality"
-                                       Visibility="{Binding HasSelectedItem, Converter={StaticResource BoolToVis}}" />
+                                       Visibility="{Binding SharedState.HasSelectedItem, Converter={StaticResource BoolToVis}}" />
                                 <!-- Ícono placeholder (sin selección) -->
                                 <md:PackIcon Kind="CubeOutline"
                                              Width="32" Height="32"
@@ -146,7 +146,7 @@
                                         <Style TargetType="md:PackIcon">
                                             <Setter Property="Visibility" Value="Visible" />
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding HasSelectedItem}" Value="True">
+                                                <DataTrigger Binding="{Binding SharedState.HasSelectedItem}" Value="True">
                                                     <Setter Property="Visibility" Value="Collapsed" />
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -164,17 +164,17 @@
                                     <Style TargetType="StackPanel">
                                         <Setter Property="Visibility" Value="Collapsed" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding HasSelectedItem}" Value="True">
+                                            <DataTrigger Binding="{Binding SharedState.HasSelectedItem}" Value="True">
                                                 <Setter Property="Visibility" Value="Visible" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </StackPanel.Style>
-                                <TextBlock Text="{Binding SelectedItem.DisplayName}"
+                                <TextBlock Text="{Binding SharedState.SelectedItem.DisplayName}"
                                            FontSize="15"
                                            FontWeight="SemiBold"
                                            TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding SelectedItem.TierLabel}"
+                                <TextBlock Text="{Binding SharedState.SelectedItem.TierLabel}"
                                            FontSize="11"
                                            Opacity="0.6"
                                            Margin="0 2 0 6" />
@@ -206,7 +206,7 @@
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Visibility" Value="Visible" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding HasSelectedItem}" Value="True">
+                                            <DataTrigger Binding="{Binding SharedState.HasSelectedItem}" Value="True">
                                                 <Setter Property="Visibility" Value="Collapsed" />
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -217,7 +217,7 @@
 
                         <!-- Botón buscar ítem -->
                         <Button Grid.Column="2"
-                                Command="{Binding BuscarItemCommand}"
+                                Command="{Binding SharedState.BuscarItemCommand}"
                                 Style="{StaticResource MaterialDesignOutlinedButton}"
                                 VerticalAlignment="Center"
                                 Padding="12 6"
@@ -233,14 +233,14 @@
                     </Grid>
                     <!-- ══ Bonos del Destiny Board ══════════════════════════ -->
                     <StackPanel Grid.Row="2"
-                                Visibility="{Binding HasItemBonuses, Converter={StaticResource BoolToVis}}">
+                                Visibility="{Binding SharedState.HasItemBonuses, Converter={StaticResource BoolToVis}}">
 
                         <Separator Style="{StaticResource CardDivider}" Margin="0 12 0 8" />
 
                         <TextBlock Style="{StaticResource CardSectionLabel}"
                                    Text="BONOS DE CRAFTEO" />
 
-                        <ItemsControl ItemsSource="{Binding ItemBonuses}">
+                        <ItemsControl ItemsSource="{Binding SharedState.ItemBonuses}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Grid Margin="0 3">
@@ -298,7 +298,7 @@
 
                             <!-- ── ESTADO 1: receta cargada ──────────────────────── -->
                             <StackPanel VerticalAlignment="Center"
-                                        Visibility="{Binding HasRecipes, Converter={StaticResource BoolToVis}}">
+                                        Visibility="{Binding SharedState.HasRecipes, Converter={StaticResource BoolToVis}}">
 
                                 <!-- Fila nav: ← | Receta (N/M) | →
                                      StackPanel centrado: el ancho del bloque
@@ -310,12 +310,12 @@
                                             Width="32" Height="32"
                                             Padding="0"
                                             VerticalAlignment="Center"
-                                            Command="{Binding PreviousRecipeCommand}"
+                                            Command="{Binding SharedState.PreviousRecipeCommand}"
                                             ToolTip="Receta anterior"
-                                            Visibility="{Binding HasPreviousRecipe, Converter={StaticResource BoolToVis}}">
+                                            Visibility="{Binding SharedState.HasPreviousRecipe, Converter={StaticResource BoolToVis}}">
                                         <md:PackIcon Kind="ChevronLeft" Width="22" Height="22" />
                                     </Button>
-                                    <TextBlock Text="{Binding RecipeCarouselLabel}"
+                                    <TextBlock Text="{Binding SharedState.RecipeCarouselLabel}"
                                                FontSize="11"
                                                Opacity="0.65"
                                                VerticalAlignment="Center"
@@ -324,15 +324,15 @@
                                             Width="32" Height="32"
                                             Padding="0"
                                             VerticalAlignment="Center"
-                                            Command="{Binding NextRecipeCommand}"
+                                            Command="{Binding SharedState.NextRecipeCommand}"
                                             ToolTip="Receta siguiente"
-                                            Visibility="{Binding HasNextRecipe, Converter={StaticResource BoolToVis}}">
+                                            Visibility="{Binding SharedState.HasNextRecipe, Converter={StaticResource BoolToVis}}">
                                         <md:PackIcon Kind="ChevronRight" Width="22" Height="22" />
                                     </Button>
                                 </StackPanel>
 
                                 <!-- Fila de imágenes de ingredientes -->
-                                <ItemsControl ItemsSource="{Binding CurrentRecipe.Ingredients}"
+                                <ItemsControl ItemsSource="{Binding SharedState.CurrentRecipe.Ingredients}"
                                               HorizontalAlignment="Center">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
@@ -360,7 +360,7 @@
                                 </ItemsControl>
 
                                 <!-- "×N producidos por ciclo" -->
-                                <TextBlock Text="{Binding CurrentRecipe.SubLabel}"
+                                <TextBlock Text="{Binding SharedState.CurrentRecipe.SubLabel}"
                                            FontSize="10"
                                            Opacity="0.6"
                                            HorizontalAlignment="Center"
@@ -370,7 +370,7 @@
                             <!-- ── ESTADO 2: ítem no crafteable ──────────────────── -->
                             <StackPanel VerticalAlignment="Center"
                                         HorizontalAlignment="Center"
-                                        Visibility="{Binding HasSelectedItemWithoutRecipe, Converter={StaticResource BoolToVis}}">
+                                        Visibility="{Binding SharedState.HasSelectedItemWithoutRecipe, Converter={StaticResource BoolToVis}}">
                                 <md:PackIcon Kind="HammerWrench"
                                              Width="22" Height="22"
                                              HorizontalAlignment="Center"
@@ -394,7 +394,7 @@
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Visibility" Value="Collapsed" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding HasSelectedItem}" Value="False">
+                                            <DataTrigger Binding="{Binding SharedState.HasSelectedItem}" Value="False">
                                                 <Setter Property="Visibility" Value="Visible" />
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -410,16 +410,16 @@
                     <!-- ── Sección: Parámetros ─────────────────────────── -->
                     <TextBlock Style="{StaticResource CardSectionLabel}"
                                Text="PARÁMETROS"
-                               Visibility="{Binding IsCraftingRecipe, Converter={StaticResource BoolToVis}}" />
+                               Visibility="{Binding SharedState.IsCraftingRecipe, Converter={StaticResource BoolToVis}}" />
 
                     <!-- Costo de silver editable (solo transmutación) -->
-                    <StackPanel Visibility="{Binding IsTransmutation, Converter={StaticResource BoolToVis}}"
+                    <StackPanel Visibility="{Binding SharedState.IsTransmutation, Converter={StaticResource BoolToVis}}"
                                 Margin="0 0 0 8">
                         <TextBlock Text="Plata por transmutación"
                                    FontSize="11"
                                    Opacity="0.65"
                                    Margin="0 0 0 4" />
-                        <TextBox Text="{Binding TransmutationSilverPerUnit, UpdateSourceTrigger=PropertyChanged, StringFormat=N0}"
+                        <TextBox Text="{Binding SharedState.TransmutationSilverPerUnit, UpdateSourceTrigger=PropertyChanged, StringFormat=N0}"
                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                  md:HintAssist.Hint="0"
                                  FontSize="12" />
@@ -427,12 +427,12 @@
                                    Opacity="0.45"
                                    Margin="0 4 0 0">
                             <Run Text="Base XML: " />
-                            <Run Text="{Binding CurrentRecipe.Silver, Mode=OneWay, StringFormat=N0}" />
+                            <Run Text="{Binding SharedState.CurrentRecipe.Silver, Mode=OneWay, StringFormat=N0}" />
                             <Run Text=" — ajusta al precio real del juego." />
                         </TextBlock>
                     </StackPanel>
 
-                    <Grid Visibility="{Binding IsCraftingRecipe, Converter={StaticResource BoolToVis}}">
+                    <Grid Visibility="{Binding SharedState.IsCraftingRecipe, Converter={StaticResource BoolToVis}}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="12" />
@@ -445,8 +445,8 @@
                                        FontSize="11"
                                        Opacity="0.65"
                                        Margin="0 0 0 4" />
-                            <ComboBox ItemsSource="{Binding AvailableCities}"
-                                      SelectedItem="{Binding SelectedCityOption}"
+                            <ComboBox ItemsSource="{Binding SharedState.AvailableCities}"
+                                      SelectedItem="{Binding SharedState.SelectedCityOption}"
                                       DisplayMemberPath="DisplayText"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                       md:HintAssist.Hint="Ciudad"
@@ -459,8 +459,8 @@
                                        FontSize="11"
                                        Opacity="0.65"
                                        Margin="0 0 0 4" />
-                            <ComboBox ItemsSource="{Binding JournalBonusOptions}"
-                                      SelectedItem="{Binding SelectedJournalBonus}"
+                            <ComboBox ItemsSource="{Binding SharedState.JournalBonusOptions}"
+                                      SelectedItem="{Binding SharedState.SelectedJournalBonus}"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                       md:HintAssist.Hint="Bono"
                                       FontSize="12" />
@@ -471,13 +471,13 @@
                     <StackPanel Orientation="Horizontal"
                                 Margin="0 12 0 0"
                                 VerticalAlignment="Center"
-                                Visibility="{Binding IsCraftingRecipe, Converter={StaticResource BoolToVis}}">
+                                Visibility="{Binding SharedState.IsCraftingRecipe, Converter={StaticResource BoolToVis}}">
                         <CheckBox Content="Premium"
-                                  IsChecked="{Binding UsePremium}"
+                                  IsChecked="{Binding SharedState.UsePremium}"
                                   Margin="0 0 24 0"
                                   FontSize="12" />
                         <CheckBox Content="Usar Foco"
-                                  IsChecked="{Binding UseFocus}"
+                                  IsChecked="{Binding SharedState.UseFocus}"
                                   FontSize="12" />
 
                         <!-- Costo de foco por craft (visible cuando UseFocus y hay receta) -->
@@ -485,8 +485,8 @@
                                    FontSize="11"
                                    Opacity="0.65"
                                    VerticalAlignment="Center"
-                                   Visibility="{Binding HasFocusCost, Converter={StaticResource BoolToVis}}">
-                            <Run Text="{Binding FocusPerCraftLabel, Mode=OneWay}" />
+                                   Visibility="{Binding QuantityMode.HasFocusCost, Converter={StaticResource BoolToVis}}">
+                            <Run Text="{Binding QuantityMode.FocusPerCraftLabel, Mode=OneWay}" />
                             <Run Text=" foco." />
                         </TextBlock>
                     </StackPanel>
@@ -496,7 +496,7 @@
                             Padding="12 10"
                             CornerRadius="8"
                             Background="{DynamicResource MaterialDesign.Brush.Paper}"
-                            Visibility="{Binding IsHideoutCity, Converter={StaticResource BoolToVis}}">
+                            Visibility="{Binding SharedState.IsHideoutCity, Converter={StaticResource BoolToVis}}">
                         <StackPanel>
 
                             <!-- Header -->
@@ -513,7 +513,7 @@
                                            VerticalAlignment="Center" />
                                 <!-- Etiqueta bono efectivo -->
                                 <TextBlock DockPanel.Dock="Right"
-                                           Text="{Binding HideoutBonusLabel}"
+                                           Text="{Binding SharedState.HideoutBonusLabel}"
                                            FontSize="11"
                                            Foreground="{DynamicResource MaterialDesign.Brush.Primary}"
                                            HorizontalAlignment="Right"
@@ -524,8 +524,8 @@
                             <TextBlock Text="Nivel de poder"
                                        Style="{StaticResource CardSectionLabel}"
                                        Margin="0 0 0 4" />
-                            <ComboBox ItemsSource="{Binding HideoutLevels}"
-                                      SelectedItem="{Binding SelectedHideoutLevel}"
+                            <ComboBox ItemsSource="{Binding SharedState.HideoutLevels}"
+                                      SelectedItem="{Binding SharedState.SelectedHideoutLevel}"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                       Margin="0 0 0 10">
                                 <ComboBox.ItemTemplate>
@@ -544,7 +544,7 @@
 
                             <!-- Toggle de reducción de foco especialista -->
                             <CheckBox Content="Hideout especializado para este ítem"
-                                      IsChecked="{Binding UseSpecialistBonus}"
+                                      IsChecked="{Binding SharedState.UseSpecialistBonus}"
                                       FontSize="12"
                                       ToolTip="Activa la reducción extra de costo de foco (specialistcraftingbonus)" />
 
@@ -572,7 +572,7 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <TextBox Grid.Column="0"
-                                 Text="{Binding QuantityToCraft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 Text="{Binding QuantityMode.QuantityToCraft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                  md:HintAssist.Hint="Cantidad"
                                  md:HintAssist.IsFloating="True"
@@ -597,7 +597,7 @@
                             <Style TargetType="TextBlock">
                                 <Setter Property="Visibility" Value="Collapsed" />
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasCraftItemRow}" Value="False">
+                                    <DataTrigger Binding="{Binding QuantityMode.HasCraftItemRow}" Value="False">
                                         <Setter Property="Visibility" Value="Visible" />
                                     </DataTrigger>
                                 </Style.Triggers>
@@ -607,7 +607,7 @@
 
                     <!-- Ítem crafteado -->
                     <Grid Margin="0 4"
-                          Visibility="{Binding HasCraftItemRow, Converter={StaticResource BoolToVis}}">
+                          Visibility="{Binding QuantityMode.HasCraftItemRow, Converter={StaticResource BoolToVis}}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="36" />
                             <ColumnDefinition Width="*" />
@@ -616,9 +616,9 @@
                         <Border Grid.Column="0" Width="32" Height="32" CornerRadius="4"
                                 Background="{DynamicResource MaterialDesign.Brush.Primary}"
                                 Opacity="0.85">
-                            <Image Source="{Binding CraftItemRow.Item.Image}" Stretch="Uniform" />
+                            <Image Source="{Binding QuantityMode.CraftItemRow.Item.Image}" Stretch="Uniform" />
                         </Border>
-                        <TextBlock Grid.Column="1" Text="{Binding CraftItemRow.DisplayName}"
+                        <TextBlock Grid.Column="1" Text="{Binding QuantityMode.CraftItemRow.DisplayName}"
                                    FontSize="12" FontWeight="SemiBold"
                                    VerticalAlignment="Center" Margin="10 0"
                                    TextTrimming="CharacterEllipsis" />
@@ -626,18 +626,18 @@
                             <StackPanel Orientation="Vertical" Margin="0 0 4 0">
                                 <TextBlock Text="Precio:" FontSize="11" Opacity="0.65" />
                                 <TextBox Width="80"
-                                         Text="{Binding CraftItemRow.UnitPrice, Mode=TwoWay, UpdateSourceTrigger=LostFocus, Converter={StaticResource NumFmt}, ConverterParameter='Money'}"
+                                         Text="{Binding QuantityMode.CraftItemRow.UnitPrice, Mode=TwoWay, UpdateSourceTrigger=LostFocus, Converter={StaticResource NumFmt}, ConverterParameter='Money'}"
                                          Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                          FontSize="12" md:HintAssist.Hint="0" md:HintAssist.IsFloating="False" />
                             </StackPanel>
                             <Button Style="{StaticResource MaterialDesignIconButton}"
-                                    Command="{Binding CraftItemRow.AutoPrecioCommand}"
+                                    Command="{Binding QuantityMode.CraftItemRow.AutoPrecioCommand}"
                                     ToolTip="Auto Precio" Width="28" Height="28"
                                     VerticalAlignment="Bottom" Margin="0 0 0 2">
                                 <md:PackIcon Kind="AutoFix" Width="15" Height="15" />
                             </Button>
                             <Button Style="{StaticResource MaterialDesignIconButton}"
-                                    Command="{Binding CraftItemRow.OpenPriceDialogCommand}"
+                                    Command="{Binding QuantityMode.CraftItemRow.OpenPriceDialogCommand}"
                                     ToolTip="Ver precios por ciudad" Width="28" Height="28"
                                     VerticalAlignment="Bottom" Margin="0 0 0 2">
                                 <md:PackIcon Kind="TableSearch" Width="15" Height="15" />
@@ -646,11 +646,11 @@
                     </Grid>
 
                     <Separator Style="{StaticResource CardDivider}" Margin="0 6 0 6"
-                               Visibility="{Binding HasIngredientInventory, Converter={StaticResource BoolToVis}}" />
+                               Visibility="{Binding QuantityMode.HasIngredientInventory, Converter={StaticResource BoolToVis}}" />
 
                     <!-- Ingredientes -->
-                    <ItemsControl ItemsSource="{Binding IngredientInventory}"
-                                  Visibility="{Binding HasIngredientInventory, Converter={StaticResource BoolToVis}}">
+                    <ItemsControl ItemsSource="{Binding QuantityMode.IngredientInventory}"
+                                  Visibility="{Binding QuantityMode.HasIngredientInventory, Converter={StaticResource BoolToVis}}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Grid Margin="0 4">
@@ -693,7 +693,7 @@
                     </ItemsControl>
 
                     <!-- Libro de laborer -->
-                    <StackPanel Visibility="{Binding HasJournal, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Visibility="{Binding QuantityMode.HasJournal, Converter={StaticResource BoolToVis}}">
                         <Separator Style="{StaticResource CardDivider}" Margin="0 6 0 6" />
                         <TextBlock Style="{StaticResource CardSectionLabel}" Text="LIBRO DE LABORER" />
                         <Grid Margin="0 4">
@@ -704,13 +704,13 @@
                             </Grid.ColumnDefinitions>
                             <Border Grid.Column="0" Width="32" Height="32" CornerRadius="4"
                                     Background="{DynamicResource MaterialDesign.Brush.Separator}">
-                                <Image Source="{Binding JournalRow.JournalVm.Image}" Stretch="Uniform" />
+                                <Image Source="{Binding QuantityMode.JournalRow.JournalVm.Image}" Stretch="Uniform" />
                             </Border>
                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10 0">
-                                <TextBlock Text="{Binding JournalRow.DisplayName}"
+                                <TextBlock Text="{Binding QuantityMode.JournalRow.DisplayName}"
                                            FontSize="12" TextTrimming="CharacterEllipsis" />
                                 <TextBlock FontSize="11" Opacity="0.6">
-                                    <Run Text="{Binding JournalRow.BooksNeeded, Mode=OneWay, StringFormat=N0}" />
+                                    <Run Text="{Binding QuantityMode.JournalRow.BooksNeeded, Mode=OneWay, StringFormat=N0}" />
                                     <Run Text=" libros necesarios" />
                                 </TextBlock>
                             </StackPanel>
@@ -718,25 +718,25 @@
                                 <StackPanel Orientation="Vertical" Margin="0 0 4 0">
                                     <TextBlock Text="Lleno:" FontSize="11" Opacity="0.65" />
                                     <TextBox Width="75"
-                                             Text="{Binding JournalRow.FullPrice, Mode=TwoWay, UpdateSourceTrigger=LostFocus, Converter={StaticResource NumFmt}, ConverterParameter='Money'}"
+                                             Text="{Binding QuantityMode.JournalRow.FullPrice, Mode=TwoWay, UpdateSourceTrigger=LostFocus, Converter={StaticResource NumFmt}, ConverterParameter='Money'}"
                                              Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                              FontSize="12" md:HintAssist.Hint="0" md:HintAssist.IsFloating="False" />
                                 </StackPanel>
                                 <StackPanel Orientation="Vertical" Margin="0 0 4 0">
                                     <TextBlock Text="Vacío:" FontSize="11" Opacity="0.65" />
                                     <TextBox Width="75"
-                                             Text="{Binding JournalRow.EmptyPrice, Mode=TwoWay, UpdateSourceTrigger=LostFocus, Converter={StaticResource NumFmt}, ConverterParameter='Money'}"
+                                             Text="{Binding QuantityMode.JournalRow.EmptyPrice, Mode=TwoWay, UpdateSourceTrigger=LostFocus, Converter={StaticResource NumFmt}, ConverterParameter='Money'}"
                                              Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                              FontSize="12" md:HintAssist.Hint="0" md:HintAssist.IsFloating="False" />
                                 </StackPanel>
                                 <Button Style="{StaticResource MaterialDesignIconButton}"
-                                        Command="{Binding JournalRow.AutoPrecioCommand}"
+                                        Command="{Binding QuantityMode.JournalRow.AutoPrecioCommand}"
                                         ToolTip="Auto Precio" Width="28" Height="28"
                                         VerticalAlignment="Bottom" Margin="0 0 0 2">
                                     <md:PackIcon Kind="AutoFix" Width="15" Height="15" />
                                 </Button>
                                 <Button Style="{StaticResource MaterialDesignIconButton}"
-                                        Command="{Binding JournalRow.OpenPriceDialogCommand}"
+                                        Command="{Binding QuantityMode.JournalRow.OpenPriceDialogCommand}"
                                         ToolTip="Ver precios por ciudad" Width="28" Height="28"
                                         VerticalAlignment="Bottom" Margin="0 0 0 2">
                                     <md:PackIcon Kind="TableSearch" Width="15" Height="15" />
@@ -767,7 +767,7 @@
                                 ToolTip="Exportar como PNG"
                                 Width="28" Height="28"
                                 HorizontalAlignment="Right"
-                                Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}">
+                                Visibility="{Binding QuantityMode.HasResults, Converter={StaticResource BoolToVis}}">
                             <md:PackIcon Kind="ImageOutline" Width="16" Height="16" />
                         </Button>
                     </DockPanel>
@@ -780,7 +780,7 @@
 
                         <Border CornerRadius="4"
                                 Background="{DynamicResource MaterialDesign.Brush.Primary}"
-                                Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}"
+                                Visibility="{Binding QuantityMode.HasResults, Converter={StaticResource BoolToVis}}"
                                 Padding="8 3" Margin="0,0,4,0">
                             <StackPanel Orientation="Horizontal">
                                 <md:PackIcon Kind="ArrowTopRight"
@@ -788,7 +788,7 @@
                                              VerticalAlignment="Center"
                                              Margin="0 0 4 0"
                                              Foreground="White" />
-                                <TextBlock Text="{Binding ReturnRateLabel, Mode=OneWay}"
+                                <TextBlock Text="{Binding QuantityMode.ReturnRateLabel, Mode=OneWay}"
                                            FontSize="11"
                                            FontWeight="SemiBold"
                                            Foreground="White" />
@@ -798,7 +798,7 @@
                         <!-- Badge Hideout: H L-9  26%  -3,000 foco -->
                         <Border CornerRadius="4"
                                 Background="#1A6B3A"
-                                Visibility="{Binding HasHideoutBadge, Converter={StaticResource BoolToVis}}"
+                                Visibility="{Binding QuantityMode.HasHideoutBadge, Converter={StaticResource BoolToVis}}"
                                 Padding="8 3" Margin="0 0 4 0">
                             <StackPanel Orientation="Horizontal">
                                 <md:PackIcon Kind="HomeAlert"
@@ -806,7 +806,7 @@
                                              VerticalAlignment="Center"
                                              Margin="0 0 4 0"
                                              Foreground="White" />
-                                <TextBlock Text="{Binding HideoutBonusLabel}"
+                                <TextBlock Text="{Binding SharedState.HideoutBonusLabel}"
                                            FontSize="11"
                                            FontWeight="SemiBold"
                                            Foreground="White" />
@@ -818,14 +818,14 @@
                                 Background="{DynamicResource MaterialDesign.Brush.Primary}"
                                 BorderBrush="{DynamicResource MaterialDesign.Brush.Separator}"
                                 BorderThickness="1"
-                                Visibility="{Binding HasSelectedCity, Converter={StaticResource BoolToVis}}"
+                                Visibility="{Binding SharedState.HasSelectedCity, Converter={StaticResource BoolToVis}}"
                                 Padding="8 3" Margin="0 0 4 0">
                             <StackPanel Orientation="Horizontal">
                                 <md:PackIcon Kind="City"
                                              Width="13" Height="13"
                                              VerticalAlignment="Center"
                                              Margin="0 0 4 0" />
-                                <TextBlock Text="{Binding SelectedCityOption.DisplayText}"
+                                <TextBlock Text="{Binding SharedState.SelectedCityOption.DisplayText}"
                                            FontSize="11"
                                            FontWeight="SemiBold" />
                             </StackPanel>
@@ -835,7 +835,7 @@
 
                         <Border CornerRadius="4"
                                 Background="{DynamicResource MaterialDesign.Brush.Primary}"
-                                Visibility="{Binding HasFocusCost, Converter={StaticResource BoolToVis}}"
+                                Visibility="{Binding QuantityMode.HasFocusCost, Converter={StaticResource BoolToVis}}"
                                 Padding="8 3">
                             <StackPanel Orientation="Horizontal">
                                 <md:PackIcon Kind="FocusAuto"
@@ -846,7 +846,7 @@
                                 <TextBlock FontSize="11"
                                            FontWeight="SemiBold"
                                            Foreground="White"
-                                           Text="{Binding FocusPerCraftLabel}" />
+                                           Text="{Binding QuantityMode.FocusPerCraftLabel}" />
                                 <TextBlock Text="/craft"
                                            FontSize="11"
                                            Foreground="White"
@@ -859,7 +859,7 @@
                                 <TextBlock FontSize="11"
                                            FontWeight="SemiBold"
                                            Foreground="White"
-                                           Text="{Binding TotalFocusCostLabel}" />
+                                           Text="{Binding QuantityMode.TotalFocusCostLabel}" />
                                 <TextBlock Text=" total"
                                            FontSize="11"
                                            Foreground="White"
@@ -870,12 +870,12 @@
                                            Foreground="White"
                                            Opacity="0.75"
                                            Margin="5 0 0 0"
-                                           Text="{Binding FocusReductionLabel}">
+                                           Text="{Binding QuantityMode.FocusReductionLabel}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Visibility" Value="Visible"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding FocusReductionPercent}" Value="0">
+                                                <DataTrigger Binding="{Binding QuantityMode.FocusReductionPercent}" Value="0">
                                                     <Setter Property="Visibility" Value="Collapsed"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -894,7 +894,7 @@
                             <Style TargetType="Border">
                                 <Setter Property="Visibility" Value="Collapsed" />
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasResults}" Value="False">
+                                    <DataTrigger Binding="{Binding QuantityMode.HasResults}" Value="False">
                                         <Setter Property="Visibility" Value="Visible" />
                                     </DataTrigger>
                                 </Style.Triggers>
@@ -907,8 +907,8 @@
                     </Border>
 
                     <!-- Lista de materiales — diseño chips -->
-                    <ItemsControl ItemsSource="{Binding MaterialResults}"
-                                  Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}">
+                    <ItemsControl ItemsSource="{Binding QuantityMode.MaterialResults}"
+                                  Visibility="{Binding QuantityMode.HasResults, Converter={StaticResource BoolToVis}}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border Margin="0 0 0 2" Padding="10 8" CornerRadius="6"
@@ -985,7 +985,7 @@
                             Padding="10"
                             CornerRadius="6"
                             Background="{DynamicResource MaterialDesign.Brush.Primary}"
-                            Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}">
+                            Visibility="{Binding QuantityMode.HasResults, Converter={StaticResource BoolToVis}}">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="44" />
@@ -999,14 +999,14 @@
                                     CornerRadius="6"
                                     Background="#22000000"
                                     Margin="0 0 10 0">
-                                <Image Source="{Binding SelectedItem.Image}"
+                                <Image Source="{Binding SharedState.SelectedItem.Image}"
                                        Stretch="Uniform"
                                        RenderOptions.BitmapScalingMode="HighQuality" />
                             </Border>
 
                             <!-- Nombre + cantidad producida -->
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding SelectedItem.DisplayName}"
+                                <TextBlock Text="{Binding SharedState.SelectedItem.DisplayName}"
                                            FontSize="13"
                                            FontWeight="SemiBold"
                                            Foreground="White"
@@ -1017,7 +1017,7 @@
                                            Margin="0 2 0 0">
                                     <Run Text="Se obtienen: " />
                                     <Run FontWeight="SemiBold"
-                                         Text="{Binding QuantityToCraft, StringFormat=N0}" />
+                                         Text="{Binding QuantityMode.QuantityToCraft, StringFormat=N0}" />
                                     <Run Text=" unidades" />
                                 </TextBlock>
                             </StackPanel>
@@ -1034,10 +1034,10 @@
 
                     <!-- Separador y total general -->
                     <Separator Style="{StaticResource CardDivider}"
-                               Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}" />
+                               Visibility="{Binding QuantityMode.HasResults, Converter={StaticResource BoolToVis}}" />
 
                     <!-- Costo total de materiales -->
-                    <DockPanel Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}"
+                    <DockPanel Visibility="{Binding QuantityMode.HasResults, Converter={StaticResource BoolToVis}}"
                                Margin="0 8 0 0">
                         <TextBlock DockPanel.Dock="Left" Text="COMPRA MÍNIMA INICIAL"
                                    FontSize="11" FontWeight="SemiBold" Opacity="0.65"
@@ -1045,11 +1045,11 @@
                         <TextBlock DockPanel.Dock="Right" FontSize="18" FontWeight="Bold"
                                    HorizontalAlignment="Right"
                                    Foreground="{DynamicResource MaterialDesign.Brush.Secondary}"
-                                   Text="{Binding TotalInvestment, StringFormat=N0}" />
+                                   Text="{Binding QuantityMode.TotalInvestment, StringFormat=N0}" />
                     </DockPanel>
 
                     <!-- ── Inversión vs Ganancia ───────────────────────── -->
-                    <StackPanel Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Visibility="{Binding QuantityMode.HasResults, Converter={StaticResource BoolToVis}}">
                         <Separator Style="{StaticResource CardDivider}" />
                         <TextBlock Style="{StaticResource CardSectionLabel}" Text="INVERSIÓN vs GANANCIA" />
 
@@ -1070,16 +1070,16 @@
                                                FontSize="11" Opacity="0.75" VerticalAlignment="Center" />
                                     <TextBlock DockPanel.Dock="Right" FontSize="12" FontWeight="SemiBold"
                                                HorizontalAlignment="Right"
-                                               Text="{Binding TotalCost, StringFormat=N0}" />
+                                               Text="{Binding QuantityMode.TotalCost, StringFormat=N0}" />
                                 </DockPanel>
 
                                 <DockPanel Margin="0 2"
-                                           Visibility="{Binding HasJournal, Converter={StaticResource BoolToVis}}">
+                                           Visibility="{Binding QuantityMode.HasJournal, Converter={StaticResource BoolToVis}}">
                                     <TextBlock DockPanel.Dock="Left" Text="Libros vacíos"
                                                FontSize="11" Opacity="0.75" VerticalAlignment="Center" />
                                     <TextBlock DockPanel.Dock="Right" FontSize="12" FontWeight="SemiBold"
                                                HorizontalAlignment="Right"
-                                               Text="{Binding JournalRow.TotalEmptyValue, StringFormat=N0}" />
+                                               Text="{Binding QuantityMode.JournalRow.TotalEmptyValue, StringFormat=N0}" />
                                 </DockPanel>
 
                                 <Separator Style="{StaticResource CardDivider}" Margin="0 4 0 4" />
@@ -1088,7 +1088,7 @@
                                                FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
                                     <TextBlock DockPanel.Dock="Right" FontSize="13" FontWeight="Bold"
                                                Foreground="#F44336" HorizontalAlignment="Right"
-                                               Text="{Binding TotalInvestment, StringFormat=N0}" />
+                                               Text="{Binding QuantityMode.TotalInvestment, StringFormat=N0}" />
                                 </DockPanel>
                             </StackPanel>
 
@@ -1106,7 +1106,7 @@
                                                FontSize="11" Opacity="0.75" VerticalAlignment="Center" />
                                     <TextBlock DockPanel.Dock="Right" FontSize="12" FontWeight="SemiBold"
                                                HorizontalAlignment="Right"
-                                               Text="{Binding CraftedItemTotalValue, StringFormat=N0}" />
+                                               Text="{Binding QuantityMode.CraftedItemTotalValue, StringFormat=N0}" />
                                 </DockPanel>
 
                                 <DockPanel Margin="0 2">
@@ -1114,16 +1114,16 @@
                                                FontSize="11" Opacity="0.75" VerticalAlignment="Center" />
                                     <TextBlock DockPanel.Dock="Right" FontSize="12" FontWeight="SemiBold"
                                                HorizontalAlignment="Right"
-                                               Text="{Binding TotalReturnedValue, StringFormat=N0}" />
+                                               Text="{Binding QuantityMode.TotalReturnedValue, StringFormat=N0}" />
                                 </DockPanel>
 
                                 <DockPanel Margin="0 2"
-                                           Visibility="{Binding HasJournal, Converter={StaticResource BoolToVis}}">
+                                           Visibility="{Binding QuantityMode.HasJournal, Converter={StaticResource BoolToVis}}">
                                     <TextBlock DockPanel.Dock="Left" Text="Libros llenos"
                                                FontSize="11" Opacity="0.75" VerticalAlignment="Center" />
                                     <TextBlock DockPanel.Dock="Right" FontSize="12" FontWeight="SemiBold"
                                                HorizontalAlignment="Right"
-                                               Text="{Binding JournalRow.TotalFullValue, StringFormat=N0}" />
+                                               Text="{Binding QuantityMode.JournalRow.TotalFullValue, StringFormat=N0}" />
                                 </DockPanel>
 
                                 <Separator Style="{StaticResource CardDivider}" Margin="0 4 0 4" />
@@ -1132,7 +1132,7 @@
                                                FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
                                     <TextBlock DockPanel.Dock="Right" FontSize="13" FontWeight="Bold"
                                                Foreground="#4CAF50" HorizontalAlignment="Right"
-                                               Text="{Binding TotalGain, StringFormat=N0}" />
+                                               Text="{Binding QuantityMode.TotalGain, StringFormat=N0}" />
                                 </DockPanel>
                             </StackPanel>
                         </Grid>
@@ -1143,7 +1143,7 @@
                                 <Style TargetType="Border">
                                     <Setter Property="Background" Value="#1A4CAF50" />
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsProfitable}" Value="False">
+                                        <DataTrigger Binding="{Binding QuantityMode.IsProfitable}" Value="False">
                                             <Setter Property="Background" Value="#1AF44336" />
                                         </DataTrigger>
                                     </Style.Triggers>
@@ -1153,19 +1153,19 @@
                                 <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
                                     <TextBlock Text="GANANCIA NETA" FontSize="11" FontWeight="SemiBold" Opacity="0.8" />
                                     <TextBlock FontSize="10" Opacity="0.55">
-                                        <Run Text="{Binding TotalGain, Mode=OneWay, StringFormat=N0}" />
+                                        <Run Text="{Binding QuantityMode.TotalGain, Mode=OneWay, StringFormat=N0}" />
                                         <Run Text=" − " />
-                                        <Run Text="{Binding TotalInvestment, Mode=OneWay, StringFormat=N0}" />
+                                        <Run Text="{Binding QuantityMode.TotalInvestment, Mode=OneWay, StringFormat=N0}" />
                                     </TextBlock>
                                 </StackPanel>
                                 <TextBlock DockPanel.Dock="Right" FontSize="20" FontWeight="Bold"
                                            HorizontalAlignment="Right" VerticalAlignment="Center"
-                                           Text="{Binding ProfitLoss, StringFormat=N0}">
+                                           Text="{Binding QuantityMode.ProfitLoss, StringFormat=N0}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="#4CAF50" />
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsProfitable}" Value="False">
+                                                <DataTrigger Binding="{Binding QuantityMode.IsProfitable}" Value="False">
                                                     <Setter Property="Foreground" Value="#F44336" />
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -1177,7 +1177,7 @@
                     </StackPanel>
 
                     <!-- ── ROI y Margen ──────────────────────────────────── -->
-                    <StackPanel Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}"
+                    <StackPanel Visibility="{Binding QuantityMode.HasResults, Converter={StaticResource BoolToVis}}"
                                 Margin="0 8 0 0">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -1187,12 +1187,12 @@
                             <StackPanel Grid.Column="0">
                                 <TextBlock Text="ROI" FontSize="11" FontWeight="SemiBold" Opacity="0.65" />
                                 <TextBlock FontSize="16" FontWeight="Bold"
-                                           Text="{Binding Roi, StringFormat={}{0:P1}}">
+                                           Text="{Binding QuantityMode.Roi, StringFormat={}{0:P1}}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="#4CAF50" />
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsProfitable}" Value="False">
+                                                <DataTrigger Binding="{Binding QuantityMode.IsProfitable}" Value="False">
                                                     <Setter Property="Foreground" Value="#F44336" />
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -1203,12 +1203,12 @@
                             <StackPanel Grid.Column="1">
                                 <TextBlock Text="Margen" FontSize="11" FontWeight="SemiBold" Opacity="0.65" />
                                 <TextBlock FontSize="16" FontWeight="Bold"
-                                           Text="{Binding Margin, StringFormat={}{0:P1}}">
+                                           Text="{Binding QuantityMode.Margin, StringFormat={}{0:P1}}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="#4CAF50" />
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsProfitable}" Value="False">
+                                                <DataTrigger Binding="{Binding QuantityMode.IsProfitable}" Value="False">
                                                     <Setter Property="Foreground" Value="#F44336" />
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -1220,7 +1220,7 @@
                     </StackPanel>
 
                     <!-- ── Comparación con / sin foco ───────────────────── -->
-                    <Expander Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}"
+                    <Expander Visibility="{Binding QuantityMode.HasResults, Converter={StaticResource BoolToVis}}"
                               Margin="0 10 0 0"
                               IsExpanded="False">
                         <Expander.Header>
@@ -1249,14 +1249,14 @@
                                                        FontSize="11" Opacity="0.7" VerticalAlignment="Center" />
                                             <TextBlock DockPanel.Dock="Right" FontSize="12" FontWeight="SemiBold"
                                                        HorizontalAlignment="Right"
-                                                       Text="{Binding ProfitLossNoFocus, StringFormat={}{0:N0} ₪}" />
+                                                       Text="{Binding QuantityMode.ProfitLossNoFocus, StringFormat={}{0:N0} ₪}" />
                                         </DockPanel>
                                         <DockPanel Margin="0 2">
                                             <TextBlock DockPanel.Dock="Left" Text="ROI"
                                                        FontSize="11" Opacity="0.7" VerticalAlignment="Center" />
                                             <TextBlock DockPanel.Dock="Right" FontSize="12" FontWeight="SemiBold"
                                                        HorizontalAlignment="Right"
-                                                       Text="{Binding RoiNoFocus, StringFormat={}{0:P1}}" />
+                                                       Text="{Binding QuantityMode.RoiNoFocus, StringFormat={}{0:P1}}" />
                                         </DockPanel>
                                     </StackPanel>
                                 </Border>
@@ -1269,7 +1269,7 @@
                                             <Setter Property="BorderThickness" Value="1.5" />
                                             <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesign.Brush.Separator}" />
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding UseFocus}" Value="True">
+                                                <DataTrigger Binding="{Binding SharedState.UseFocus}" Value="True">
                                                     <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesign.Brush.Primary}" />
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -1286,7 +1286,7 @@
                                                     <Style TargetType="md:PackIcon">
                                                         <Setter Property="Visibility" Value="Collapsed" />
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding UseFocus}" Value="True">
+                                                            <DataTrigger Binding="{Binding SharedState.UseFocus}" Value="True">
                                                                 <Setter Property="Visibility" Value="Visible" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -1299,14 +1299,14 @@
                                                        FontSize="11" Opacity="0.7" VerticalAlignment="Center" />
                                             <TextBlock DockPanel.Dock="Right" FontSize="12" FontWeight="SemiBold"
                                                        HorizontalAlignment="Right"
-                                                       Text="{Binding ProfitLoss, StringFormat={}{0:N0} ₪}" />
+                                                       Text="{Binding QuantityMode.ProfitLoss, StringFormat={}{0:N0} ₪}" />
                                         </DockPanel>
                                         <DockPanel Margin="0 2">
                                             <TextBlock DockPanel.Dock="Left" Text="ROI"
                                                        FontSize="11" Opacity="0.7" VerticalAlignment="Center" />
                                             <TextBlock DockPanel.Dock="Right" FontSize="12" FontWeight="SemiBold"
                                                        HorizontalAlignment="Right"
-                                                       Text="{Binding Roi, StringFormat={}{0:P1}}" />
+                                                       Text="{Binding QuantityMode.Roi, StringFormat={}{0:P1}}" />
                                         </DockPanel>
                                     </StackPanel>
                                 </Border>
@@ -1315,7 +1315,7 @@
                     </Expander>
 
                     <!-- ── Fama ────────────────────────────────────────── -->
-                    <StackPanel Visibility="{Binding HasFame, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Visibility="{Binding QuantityMode.HasFame, Converter={StaticResource BoolToVis}}">
                         <Separator Style="{StaticResource CardDivider}" />
                         <DockPanel>
                             <TextBlock DockPanel.Dock="Left" Text="FAMA OBTENIDA"
@@ -1323,12 +1323,12 @@
                                        VerticalAlignment="Center" />
                             <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
                                 <TextBlock FontSize="22" FontWeight="Bold" HorizontalAlignment="Right"
-                                           Text="{Binding TotalFameBase, StringFormat=N0}" />
+                                           Text="{Binding QuantityMode.TotalFameBase, StringFormat=N0}" />
                                 <TextBlock HorizontalAlignment="Right" Margin="0 1 0 0"
-                                           Visibility="{Binding UsePremium, Converter={StaticResource BoolToVis}}">
+                                           Visibility="{Binding SharedState.UsePremium, Converter={StaticResource BoolToVis}}">
                                     <Run Text="con premium: " FontSize="10" />
                                     <Run FontSize="12" FontWeight="SemiBold"
-                                         Text="{Binding TotalFamePremium, StringFormat=N0}" />
+                                         Text="{Binding QuantityMode.TotalFamePremium, StringFormat=N0}" />
                                     <TextBlock.Foreground>
                                         <DynamicResource ResourceKey="MaterialDesign.Brush.Primary" />
                                     </TextBlock.Foreground>
@@ -1338,7 +1338,7 @@
                     </StackPanel>
 
                     <!-- ── Libros ──────────────────────────────────────── -->
-                    <StackPanel Visibility="{Binding HasJournal, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Visibility="{Binding QuantityMode.HasJournal, Converter={StaticResource BoolToVis}}">
                         <Separator Style="{StaticResource CardDivider}" />
                         <TextBlock Style="{StaticResource CardSectionLabel}" Text="LIBROS DE LABORER" />
 
@@ -1347,21 +1347,21 @@
                                        FontSize="12" Opacity="0.7" VerticalAlignment="Center" />
                             <TextBlock DockPanel.Dock="Right" FontSize="12" FontWeight="SemiBold"
                                        HorizontalAlignment="Right"
-                                       Text="{Binding JournalRow.TotalEmptyValue, StringFormat=N0}" />
+                                       Text="{Binding QuantityMode.JournalRow.TotalEmptyValue, StringFormat=N0}" />
                         </DockPanel>
 
                         <DockPanel Margin="0 2">
                             <TextBlock DockPanel.Dock="Left" FontSize="12" Opacity="0.7" VerticalAlignment="Center">
                                 <Run Text="Llenos (" />
-                                <Run Text="{Binding JournalRow.BooksCompleted, Mode=OneWay}" />
+                                <Run Text="{Binding QuantityMode.JournalRow.BooksCompleted, Mode=OneWay}" />
                                 <Run Text=" de " />
-                                <Run Text="{Binding JournalRow.BooksNeeded, Mode=OneWay}" />
+                                <Run Text="{Binding QuantityMode.JournalRow.BooksNeeded, Mode=OneWay}" />
                                 <Run Text=" se llenan)" />
                             </TextBlock>
                             <TextBlock DockPanel.Dock="Right" FontSize="12" FontWeight="SemiBold"
                                        HorizontalAlignment="Right"
                                        Foreground="{DynamicResource MaterialDesign.Brush.Primary}"
-                                       Text="{Binding JournalRow.TotalFullValue, StringFormat=N0}" />
+                                       Text="{Binding QuantityMode.JournalRow.TotalFullValue, StringFormat=N0}" />
                         </DockPanel>
 
                         <Separator Style="{StaticResource CardDivider}" Margin="0 4 0 4" />
@@ -1373,7 +1373,7 @@
                             <TextBlock DockPanel.Dock="Right" FontSize="14" FontWeight="Bold"
                                        HorizontalAlignment="Right"
                                        Foreground="{DynamicResource MaterialDesign.Brush.Primary}"
-                                       Text="{Binding JournalRow.JournalIncome, StringFormat=N0}" />
+                                       Text="{Binding QuantityMode.JournalRow.JournalIncome, StringFormat=N0}" />
                         </DockPanel>
                     </StackPanel>
 
