@@ -36,12 +36,17 @@ public sealed class CalculateCraftingCostUseCase
         {
             var silverPerUnit = request.TransmutationSilverPerUnit ?? request.Recipe.Silver ?? 0m;
             var silverCost    = silverPerUnit * qty;
-            var lines      = BuildLines(request, rrr: 0m, qty);
+            var kernelResult  = CraftingKernel.Compute(new KernelRequest(
+                Recipe:      request.Recipe,
+                Quantity:    qty,
+                ReturnRate:  0m,
+                Stock:       request.OwnedStock,
+                BuyLocation: request.City?.Name ?? string.Empty));
             return new CraftingCostResult
             {
                 TransmutationSilverCost = silverCost,
-                Lines                   = lines,
-                TotalCost               = silverCost + lines.Sum(l => l.TotalCost)
+                Lines                   = kernelResult.Lines,
+                TotalCost               = silverCost + kernelResult.TotalCost
             };
         }
 
@@ -64,8 +69,12 @@ public sealed class CalculateCraftingCostUseCase
         var rrr = CalculateReturnRate(request);
 
         // 4. Materiales ────────────────────────────────────────────────────────
-        var lines2     = BuildLines(request, rrr, qty);
-        var totalCost = lines2.Sum(l => l.TotalCost);
+        var kernelResult2 = CraftingKernel.Compute(new KernelRequest(
+            Recipe:      request.Recipe,
+            Quantity:    qty,
+            ReturnRate:  rrr,
+            Stock:       request.OwnedStock,
+            BuyLocation: request.City!.Name));
 
         return new CraftingCostResult
         {
@@ -73,8 +82,8 @@ public sealed class CalculateCraftingCostUseCase
             FocusPerCraft         = focus.PerCraft,
             TotalFocusCost        = focus.Total,
             FocusReductionPercent = focus.ReductionPercent,
-            Lines                 = lines2,
-            TotalCost             = totalCost
+            Lines                 = kernelResult2.Lines,
+            TotalCost             = kernelResult2.TotalCost
         };
     }
 
@@ -152,78 +161,6 @@ public sealed class CalculateCraftingCostUseCase
             achievementBonus,
             request.JournalBonus,
             request.HideoutBonus);
-    }
-
-    // ── Materiales ────────────────────────────────────────────────────────────
-
-    private static IReadOnlyList<MaterialCostLine> BuildLines(
-        CraftingCostRequest request,
-        decimal             rrr,
-        int                 qty)
-    {
-        var stockIndex = request.OwnedStock
-            .ToDictionary(s => s.ItemId, StringComparer.OrdinalIgnoreCase);
-
-        var lines = new List<MaterialCostLine>(request.Recipe.Ingredients.Count);
-
-        foreach (var ingredient in request.Recipe.Ingredients)
-        {
-            stockIndex.TryGetValue(ingredient.ItemId, out var stock);
-
-            int perCycle = ingredient.Count;
-            int gross    = perCycle * qty;
-
-            // Consumo neto del lote principal + buffer del último ciclo.
-            // Se calculan POR SEPARADO y cada uno se redondea hacia arriba
-            // para evitar que la imprecisión decimal de rrr los fusione por debajo.
-            //
-            //   netConsumed = ceil(gross   × (1 − rrr))   → lo que se pierde definitivamente
-            //   lastBuffer  = ceil(perCycle × (1 − rrr))  → el exceso del último ciclo
-            //   minInitial  = netConsumed + lastBuffer
-            //
-            // Ejemplo: gross=5000, perCycle=5, rrr=0.578
-            //   netConsumed = ceil(5000 × 0.422) = ceil(2110.0) = 2110
-            //   lastBuffer  = ceil(5    × 0.422) = ceil(2.11)  = 3
-            //   minInitial  = 2113
-            decimal netFactor  = 1m - rrr;
-
-            int minInitial;
-            int lastBuffer;
-
-            if (!ingredient.ParticipatesInReturn)
-            {
-                // Sin retorno (maxreturnamount="0"): consume exactamente perCycle × qty.
-                // No hay cadena de retornos ni buffer — cada ciclo consume lo suyo.
-                minInitial = gross;
-                lastBuffer = 0;
-            }
-            else if (qty == 1)
-            {
-                // Un solo ciclo con retorno: se necesita exactamente perCycle.
-                // El sobrante es el retorno de ese único ciclo.
-                minInitial = perCycle;
-                lastBuffer = (int)Math.Floor(perCycle * rrr);
-            }
-            else
-            {
-                int netConsumed = (int)Math.Ceiling(gross    * netFactor);
-                lastBuffer  = (int)Math.Ceiling(perCycle * netFactor);
-                minInitial  = netConsumed + lastBuffer;
-            }
-
-            // El sobrante en inventario al terminar = el buffer del último ciclo.
-            int returnedTotal = ingredient.ParticipatesInReturn ? lastBuffer : 0;
-
-            lines.Add(new MaterialCostLine(
-                ItemId:           ingredient.ItemId,
-                GrossQuantity:    gross,
-                NetToBuy:         minInitial,
-                ReturnedQuantity: ingredient.ParticipatesInReturn ? returnedTotal : 0,
-                BuyLocation:      request.City!.Name,
-                UnitPrice:        stock?.UnitPrice ?? 0m));
-        }
-
-        return lines;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
