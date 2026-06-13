@@ -1176,6 +1176,144 @@
                         </Border>
                     </StackPanel>
 
+                    <!-- ── ROI y Margen ──────────────────────────────────── -->
+                    <StackPanel Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}"
+                                Margin="0 8 0 0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="ROI" FontSize="11" FontWeight="SemiBold" Opacity="0.65" />
+                                <TextBlock FontSize="16" FontWeight="Bold"
+                                           Text="{Binding Roi, StringFormat={}{0:P1}}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#4CAF50" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsProfitable}" Value="False">
+                                                    <Setter Property="Foreground" Value="#F44336" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="Margen" FontSize="11" FontWeight="SemiBold" Opacity="0.65" />
+                                <TextBlock FontSize="16" FontWeight="Bold"
+                                           Text="{Binding Margin, StringFormat={}{0:P1}}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#4CAF50" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsProfitable}" Value="False">
+                                                    <Setter Property="Foreground" Value="#F44336" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- ── Comparación con / sin foco ───────────────────── -->
+                    <Expander Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}"
+                              Margin="0 10 0 0"
+                              IsExpanded="False">
+                        <Expander.Header>
+                            <TextBlock Text="COMPARACIÓN: Con vs. Sin Foco"
+                                       FontSize="11" FontWeight="SemiBold" Opacity="0.65" />
+                        </Expander.Header>
+
+                        <StackPanel Margin="0 10 0 0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Sin foco -->
+                                <Border Grid.Column="0" CornerRadius="6" Padding="10 8"
+                                        Background="{DynamicResource MaterialDesign.Brush.Card.Background}"
+                                        BorderThickness="1"
+                                        BorderBrush="{DynamicResource MaterialDesign.Brush.Separator}">
+                                    <StackPanel>
+                                        <TextBlock Text="Sin foco" FontSize="11" FontWeight="SemiBold"
+                                                   Opacity="0.55" Margin="0 0 0 6" />
+                                        <DockPanel Margin="0 2">
+                                            <TextBlock DockPanel.Dock="Left" Text="Ganancia"
+                                                       FontSize="11" Opacity="0.7" VerticalAlignment="Center" />
+                                            <TextBlock DockPanel.Dock="Right" FontSize="12" FontWeight="SemiBold"
+                                                       HorizontalAlignment="Right"
+                                                       Text="{Binding ProfitLossNoFocus, StringFormat={}{0:N0} ₪}" />
+                                        </DockPanel>
+                                        <DockPanel Margin="0 2">
+                                            <TextBlock DockPanel.Dock="Left" Text="ROI"
+                                                       FontSize="11" Opacity="0.7" VerticalAlignment="Center" />
+                                            <TextBlock DockPanel.Dock="Right" FontSize="12" FontWeight="SemiBold"
+                                                       HorizontalAlignment="Right"
+                                                       Text="{Binding RoiNoFocus, StringFormat={}{0:P1}}" />
+                                        </DockPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Con foco -->
+                                <Border Grid.Column="2" CornerRadius="6" Padding="10 8">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{DynamicResource MaterialDesign.Brush.Card.Background}" />
+                                            <Setter Property="BorderThickness" Value="1.5" />
+                                            <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesign.Brush.Separator}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding UseFocus}" Value="True">
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesign.Brush.Primary}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <DockPanel Margin="0 0 0 6">
+                                            <TextBlock DockPanel.Dock="Left" Text="Con foco"
+                                                       FontSize="11" FontWeight="SemiBold" Opacity="0.55" />
+                                            <md:PackIcon DockPanel.Dock="Right" Kind="Check"
+                                                         Width="14" Height="14" VerticalAlignment="Center"
+                                                         Foreground="{DynamicResource MaterialDesign.Brush.Primary}">
+                                                <md:PackIcon.Style>
+                                                    <Style TargetType="md:PackIcon">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding UseFocus}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </md:PackIcon.Style>
+                                            </md:PackIcon>
+                                        </DockPanel>
+                                        <DockPanel Margin="0 2">
+                                            <TextBlock DockPanel.Dock="Left" Text="Ganancia"
+                                                       FontSize="11" Opacity="0.7" VerticalAlignment="Center" />
+                                            <TextBlock DockPanel.Dock="Right" FontSize="12" FontWeight="SemiBold"
+                                                       HorizontalAlignment="Right"
+                                                       Text="{Binding ProfitLoss, StringFormat={}{0:N0} ₪}" />
+                                        </DockPanel>
+                                        <DockPanel Margin="0 2">
+                                            <TextBlock DockPanel.Dock="Left" Text="ROI"
+                                                       FontSize="11" Opacity="0.7" VerticalAlignment="Center" />
+                                            <TextBlock DockPanel.Dock="Right" FontSize="12" FontWeight="SemiBold"
+                                                       HorizontalAlignment="Right"
+                                                       Text="{Binding Roi, StringFormat={}{0:P1}}" />
+                                        </DockPanel>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </StackPanel>
+                    </Expander>
+
                     <!-- ── Fama ────────────────────────────────────────── -->
                     <StackPanel Visibility="{Binding HasFame, Converter={StaticResource BoolToVis}}">
                         <Separator Style="{StaticResource CardDivider}" />
